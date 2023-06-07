@@ -1,5 +1,5 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
-import { Contract } from 'ethers'
+import { Contract, ContractFactory } from 'ethers'
 import { Artifacts } from 'hardhat/internal/artifacts'
 import { Artifact, LinkReferences } from 'hardhat/types'
 import path from 'path'
@@ -19,11 +19,34 @@ export async function deploy(
   from?: SignerWithAddress,
   libraries?: Libraries
 ): Promise<Contract> {
+  const factory = await getFactoryContract(nameOrArtifact, libraries)
+  return deployWithFactory(factory, args, from)
+}
+
+export async function deployWithFactory(
+  factory: ContractFactory,
+  args: Array<any> = [],
+  from?: SignerWithAddress
+): Promise<Contract> {
   if (!args) args = []
   if (!from) from = await getSigner()
-  const factory = await getFactoryContract(nameOrArtifact, libraries)
   const instance = await factory.connect(from).deploy(...args)
   return instance.deployed()
+}
+
+export async function deployProxy(
+  nameOrArtifact: string | ArtifactLike,
+  args: Array<any> = [],
+  initArgs: Array<any> = [],
+  from?: SignerWithAddress,
+  libraries?: Libraries
+): Promise<Contract> {
+  const implementation = await deploy(nameOrArtifact, args, from, libraries)
+  const proxyBytecode = `0x3d602d80600a3d3981f3363d3d373d3d3d363d73${implementation.address.slice(2)}5af43d82803e903d91602b57fd5bf3`
+  const factory = await getFactoryContractForBytecode(nameOrArtifact, proxyBytecode)
+  const instance = await deployWithFactory(factory, [], from)
+  await instance.initialize(...initArgs)
+  return instance
 }
 
 export async function getCreationCode(
@@ -37,11 +60,16 @@ export async function getCreationCode(
   return transaction.data?.toString() || '0x'
 }
 
-async function getFactoryContract(nameOrArtifact: string | ArtifactLike, libraries: Libraries | undefined) {
+async function getFactoryContract(nameOrArtifact: string | ArtifactLike, libraries: Libraries | undefined): Promise<ContractFactory> {
   const artifact = typeof nameOrArtifact === 'string' ? await getArtifact(nameOrArtifact) : nameOrArtifact
   if (libraries !== undefined) artifact.bytecode = linkBytecode(artifact, libraries)
+  return getFactoryContractForBytecode(nameOrArtifact, artifact.bytecode)
+}
+
+async function getFactoryContractForBytecode(nameOrArtifact: string | ArtifactLike, bytecode: string): Promise<ContractFactory> {
+  const artifact = typeof nameOrArtifact === 'string' ? await getArtifact(nameOrArtifact) : nameOrArtifact
   const { ethers } = await import('hardhat')
-  return ethers.getContractFactory(artifact.abi, artifact.bytecode)
+  return ethers.getContractFactory(artifact.abi, bytecode)
 }
 
 export async function instanceAt(nameOrArtifact: string | any, address: string): Promise<Contract> {
