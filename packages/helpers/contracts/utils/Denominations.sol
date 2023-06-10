@@ -12,17 +12,20 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
- * @title IPriceFeedProvider
- * @dev Contract providing price feed references for (base, quote) token pairs
+ * @title Denominations
+ * @dev Provides a list of ground denominations for those tokens that cannot be represented by an ERC20.
+ * For now, the only needed is the native token that could be ETH, MATIC, or other depending on the layer being operated.
  */
-interface IPriceFeedProvider {
-    /**
-     * @dev Tells the price feed address for (base, quote) pair. It returns the zero address if there is no one set.
-     * @param base Token to be rated
-     * @param quote Token used for the price rate
-     */
-    function getPriceFeed(address base, address quote) external view returns (address);
+library Denominations {
+    address internal constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    // Fiat currencies follow https://en.wikipedia.org/wiki/ISO_4217
+    address internal constant USD = address(840);
+
+    function isNativeToken(address token) internal pure returns (bool) {
+        return token == NATIVE_TOKEN;
+    }
 }
