@@ -41,7 +41,7 @@ describe('SmartVault', () => {
     await registry.connect(mimic).register('price-oracle@0.0.1', priceOracle.address)
   })
 
-  beforeEach('create provider', async () => {
+  beforeEach('create smart vault', async () => {
     authorizer = await deployProxy(
       '@mimic-fi/v3-authorizer/artifacts/contracts/Authorizer.sol/Authorizer',
       [],
@@ -59,12 +59,20 @@ describe('SmartVault', () => {
       expect(await smartVault.registry()).to.be.equal(registry.address)
     })
 
-    it('has an authorizer reference', async () => {
-      expect(await smartVault.authorizer()).to.be.equal(authorizer.address)
+    it('has a fee controller reference', async () => {
+      expect(await smartVault.feeController()).to.be.equal(feeController.address)
     })
 
     it('has a wrapped native token reference', async () => {
       expect(await smartVault.wrappedNativeToken()).to.be.equal(wrappedNT.address)
+    })
+
+    it('has an authorizer reference', async () => {
+      expect(await smartVault.authorizer()).to.be.equal(authorizer.address)
+    })
+
+    it('has a price oracle reference', async () => {
+      expect(await smartVault.priceOracle()).to.be.equal(priceOracle.address)
     })
 
     it('cannot be initialized twice', async () => {
@@ -153,13 +161,9 @@ describe('SmartVault', () => {
   })
 
   describe('setPriceFeed', () => {
-    let base: Contract, quote: Contract, feed: Contract
-
-    beforeEach('deploy feed and tokens', async () => {
-      feed = await deploy('FeedMock', [0, 0])
-      base = await deploy('TokenMock', ['BASE'])
-      quote = await deploy('TokenMock', ['QUOTE'])
-    })
+    const BASE = '0x0000000000000000000000000000000000000001'
+    const QUOTE = '0x0000000000000000000000000000000000000002'
+    const FEED = '0x0000000000000000000000000000000000000003'
 
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async () => {
@@ -170,28 +174,28 @@ describe('SmartVault', () => {
 
       const itCanBeSet = () => {
         it('can be set', async () => {
-          const tx = await smartVault.setPriceFeed(base.address, quote.address, feed.address)
+          const tx = await smartVault.setPriceFeed(BASE, QUOTE, FEED)
 
-          expect(await smartVault.getPriceFeed(base.address, quote.address)).to.be.equal(feed.address)
+          expect(await smartVault.getPriceFeed(BASE, QUOTE)).to.be.equal(FEED)
 
-          await assertEvent(tx, 'PriceFeedSet', { base, quote, feed })
+          await assertEvent(tx, 'PriceFeedSet', { base: BASE, quote: QUOTE, feed: FEED })
         })
       }
 
       const itCanBeUnset = () => {
         it('can be unset', async () => {
-          const tx = await smartVault.setPriceFeed(base.address, quote.address, ZERO_ADDRESS)
+          const tx = await smartVault.setPriceFeed(BASE, QUOTE, ZERO_ADDRESS)
 
-          expect(await smartVault.getPriceFeed(base.address, quote.address)).to.be.equal(ZERO_ADDRESS)
+          expect(await smartVault.getPriceFeed(BASE, QUOTE)).to.be.equal(ZERO_ADDRESS)
 
-          await assertEvent(tx, 'PriceFeedSet', { base, quote, feed: ZERO_ADDRESS })
+          await assertEvent(tx, 'PriceFeedSet', { base: BASE, quote: QUOTE, feed: ZERO_ADDRESS })
         })
       }
 
       context('when the feed is set', () => {
         beforeEach('set feed', async () => {
-          await smartVault.setPriceFeed(base.address, quote.address, feed.address)
-          expect(await smartVault.getPriceFeed(base.address, quote.address)).to.be.equal(feed.address)
+          await smartVault.setPriceFeed(BASE, QUOTE, FEED)
+          expect(await smartVault.getPriceFeed(BASE, QUOTE)).to.be.equal(FEED)
         })
 
         itCanBeSet()
@@ -200,8 +204,8 @@ describe('SmartVault', () => {
 
       context('when the feed is not set', () => {
         beforeEach('unset feed', async () => {
-          await smartVault.setPriceFeed(base.address, quote.address, ZERO_ADDRESS)
-          expect(await smartVault.getPriceFeed(base.address, quote.address)).to.be.equal(ZERO_ADDRESS)
+          await smartVault.setPriceFeed(BASE, QUOTE, ZERO_ADDRESS)
+          expect(await smartVault.getPriceFeed(BASE, QUOTE)).to.be.equal(ZERO_ADDRESS)
         })
 
         itCanBeSet()
@@ -211,9 +215,7 @@ describe('SmartVault', () => {
 
     context('when sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.setPriceFeed(base.address, quote.address, feed.address)).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
-        )
+        await expect(smartVault.setPriceFeed(BASE, QUOTE, FEED)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })

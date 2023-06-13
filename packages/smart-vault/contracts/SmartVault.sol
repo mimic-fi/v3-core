@@ -73,6 +73,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @param _wrappedNativeToken Address of the wrapped native token to be used
      */
     constructor(address _registry, address _feeController, address _wrappedNativeToken) {
+        _disableInitializers();
         registry = _registry;
         feeController = _feeController;
         wrappedNativeToken = _wrappedNativeToken;
@@ -80,7 +81,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
 
     /**
      * @dev Initializes the Smart Vault instance
-     * @param _authorizer Address that will be granted with admin rights
+     * @param _authorizer Address of the authorizer to be linked
      * @param _priceOracle Address of the price oracle to be set
      * @param _feeds List of price feeds to be set
      */
@@ -88,7 +89,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         __ReentrancyGuard_init();
         _initialize(_authorizer);
         _setPriceOracle(_priceOracle);
-        for (uint256 i = 0; i < _feeds.length; i++) _setPriceFeed(_feeds[i].base, _feeds[i].base, _feeds[i].feed);
+        for (uint256 i = 0; i < _feeds.length; i++) _setPriceFeed(_feeds[i].base, _feeds[i].quote, _feeds[i].feed);
     }
 
     /**
