@@ -20,13 +20,11 @@ pragma solidity ^0.8.17;
  */
 contract AuthorizedHelpers {
     function authParams(address p1) internal pure returns (uint256[] memory r) {
-        r = new uint256[](1);
-        r[0] = uint256(uint160(p1));
+        return authParams(uint256(uint160(p1)));
     }
 
     function authParams(bytes32 p1) internal pure returns (uint256[] memory r) {
-        r = new uint256[](1);
-        r[0] = uint256(p1);
+        return authParams(uint256(p1));
     }
 
     function authParams(uint256 p1) internal pure returns (uint256[] memory r) {
@@ -38,6 +36,12 @@ contract AuthorizedHelpers {
         r = new uint256[](2);
         r[0] = uint256(uint160(p1));
         r[1] = p2 ? 1 : 0;
+    }
+
+    function authParams(address p1, uint256 p2) internal pure returns (uint256[] memory r) {
+        r = new uint256[](2);
+        r[0] = uint256(uint160(p1));
+        r[1] = p2;
     }
 
     function authParams(address p1, address p2, uint256 p3) internal pure returns (uint256[] memory r) {
