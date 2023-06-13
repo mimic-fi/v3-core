@@ -98,7 +98,7 @@ contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
      * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to query the native token balance
      */
     function getSmartVaultBalance(address token) public view override returns (uint256) {
-        return ERC20Helpers.balanceOf(token, address(smartVault));
+        return ERC20Helpers.balanceOf(token, smartVault);
     }
 
     /**
