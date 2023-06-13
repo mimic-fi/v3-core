@@ -41,30 +41,42 @@ interface IFeeController {
     /**
      * @dev Tells the default fee percentage
      */
-    function getDefaultFeePercentage() external view returns (uint256);
+    function defaultFeePercentage() external view returns (uint256);
 
     /**
      * @dev Tells the default fee collector
      */
-    function getDefaultFeeCollector() external view returns (address);
+    function defaultFeeCollector() external view returns (address);
 
     /**
-     * @dev Tells the fee information for a smart vault
+     * @dev Tells the custom fee percentage set for a smart vault
+     * @param smartVault Address of the smart vault being queried
+     */
+    function getCustomFeePercentage(address smartVault) external view returns (uint256);
+
+    /**
+     * @dev Tells the custom fee collector set for a smart vault
+     * @param smartVault Address of the smart vault being queried
+     */
+    function getCustomFeeCollector(address smartVault) external view returns (address);
+
+    /**
+     * @dev Tells the applicable fee information for a smart vault
      * @param smartVault Address of the smart vault being queried
      */
     function getFee(address smartVault) external view returns (uint256 pct, address collector);
 
     /**
-     * @dev Tells the fee percentage for a smart vault
+     * @dev Tells the applicable fee percentage for a smart vault
      * @param smartVault Address of the smart vault being queried
      */
-    function getFeePercentage(address smartVault) external view returns (uint256);
+    function getApplicableFeePercentage(address smartVault) external view returns (uint256);
 
     /**
-     * @dev Tells the fee collector for a smart vault
+     * @dev Tells the applicable fee collector for a smart vault
      * @param smartVault Address of the smart vault being queried
      */
-    function getFeeCollector(address smartVault) external view returns (address);
+    function getApplicableFeeCollector(address smartVault) external view returns (address);
 
     /**
      * @dev Sets the default fee percentage

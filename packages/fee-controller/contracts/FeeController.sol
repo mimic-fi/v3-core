@@ -26,16 +26,16 @@ import './interfaces/IFeeController.sol';
  */
 contract FeeController is IFeeController, Ownable {
     // Default fee percentage
-    uint256 private _defaultFeePercentage;
+    uint256 public override defaultFeePercentage;
 
     // Address of the default collector
-    address private _defaultFeeCollector;
+    address public override defaultFeeCollector;
 
     // List of custom fee percentages indexed by smart vault address
-    mapping (address => uint256) private _customFeePercentage;
+    mapping (address => uint256) public override getCustomFeePercentage;
 
     // List of custom fee collectors indexed by smart vault address
-    mapping (address => address) private _customFeeCollector;
+    mapping (address => address) public override getCustomFeeCollector;
 
     /**
      * @dev Creates a new Fee collector contract
@@ -50,43 +50,29 @@ contract FeeController is IFeeController, Ownable {
     }
 
     /**
-     * @dev Tells the default fee percentage
-     */
-    function getDefaultFeePercentage() external view returns (uint256) {
-        return _defaultFeePercentage;
-    }
-
-    /**
-     * @dev Tells the default fee collector
-     */
-    function getDefaultFeeCollector() external view returns (address) {
-        return _defaultFeeCollector;
-    }
-
-    /**
-     * @dev Tells the fee information for a smart vault
+     * @dev Tells the applicable fee information for a smart vault
      * @param smartVault Address of the smart vault being queried
      */
     function getFee(address smartVault) external view override returns (uint256 pct, address collector) {
-        return (getFeePercentage(smartVault), getFeeCollector(smartVault));
+        return (getApplicableFeePercentage(smartVault), getApplicableFeeCollector(smartVault));
     }
 
     /**
-     * @dev Tells the fee percentage for a smart vault
+     * @dev Tells the applicable fee percentage for a smart vault
      * @param smartVault Address of the smart vault being queried
      */
-    function getFeePercentage(address smartVault) public view override returns (uint256) {
-        uint256 customFeePercentage = _customFeePercentage[smartVault];
-        return customFeePercentage > 0 ? customFeePercentage : _defaultFeePercentage;
+    function getApplicableFeePercentage(address smartVault) public view override returns (uint256) {
+        uint256 customFeePercentage = getCustomFeePercentage[smartVault];
+        return customFeePercentage > 0 ? customFeePercentage : defaultFeePercentage;
     }
 
     /**
-     * @dev Tells the fee collector for a smart vault
+     * @dev Tells the applicable fee collector for a smart vault
      * @param smartVault Address of the smart vault being queried
      */
-    function getFeeCollector(address smartVault) public view override returns (address) {
-        address customFeeCollector = _customFeeCollector[smartVault];
-        return customFeeCollector != address(0) ? customFeeCollector : _defaultFeeCollector;
+    function getApplicableFeeCollector(address smartVault) public view override returns (address) {
+        address customFeeCollector = getCustomFeeCollector[smartVault];
+        return customFeeCollector != address(0) ? customFeeCollector : defaultFeeCollector;
     }
 
     /**
@@ -112,7 +98,7 @@ contract FeeController is IFeeController, Ownable {
      */
     function setCustomFeePercentage(address smartVault, uint256 pct) external override onlyOwner {
         require(pct < FixedPoint.ONE, 'FEE_CONTROLLER_PCT_ABOVE_ONE');
-        _customFeePercentage[smartVault] = pct;
+        getCustomFeePercentage[smartVault] = pct;
         emit CustomFeePercentageSet(smartVault, pct);
     }
 
@@ -123,7 +109,7 @@ contract FeeController is IFeeController, Ownable {
      */
     function setCustomFeeCollector(address smartVault, address collector) external override onlyOwner {
         require(collector != address(0), 'FEE_CONTROLLER_COLLECTOR_ZERO');
-        _customFeeCollector[smartVault] = collector;
+        getCustomFeeCollector[smartVault] = collector;
         emit CustomFeeCollectorSet(smartVault, collector);
     }
 
@@ -133,7 +119,7 @@ contract FeeController is IFeeController, Ownable {
      */
     function _setDefaultFeePercentage(uint256 pct) private {
         require(pct < FixedPoint.ONE, 'FEE_CONTROLLER_PCT_ABOVE_ONE');
-        _defaultFeePercentage = pct;
+        defaultFeePercentage = pct;
         emit DefaultFeePercentageSet(pct);
     }
 
@@ -143,7 +129,7 @@ contract FeeController is IFeeController, Ownable {
      */
     function _setDefaultFeeCollector(address collector) private {
         require(collector != address(0), 'FEE_CONTROLLER_COLLECTOR_ZERO');
-        _defaultFeeCollector = collector;
+        defaultFeeCollector = collector;
         emit DefaultFeeCollectorSet(collector);
     }
 }

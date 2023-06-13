@@ -22,13 +22,13 @@ describe('FeeController', () => {
 
   describe('initialization', () => {
     it('sets the default percentage correctly', async () => {
-      expect(await feeController.getDefaultFeePercentage()).to.be.equal(FEE_PCT)
-      expect(await feeController.getFeePercentage(smartVault)).to.be.equal(FEE_PCT)
+      expect(await feeController.defaultFeePercentage()).to.be.equal(FEE_PCT)
+      expect(await feeController.getApplicableFeePercentage(smartVault)).to.be.equal(FEE_PCT)
     })
 
     it('sets the default collector correctly', async () => {
-      expect(await feeController.getDefaultFeeCollector()).to.be.equal(collector.address)
-      expect(await feeController.getFeeCollector(smartVault)).to.be.equal(collector.address)
+      expect(await feeController.defaultFeeCollector()).to.be.equal(collector.address)
+      expect(await feeController.getApplicableFeeCollector(smartVault)).to.be.equal(collector.address)
     })
 
     it('sets the owner correctly', async () => {
@@ -50,8 +50,8 @@ describe('FeeController', () => {
 
           await assertEvent(tx, 'DefaultFeePercentageSet', { pct: newFeePct })
 
-          expect(await feeController.getDefaultFeePercentage()).to.be.equal(newFeePct)
-          expect(await feeController.getFeePercentage(smartVault)).to.be.equal(newFeePct)
+          expect(await feeController.defaultFeePercentage()).to.be.equal(newFeePct)
+          expect(await feeController.getApplicableFeePercentage(smartVault)).to.be.equal(newFeePct)
         })
       })
 
@@ -91,8 +91,8 @@ describe('FeeController', () => {
 
           await assertEvent(tx, 'DefaultFeeCollectorSet', { collector: newCollector })
 
-          expect(await feeController.getDefaultFeeCollector()).to.be.equal(newCollector)
-          expect(await feeController.getFeeCollector(smartVault)).to.be.equal(newCollector)
+          expect(await feeController.defaultFeeCollector()).to.be.equal(newCollector)
+          expect(await feeController.getApplicableFeeCollector(smartVault)).to.be.equal(newCollector)
         })
       })
 
@@ -134,10 +134,10 @@ describe('FeeController', () => {
 
           await assertEvent(tx, 'CustomFeePercentageSet', { smartVault, pct: newFeePct })
 
-          expect(await feeController.getFeePercentage(smartVault)).to.be.equal(newFeePct)
+          expect(await feeController.getApplicableFeePercentage(smartVault)).to.be.equal(newFeePct)
 
-          expect(await feeController.getDefaultFeePercentage()).to.be.equal(FEE_PCT)
-          expect(await feeController.getFeePercentage(ZERO_ADDRESS)).to.be.equal(FEE_PCT)
+          expect(await feeController.defaultFeePercentage()).to.be.equal(FEE_PCT)
+          expect(await feeController.getApplicableFeePercentage(ZERO_ADDRESS)).to.be.equal(FEE_PCT)
         })
       })
 
@@ -179,10 +179,10 @@ describe('FeeController', () => {
 
           await assertEvent(tx, 'CustomFeeCollectorSet', { smartVault, collector: newCollector })
 
-          expect(await feeController.getFeeCollector(smartVault)).to.be.equal(newCollector)
+          expect(await feeController.getApplicableFeeCollector(smartVault)).to.be.equal(newCollector)
 
-          expect(await feeController.getDefaultFeeCollector()).to.be.equal(collector.address)
-          expect(await feeController.getFeeCollector(ZERO_ADDRESS)).to.be.equal(collector.address)
+          expect(await feeController.defaultFeeCollector()).to.be.equal(collector.address)
+          expect(await feeController.getApplicableFeeCollector(ZERO_ADDRESS)).to.be.equal(collector.address)
         })
       })
 
