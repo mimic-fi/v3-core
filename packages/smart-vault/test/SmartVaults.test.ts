@@ -16,8 +16,6 @@ import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
 
 describe('SmartVault', () => {
-  const FEE_PCT = fp(0.002)
-
   let smartVault: Contract
   let authorizer: Contract, priceOracle: Contract, registry: Contract, feeController: Contract, wrappedNT: Contract
   let owner: SignerWithAddress, mimic: SignerWithAddress, feeCollector: SignerWithAddress
@@ -31,7 +29,6 @@ describe('SmartVault', () => {
     wrappedNT = await deploy('WrappedNativeTokenMock')
     registry = await deploy('@mimic-fi/v3-registry/artifacts/contracts/Registry.sol/Registry', [mimic.address])
     feeController = await deploy('@mimic-fi/v3-fee-controller/artifacts/contracts/FeeController.sol/FeeController', [
-      FEE_PCT,
       feeCollector.address,
       mimic.address,
     ])
@@ -519,8 +516,6 @@ describe('SmartVault', () => {
     let recipient: SignerWithAddress
 
     const amount = fp(10)
-    const expectedFees = amount.mul(FEE_PCT).div(fp(1))
-    const amountAfterFees = amount.sub(expectedFees)
 
     before('deploy token', async () => {
       recipient = await getSigner()
@@ -533,103 +528,121 @@ describe('SmartVault', () => {
         smartVault = smartVault.connect(owner)
       })
 
-      context('when withdrawing ERC20 tokens', async () => {
-        let token: Contract
+      context('when the fee percentage was set', async () => {
+        const feePct = fp(0.002)
+        const expectedFees = amount.mul(feePct).div(fp(1))
+        const amountAfterFees = amount.sub(expectedFees)
 
-        before('deploy token', async () => {
-          token = await deploy('TokenMock', ['USDC'])
+        beforeEach('set fee percentage', async () => {
+          await feeController.connect(mimic).setMaxFeePercentage(smartVault.address, feePct)
         })
 
-        context('when the smart vault has enough balance', async () => {
-          beforeEach('mint tokens', async () => {
-            await token.mint(smartVault.address, amount)
+        context('when withdrawing ERC20 tokens', async () => {
+          let token: Contract
+
+          before('deploy token', async () => {
+            token = await deploy('TokenMock', ['USDC'])
           })
 
-          it('transfers the tokens to the recipient', async () => {
-            const previousSmartVaultBalance = await token.balanceOf(smartVault.address)
-            const previousRecipientBalance = await token.balanceOf(recipient.address)
-            const previousFeeCollectorBalance = await token.balanceOf(feeCollector.address)
+          context('when the smart vault has enough balance', async () => {
+            beforeEach('mint tokens', async () => {
+              await token.mint(smartVault.address, amount)
+            })
 
-            await smartVault.withdraw(token.address, recipient.address, amount)
+            it('transfers the tokens to the recipient', async () => {
+              const previousSmartVaultBalance = await token.balanceOf(smartVault.address)
+              const previousRecipientBalance = await token.balanceOf(recipient.address)
+              const previousFeeCollectorBalance = await token.balanceOf(feeCollector.address)
 
-            const currentSmartVaultBalance = await token.balanceOf(smartVault.address)
-            expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.sub(amount))
+              await smartVault.withdraw(token.address, recipient.address, amount)
 
-            const currentRecipientBalance = await token.balanceOf(recipient.address)
-            expect(currentRecipientBalance).to.be.equal(previousRecipientBalance.add(amountAfterFees))
+              const currentSmartVaultBalance = await token.balanceOf(smartVault.address)
+              expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.sub(amount))
 
-            const currentFeeCollectorBalance = await token.balanceOf(feeCollector.address)
-            expect(currentFeeCollectorBalance).to.be.equal(previousFeeCollectorBalance.add(expectedFees))
+              const currentRecipientBalance = await token.balanceOf(recipient.address)
+              expect(currentRecipientBalance).to.be.equal(previousRecipientBalance.add(amountAfterFees))
+
+              const currentFeeCollectorBalance = await token.balanceOf(feeCollector.address)
+              expect(currentFeeCollectorBalance).to.be.equal(previousFeeCollectorBalance.add(expectedFees))
+            })
+
+            it('emits an event', async () => {
+              const tx = await smartVault.withdraw(token.address, recipient.address, amount)
+
+              await assertEvent(tx, 'Withdrawn', {
+                token,
+                amount: amountAfterFees,
+                recipient,
+                fee: expectedFees,
+              })
+            })
           })
 
-          it('emits an event', async () => {
-            const tx = await smartVault.withdraw(token.address, recipient.address, amount)
-
-            await assertEvent(tx, 'Withdrawn', {
-              token,
-              amount: amountAfterFees,
-              recipient,
-              fee: expectedFees,
+          context('when the smart vault does not have enough balance', async () => {
+            it('reverts', async () => {
+              await expect(smartVault.withdraw(token.address, recipient.address, amount)).to.be.revertedWith(
+                'ERC20: transfer amount exceeds balance'
+              )
             })
           })
         })
 
-        context('when the smart vault does not have enough balance', async () => {
-          it('reverts', async () => {
-            await expect(smartVault.withdraw(token.address, recipient.address, amount)).to.be.revertedWith(
-              'ERC20: transfer amount exceeds balance'
-            )
+        context('when withdrawing native tokens', () => {
+          let token: string
+
+          beforeEach('set token address', async () => {
+            token = NATIVE_TOKEN_ADDRESS
+          })
+
+          context('when the smart vault has enough balance', async () => {
+            beforeEach('deposit native tokens', async () => {
+              await owner.sendTransaction({ to: smartVault.address, value: amount })
+            })
+
+            it('transfers the tokens to the recipient', async () => {
+              const previousSmartVaultBalance = await ethers.provider.getBalance(smartVault.address)
+              const previousRecipientBalance = await ethers.provider.getBalance(recipient.address)
+              const previousFeeCollectorBalance = await ethers.provider.getBalance(feeCollector.address)
+
+              await smartVault.withdraw(token, recipient.address, amount)
+
+              const currentSmartVaultBalance = await ethers.provider.getBalance(smartVault.address)
+              expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.sub(amount))
+
+              const currentRecipientBalance = await ethers.provider.getBalance(recipient.address)
+              expect(currentRecipientBalance).to.be.equal(previousRecipientBalance.add(amountAfterFees))
+
+              const currentFeeCollectorBalance = await ethers.provider.getBalance(feeCollector.address)
+              expect(currentFeeCollectorBalance).to.be.equal(previousFeeCollectorBalance.add(expectedFees))
+            })
+
+            it('emits an event', async () => {
+              const tx = await smartVault.withdraw(token, recipient.address, amount)
+
+              await assertEvent(tx, 'Withdrawn', {
+                token,
+                amount: amountAfterFees,
+                recipient,
+                fee: expectedFees,
+              })
+            })
+          })
+
+          context('when the smart vault does not have enough balance', async () => {
+            it('reverts', async () => {
+              await expect(smartVault.withdraw(token, recipient.address, amount)).to.be.revertedWith(
+                'Address: insufficient balance'
+              )
+            })
           })
         })
       })
 
-      context('when withdrawing native tokens', () => {
-        let token: string
-
-        beforeEach('set token address', async () => {
-          token = NATIVE_TOKEN_ADDRESS
-        })
-
-        context('when the smart vault has enough balance', async () => {
-          beforeEach('deposit native tokens', async () => {
-            await owner.sendTransaction({ to: smartVault.address, value: amount })
-          })
-
-          it('transfers the tokens to the recipient', async () => {
-            const previousSmartVaultBalance = await ethers.provider.getBalance(smartVault.address)
-            const previousRecipientBalance = await ethers.provider.getBalance(recipient.address)
-            const previousFeeCollectorBalance = await ethers.provider.getBalance(feeCollector.address)
-
-            await smartVault.withdraw(token, recipient.address, amount)
-
-            const currentSmartVaultBalance = await ethers.provider.getBalance(smartVault.address)
-            expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.sub(amount))
-
-            const currentRecipientBalance = await ethers.provider.getBalance(recipient.address)
-            expect(currentRecipientBalance).to.be.equal(previousRecipientBalance.add(amountAfterFees))
-
-            const currentFeeCollectorBalance = await ethers.provider.getBalance(feeCollector.address)
-            expect(currentFeeCollectorBalance).to.be.equal(previousFeeCollectorBalance.add(expectedFees))
-          })
-
-          it('emits an event', async () => {
-            const tx = await smartVault.withdraw(token, recipient.address, amount)
-
-            await assertEvent(tx, 'Withdrawn', {
-              token,
-              amount: amountAfterFees,
-              recipient,
-              fee: expectedFees,
-            })
-          })
-        })
-
-        context('when the smart vault does not have enough balance', async () => {
-          it('reverts', async () => {
-            await expect(smartVault.withdraw(token, recipient.address, amount)).to.be.revertedWith(
-              'Address: insufficient balance'
-            )
-          })
+      context('when the fee percentage was not set', async () => {
+        it('reverts', async () => {
+          await expect(smartVault.withdraw(ZERO_ADDRESS, recipient.address, amount)).to.be.revertedWith(
+            'FEE_CONTROLLER_SV_NOT_SET'
+          )
         })
       })
     })

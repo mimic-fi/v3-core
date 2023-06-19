@@ -19,29 +19,24 @@ pragma solidity >=0.8.0;
  */
 interface IFeeController {
     /**
-     * @dev Emitted every time a default fee percentage is set
-     */
-    event DefaultFeePercentageSet(uint256 pct);
-
-    /**
      * @dev Emitted every time a default fee collector is set
      */
     event DefaultFeeCollectorSet(address collector);
 
     /**
+     * @dev Emitted every time a max fee percentage is set for a smart vault
+     */
+    event MaxFeePercentageSet(address indexed smartVault, uint256 maxPct);
+
+    /**
      * @dev Emitted every time a custom fee percentage is set
      */
-    event CustomFeePercentageSet(address indexed smartVault, uint256 pct);
+    event FeePercentageSet(address indexed smartVault, uint256 pct);
 
     /**
      * @dev Emitted every time a custom fee collector is set
      */
-    event CustomFeeCollectorSet(address indexed smartVault, address collector);
-
-    /**
-     * @dev Tells the default fee percentage
-     */
-    function defaultFeePercentage() external view returns (uint256);
+    event FeeCollectorSet(address indexed smartVault, address collector);
 
     /**
      * @dev Tells the default fee collector
@@ -49,40 +44,16 @@ interface IFeeController {
     function defaultFeeCollector() external view returns (address);
 
     /**
-     * @dev Tells the custom fee percentage set for a smart vault
+     * @dev Tells if there is a fee set for a smart vault
      * @param smartVault Address of the smart vault being queried
      */
-    function getCustomFeePercentage(address smartVault) external view returns (uint256);
-
-    /**
-     * @dev Tells the custom fee collector set for a smart vault
-     * @param smartVault Address of the smart vault being queried
-     */
-    function getCustomFeeCollector(address smartVault) external view returns (address);
+    function hasFee(address smartVault) external view returns (bool);
 
     /**
      * @dev Tells the applicable fee information for a smart vault
      * @param smartVault Address of the smart vault being queried
      */
-    function getFee(address smartVault) external view returns (uint256 pct, address collector);
-
-    /**
-     * @dev Tells the applicable fee percentage for a smart vault
-     * @param smartVault Address of the smart vault being queried
-     */
-    function getApplicableFeePercentage(address smartVault) external view returns (uint256);
-
-    /**
-     * @dev Tells the applicable fee collector for a smart vault
-     * @param smartVault Address of the smart vault being queried
-     */
-    function getApplicableFeeCollector(address smartVault) external view returns (address);
-
-    /**
-     * @dev Sets the default fee percentage
-     * @param pct Default fee percentage to be set
-     */
-    function setDefaultFeePercentage(uint256 pct) external;
+    function getFee(address smartVault) external view returns (uint256 max, uint256 pct, address collector);
 
     /**
      * @dev Sets the default fee collector
@@ -91,16 +62,23 @@ interface IFeeController {
     function setDefaultFeeCollector(address collector) external;
 
     /**
-     * @dev Sets a custom fee percentage
+     * @dev Sets a max fee percentage for a smart vault
+     * @param smartVault Address of smart vault to set a fee percentage for
+     * @param maxPct Max fee percentage to be set
+     */
+    function setMaxFeePercentage(address smartVault, uint256 maxPct) external;
+
+    /**
+     * @dev Sets a fee percentage for a smart vault
      * @param smartVault Address of smart vault to set a fee percentage for
      * @param pct Fee percentage to be set
      */
-    function setCustomFeePercentage(address smartVault, uint256 pct) external;
+    function setFeePercentage(address smartVault, uint256 pct) external;
 
     /**
-     * @dev Sets a custom fee collector
+     * @dev Sets a fee collector for a smart vault
      * @param smartVault Address of smart vault to set a fee collector for
      * @param collector Fee collector to be set
      */
-    function setCustomFeeCollector(address smartVault, address collector) external;
+    function setFeeCollector(address smartVault, address collector) external;
 }

@@ -17,7 +17,6 @@ describe('BaseTask', () => {
     wrappedNT = await deploy('WrappedNativeTokenMock')
     registry = await deploy('@mimic-fi/v3-registry/artifacts/contracts/Registry.sol/Registry', [mimic.address])
     feeController = await deploy('@mimic-fi/v3-fee-controller/artifacts/contracts/FeeController.sol/FeeController', [
-      0,
       feeCollector.address,
       mimic.address,
     ])
