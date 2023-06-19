@@ -13,6 +13,7 @@
       "packages/helpers",
       "packages/registry",
       "packages/fee-controller",
+      "packages/price-oracle",
       "packages/authorizer",
       "packages/smart-vault",
       "packages/deployer"
