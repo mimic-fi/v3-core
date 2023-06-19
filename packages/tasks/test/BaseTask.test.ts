@@ -24,7 +24,7 @@ describe('BaseTask', () => {
     priceOracle = await deploy('@mimic-fi/v3-price-oracle/artifacts/contracts/PriceOracle.sol/PriceOracle', [
       wrappedNT.address,
     ])
-    await registry.connect(mimic).register('price-oracle@0.0.1', priceOracle.address)
+    await registry.connect(mimic).register('price-oracle@0.0.1', priceOracle.address, true)
   })
 
   beforeEach('create smart vault', async () => {

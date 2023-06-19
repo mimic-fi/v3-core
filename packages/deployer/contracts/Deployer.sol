@@ -76,10 +76,12 @@ contract Deployer {
 
     /**
      * @dev Task params
+     * @param custom Whether the implementation is custom or not, if it is it won't be checked with Mimic's Registry
      * @param impl Address of the task implementation to be used
      * @param initializeData Call-data to initialize the new task instance
      */
     struct TaskParams {
+        bool custom;
         address impl;
         bytes initializeData;
     }
@@ -102,7 +104,7 @@ contract Deployer {
      * @dev Deploys a new authorizer instance
      */
     function deployAuthorizer(string memory namespace, string memory name, AuthorizerParams memory params) external {
-        address instance = _deployClone(namespace, name, params.impl);
+        address instance = _deployClone(namespace, name, params.impl, true);
         Authorizer(instance).initialize(params.owners);
         emit AuthorizerDeployed(namespace, name, instance, params.impl);
     }
@@ -111,7 +113,7 @@ contract Deployer {
      * @dev Deploys a new smart vault instance
      */
     function deploySmartVault(string memory namespace, string memory name, SmartVaultParams memory params) external {
-        address payable instance = payable(_deployClone(namespace, name, params.impl));
+        address payable instance = payable(_deployClone(namespace, name, params.impl, true));
         SmartVault(instance).initialize(params.authorizer, params.priceOracle, params.priceFeedParams);
         emit SmartVaultDeployed(namespace, name, instance, params.impl);
     }
@@ -120,7 +122,7 @@ contract Deployer {
      * @dev Deploys a new task instance
      */
     function deployTask(string memory namespace, string memory name, TaskParams memory params) external {
-        address instance = _deployClone(namespace, name, params.impl);
+        address instance = _deployClone(namespace, name, params.impl, !params.custom);
         if (params.initializeData.length > 0) instance.functionCall(params.initializeData, 'DEPLOYER_TASK_INIT_FAILED');
         emit TaskDeployed(namespace, name, instance, params.impl);
     }
@@ -128,12 +130,14 @@ contract Deployer {
     /**
      * @dev Deploys a new clone using CREATE3
      */
-    function _deployClone(string memory namespace, string memory name, address implementation)
+    function _deployClone(string memory namespace, string memory name, address implementation, bool check)
         internal
         returns (address)
     {
-        require(registry.isRegistered(implementation), 'DEPLOYER_IMPL_NOT_REGISTERED');
-        require(!registry.isDeprecated(implementation), 'DEPLOYER_IMPL_DEPRECATED');
+        if (check) {
+            require(registry.isRegistered(implementation), 'DEPLOYER_IMPL_NOT_REGISTERED');
+            require(!registry.isDeprecated(implementation), 'DEPLOYER_IMPL_DEPRECATED');
+        }
 
         bytes memory bytecode = abi.encodePacked(
             hex'3d602d80600a3d3981f3363d3d373d3d3d363d73',

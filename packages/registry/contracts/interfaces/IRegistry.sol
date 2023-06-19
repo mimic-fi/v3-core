@@ -25,7 +25,7 @@ interface IRegistry {
     /**
      * @dev Emitted every time an implementation is registered
      */
-    event Registered(address indexed implementation, string name);
+    event Registered(address indexed implementation, string name, bool stateless);
 
     /**
      * @dev Emitted every time an implementation is deprecated
@@ -39,6 +39,12 @@ interface IRegistry {
     function isRegistered(address implementation) external view returns (bool);
 
     /**
+     * @dev Tells whether an implementation is stateless or not
+     * @param implementation Address of the implementation being queried
+     */
+    function isStateless(address implementation) external view returns (bool);
+
+    /**
      * @dev Tells whether an implementation is deprecated
      * @param implementation Address of the implementation being queried
      */
@@ -48,15 +54,17 @@ interface IRegistry {
      * @dev Creates and registers an implementation
      * @param name Name of the implementation
      * @param code Code of the implementation to create and register
+     * @param stateless Whether the new implementation is considered stateless or not
      */
-    function create(string memory name, bytes memory code) external;
+    function create(string memory name, bytes memory code, bool stateless) external;
 
     /**
      * @dev Registers an implementation
      * @param name Name of the implementation
      * @param implementation Address of the implementation to be registered
+     * @param stateless Whether the given implementation is considered stateless or not
      */
-    function register(string memory name, address implementation) external;
+    function register(string memory name, address implementation, bool stateless) external;
 
     /**
      * @dev Deprecates an implementation
