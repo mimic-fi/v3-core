@@ -1,0 +1,37 @@
+name: Smart Vault CI
+
+env:
+  CI: true
+
+on:
+  push:
+    branches: "*"
+    paths:
+      - packages/smart-vault/**
+  pull_request:
+    branches: "*"
+    paths:
+      - packages/smart-vault/**
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Lint
+        run: yarn workspace @mimic-fi/v3-smart-vault lint
+      
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Test
+        run: yarn workspace @mimic-fi/v3-smart-vault test
+      
