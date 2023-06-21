@@ -12,17 +12,24 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
-/**
- * @title IPriceFeedProvider
- * @dev Contract providing price feed references for (base, quote) token pairs
- */
-interface IPriceFeedProvider {
-    /**
-     * @dev Tells the price feed address for (base, quote) pair. It returns the zero address if there is no one set.
-     * @param base Token to be rated
-     * @param quote Token used for the price rate
-     */
-    function getPriceFeed(address base, address quote) external view returns (address);
+import '../../utils/ERC20Helpers.sol';
+
+contract ERC20HelpersMock {
+    receive() external payable {
+        // solhint-disable-previous-line no-empty-blocks
+    }
+
+    function approve(address token, address to, uint256 amount) external {
+        ERC20Helpers.approve(token, to, amount);
+    }
+
+    function transfer(address token, address to, uint256 amount) external {
+        ERC20Helpers.transfer(token, to, amount);
+    }
+
+    function balanceOf(address token, address account) external view returns (uint256) {
+        return ERC20Helpers.balanceOf(token, account);
+    }
 }

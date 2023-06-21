@@ -15,7 +15,7 @@ describe('PriceOracle', () => {
     let provider: Contract, base: Contract, quote: Contract
 
     beforeEach('deploy provider', async () => {
-      provider = await deploy('PriceFeedProvider')
+      provider = await deploy('PriceFeedProviderMock')
     })
 
     context('when there is no feed', () => {

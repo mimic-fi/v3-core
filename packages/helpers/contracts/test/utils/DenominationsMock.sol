@@ -12,17 +12,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
-/**
- * @title IPriceFeedProvider
- * @dev Contract providing price feed references for (base, quote) token pairs
- */
-interface IPriceFeedProvider {
-    /**
-     * @dev Tells the price feed address for (base, quote) pair. It returns the zero address if there is no one set.
-     * @param base Token to be rated
-     * @param quote Token used for the price rate
-     */
-    function getPriceFeed(address base, address quote) external view returns (address);
+import '../../utils/Denominations.sol';
+
+// solhint-disable func-name-mixedcase
+
+contract DenominationsMock {
+    function NATIVE_TOKEN() external pure returns (address) {
+        return Denominations.NATIVE_TOKEN;
+    }
 }

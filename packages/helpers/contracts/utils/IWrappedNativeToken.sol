@@ -12,17 +12,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
+
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 /**
- * @title IPriceFeedProvider
- * @dev Contract providing price feed references for (base, quote) token pairs
+ * @title IWrappedNativeToken
  */
-interface IPriceFeedProvider {
+interface IWrappedNativeToken is IERC20 {
     /**
-     * @dev Tells the price feed address for (base, quote) pair. It returns the zero address if there is no one set.
-     * @param base Token to be rated
-     * @param quote Token used for the price rate
+     * @dev Wraps msg.value into the wrapped-native token
      */
-    function getPriceFeed(address base, address quote) external view returns (address);
+    function deposit() external payable;
+
+    /**
+     * @dev Unwraps requested amount to the native token
+     */
+    function withdraw(uint256 amount) external;
 }

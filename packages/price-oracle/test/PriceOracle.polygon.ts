@@ -28,7 +28,7 @@ describe('PriceOracle', () => {
 
   before('create price oracle', async () => {
     oracle = await deploy('PriceOracle', [USD, ZERO_ADDRESS])
-    provider = await deploy('PriceFeedProvider')
+    provider = await deploy('PriceFeedProviderMock')
   })
 
   context('WETH - DAI', () => {
