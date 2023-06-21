@@ -38,7 +38,7 @@ describe('SmartVault', () => {
     priceOracle = await deploy('@mimic-fi/v3-price-oracle/artifacts/contracts/PriceOracle.sol/PriceOracle', [
       wrappedNT.address,
     ])
-    await registry.connect(mimic).register('price-oracle@0.0.1', priceOracle.address)
+    await registry.connect(mimic).register('price-oracle@0.0.1', priceOracle.address, true)
   })
 
   beforeEach('create smart vault', async () => {
@@ -112,7 +112,7 @@ describe('SmartVault', () => {
 
       context('when the implementation is registered', async () => {
         beforeEach('deploy implementation', async () => {
-          await registry.connect(mimic).register('price-oracle@0.0.2', newPriceOracle.address)
+          await registry.connect(mimic).register('price-oracle@0.0.2', newPriceOracle.address, true)
         })
 
         context('when the implementation is not deprecated', async () => {
@@ -327,21 +327,39 @@ describe('SmartVault', () => {
       }
 
       context('when the connector is registered', async () => {
-        beforeEach('deploy connector', async () => {
-          await registry.connect(mimic).register('connector@0.0.1', connector.address)
+        context('when the connector is stateless', async () => {
+          const stateless = true
+
+          beforeEach('deploy connector', async () => {
+            await registry.connect(mimic).register('connector@0.0.1', connector.address, stateless)
+          })
+
+          context('when the connector is not deprecated', async () => {
+            itExecutesTheConnector()
+          })
+
+          context('when the connector is deprecated', async () => {
+            beforeEach('deprecate connector', async () => {
+              await registry.connect(mimic).deprecate(connector.address)
+            })
+
+            it('reverts', async () => {
+              await expect(smartVault.execute(connector.address, data)).to.be.revertedWith('SMART_VAULT_DEP_DEPRECATED')
+            })
+          })
         })
 
-        context('when the connector is not deprecated', async () => {
-          itExecutesTheConnector()
-        })
+        context('when the connector is stateful', async () => {
+          const stateless = false
 
-        context('when the connector is deprecated', async () => {
-          beforeEach('deprecate connector', async () => {
-            await registry.connect(mimic).deprecate(connector.address)
+          beforeEach('deploy connector', async () => {
+            await registry.connect(mimic).register('connector@0.0.1', connector.address, stateless)
           })
 
           it('reverts', async () => {
-            await expect(smartVault.execute(connector.address, data)).to.be.revertedWith('SMART_VAULT_DEP_DEPRECATED')
+            await expect(smartVault.execute(connector.address, data)).to.be.revertedWith(
+              'SMART_VAULT_DEP_BAD_STATE_COND'
+            )
           })
         })
       })

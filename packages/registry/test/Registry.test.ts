@@ -44,35 +44,57 @@ describe('Registry', () => {
 
       context('when the requested implementation was not created', () => {
         context('when the requested implementation is not registered', () => {
-          it('creates and registers the requested implementation', async () => {
-            const tx = await registry.create(name, bytecode)
+          context('when the requested implementation is considered stateless', () => {
+            const stateless = true
 
-            const event = await assertEvent(tx, 'Registered', { name })
+            it('creates and registers the requested implementation', async () => {
+              const tx = await registry.create(name, bytecode, stateless)
 
-            const implementation = event.args.implementation
-            expect(await registry.isRegistered(implementation)).to.be.true
-            expect(await registry.isDeprecated(implementation)).to.be.false
+              const event = await assertEvent(tx, 'Registered', { name, stateless })
+
+              const implementation = event.args.implementation
+              expect(await registry.isRegistered(implementation)).to.be.true
+              expect(await registry.isStateless(implementation)).to.be.true
+              expect(await registry.isDeprecated(implementation)).to.be.false
+            })
+          })
+
+          context('when the requested implementation is not considered stateless', () => {
+            const stateless = false
+
+            it('creates and registers the requested implementation', async () => {
+              const tx = await registry.create(name, bytecode, stateless)
+
+              const event = await assertEvent(tx, 'Registered', { name, stateless })
+
+              const implementation = event.args.implementation
+              expect(await registry.isRegistered(implementation)).to.be.true
+              expect(await registry.isStateless(implementation)).to.be.false
+              expect(await registry.isDeprecated(implementation)).to.be.false
+            })
           })
         })
 
         context('when the requested implementation is registered', () => {
           beforeEach('register', async () => {
-            await registry.register(name, implementation)
+            await registry.register(name, implementation, true)
           })
 
           it('reverts', async () => {
-            await expect(registry.register(name, implementation)).to.be.revertedWith('REGISTRY_IMPL_ALREADY_REGISTERED')
+            await expect(registry.register(name, implementation, true)).to.be.revertedWith(
+              'REGISTRY_IMPL_ALREADY_REGISTERED'
+            )
           })
         })
       })
 
       context('when the requested implementation was created', () => {
         beforeEach('create', async () => {
-          await registry.create(name, bytecode)
+          await registry.create(name, bytecode, true)
         })
 
         it('reverts', async () => {
-          await expect(registry.create(name, bytecode)).to.be.revertedWith('DEPLOYMENT_FAILED')
+          await expect(registry.create(name, bytecode, true)).to.be.revertedWith('DEPLOYMENT_FAILED')
         })
       })
     })
@@ -83,7 +105,7 @@ describe('Registry', () => {
       })
 
       it('reverts', async () => {
-        await expect(registry.create(name, implementation)).to.be.revertedWith('Ownable: caller is not the owner')
+        await expect(registry.create(name, implementation, true)).to.be.revertedWith('Ownable: caller is not the owner')
       })
     })
   })
@@ -97,27 +119,44 @@ describe('Registry', () => {
       })
 
       context('when the requested implementation is not registered', () => {
-        it('registers the requested implementation', async () => {
-          await registry.register(name, implementation)
+        context('when the requested implementation is considered stateless', () => {
+          const stateless = true
 
-          expect(await registry.isRegistered(implementation)).to.be.true
-          expect(await registry.isDeprecated(implementation)).to.be.false
+          it('registers the requested implementation', async () => {
+            const tx = await registry.register(name, implementation, stateless)
+
+            await assertEvent(tx, 'Registered', { name, implementation, stateless })
+
+            expect(await registry.isRegistered(implementation)).to.be.true
+            expect(await registry.isStateless(implementation)).to.be.true
+            expect(await registry.isDeprecated(implementation)).to.be.false
+          })
         })
 
-        it('emits an event', async () => {
-          const tx = await registry.register(name, implementation)
+        context('when the requested implementation is not considered stateless', () => {
+          const stateless = false
 
-          await assertEvent(tx, 'Registered', { name, implementation })
+          it('registers the requested implementation', async () => {
+            const tx = await registry.register(name, implementation, stateless)
+
+            await assertEvent(tx, 'Registered', { name, implementation, stateless })
+
+            expect(await registry.isRegistered(implementation)).to.be.true
+            expect(await registry.isStateless(implementation)).to.be.false
+            expect(await registry.isDeprecated(implementation)).to.be.false
+          })
         })
       })
 
       context('when the requested implementation is registered', () => {
         beforeEach('register', async () => {
-          await registry.register(name, implementation)
+          await registry.register(name, implementation, true)
         })
 
         it('reverts', async () => {
-          await expect(registry.register(name, implementation)).to.be.revertedWith('REGISTRY_IMPL_ALREADY_REGISTERED')
+          await expect(registry.register(name, implementation, true)).to.be.revertedWith(
+            'REGISTRY_IMPL_ALREADY_REGISTERED'
+          )
         })
       })
     })
@@ -128,7 +167,9 @@ describe('Registry', () => {
       })
 
       it('reverts', async () => {
-        await expect(registry.register(name, implementation)).to.be.revertedWith('Ownable: caller is not the owner')
+        await expect(registry.register(name, implementation, true)).to.be.revertedWith(
+          'Ownable: caller is not the owner'
+        )
       })
     })
   })
@@ -147,7 +188,7 @@ describe('Registry', () => {
 
       context('when the requested implementation is registered', () => {
         beforeEach('register', async () => {
-          await registry.register('implementation@0.0.1', implementation)
+          await registry.register('implementation@0.0.1', implementation, true)
         })
 
         context('when the requested implementation is not deprecated', () => {
@@ -155,6 +196,7 @@ describe('Registry', () => {
             await registry.deprecate(implementation)
 
             expect(await registry.isRegistered(implementation)).to.be.true
+            expect(await registry.isStateless(implementation)).to.be.true
             expect(await registry.isDeprecated(implementation)).to.be.true
           })
 

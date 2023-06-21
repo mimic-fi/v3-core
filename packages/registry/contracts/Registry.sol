@@ -27,6 +27,9 @@ contract Registry is IRegistry, Ownable {
     // List of registered implementations
     mapping (address => bool) public override isRegistered;
 
+    // List of stateless implementations
+    mapping (address => bool) public override isStateless;
+
     // List of deprecated implementations
     mapping (address => bool) public override isDeprecated;
 
@@ -42,19 +45,21 @@ contract Registry is IRegistry, Ownable {
      * @dev Creates and registers an implementation
      * @param name Name of the implementation
      * @param code Code of the implementation to create and register
+     * @param stateless Whether the new implementation is considered stateless or not
      */
-    function create(string memory name, bytes memory code) external override onlyOwner {
+    function create(string memory name, bytes memory code, bool stateless) external override onlyOwner {
         address implementation = CREATE3.deploy(keccak256(abi.encode(name)), code, 0);
-        _register(name, implementation);
+        _register(name, implementation, stateless);
     }
 
     /**
      * @dev Registers an implementation
      * @param name Name logged for the implementation
      * @param implementation Address of the implementation to be registered
+     * @param stateless Whether the given implementation is considered stateless or not
      */
-    function register(string memory name, address implementation) external override onlyOwner {
-        _register(name, implementation);
+    function register(string memory name, address implementation, bool stateless) external override onlyOwner {
+        _register(name, implementation, stateless);
     }
 
     /**
@@ -74,12 +79,14 @@ contract Registry is IRegistry, Ownable {
      * @dev Registers an implementation
      * @param name Name of the implementation
      * @param implementation Address of the implementation to be registered
+     * @param stateless Whether the given implementation is considered stateless or not
      */
-    function _register(string memory name, address implementation) internal {
+    function _register(string memory name, address implementation, bool stateless) internal {
         require(implementation != address(0), 'REGISTRY_IMPL_ADDRESS_ZERO');
         require(!isRegistered[implementation], 'REGISTRY_IMPL_ALREADY_REGISTERED');
 
         isRegistered[implementation] = true;
-        emit Registered(implementation, name);
+        isStateless[implementation] = stateless;
+        emit Registered(implementation, name, stateless);
     }
 }

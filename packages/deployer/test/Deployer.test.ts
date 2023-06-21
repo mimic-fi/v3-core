@@ -41,7 +41,7 @@ describe('Deployer', () => {
 
     context('when the implementation is registered', () => {
       beforeEach('register implementation', async () => {
-        await registry.connect(mimic).register('authorizer@0.0.1', authorizer.address)
+        await registry.connect(mimic).register('authorizer@0.0.1', authorizer.address, false)
       })
 
       context('when the implementation is not deprecated', () => {
@@ -172,8 +172,8 @@ describe('Deployer', () => {
 
     context('when the implementation is registered', () => {
       beforeEach('register implementations', async () => {
-        await registry.connect(mimic).register('smart-vault@0.0.1', smartVault.address)
-        await registry.connect(mimic).register('price-oracle@0.0.1', PRICE_ORACLE)
+        await registry.connect(mimic).register('smart-vault@0.0.1', smartVault.address, false)
+        await registry.connect(mimic).register('price-oracle@0.0.1', PRICE_ORACLE, true)
       })
 
       context('when the implementation is not deprecated', () => {
@@ -292,10 +292,10 @@ describe('Deployer', () => {
       const FEE_CONTROLLER = '0x0000000000000000000000000000000000000001'
       const WNT = '0x0000000000000000000000000000000000000002'
       const smartVaultImpl = await deploy(ARTIFACTS.SMART_VAULT, [registry.address, FEE_CONTROLLER, WNT])
-      await registry.connect(mimic).register('smart-vault@0.0.1', smartVaultImpl.address)
+      await registry.connect(mimic).register('smart-vault@0.0.1', smartVaultImpl.address, false)
 
       const PRICE_ORACLE = '0x0000000000000000000000000000000000000004'
-      await registry.connect(mimic).register('price-oracle@0.0.1', PRICE_ORACLE)
+      await registry.connect(mimic).register('price-oracle@0.0.1', PRICE_ORACLE, true)
 
       const tx = await deployer.deploySmartVault(namespace, 'smart-vault', {
         impl: smartVaultImpl.address,
@@ -316,7 +316,7 @@ describe('Deployer', () => {
 
     context('when the implementation is registered', () => {
       beforeEach('register implementations', async () => {
-        await registry.connect(mimic).register('task-mock@0.0.1', task.address)
+        await registry.connect(mimic).register('task-mock@0.0.1', task.address, false)
       })
 
       context('when the implementation is not deprecated', () => {

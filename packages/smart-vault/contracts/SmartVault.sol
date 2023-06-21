@@ -158,7 +158,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         authP(authParams(connector))
         returns (bytes memory result)
     {
-        _validateDependency(connector);
+        _validateDependency(connector, true);
         result = Address.functionDelegateCall(connector, data, 'SMART_VAULT_EXECUTE_FAILED');
         emit Executed(connector, data, result);
     }
@@ -260,7 +260,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      */
     function _setPriceOracle(address newPriceOracle) internal {
         require(newPriceOracle != address(0), 'SMART_VAULT_ORACLE_ZERO');
-        _validateDependency(newPriceOracle);
+        _validateDependency(newPriceOracle, true);
         priceOracle = newPriceOracle;
         emit PriceOracleSet(newPriceOracle);
     }
@@ -279,10 +279,12 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     /**
      * @dev Validates a dependency against the Mimic Registry
      * @param dependency Address of the dependency to validate
+     * @param stateless Whether the given dependency must be stateless or not
      */
-    function _validateDependency(address dependency) private view {
+    function _validateDependency(address dependency, bool stateless) private view {
         if (isDependencyCheckIgnored[dependency]) return;
         require(IRegistry(registry).isRegistered(dependency), 'SMART_VAULT_DEP_NOT_REGISTERED');
+        require(IRegistry(registry).isStateless(dependency) == stateless, 'SMART_VAULT_DEP_BAD_STATE_COND');
         require(!IRegistry(registry).isDeprecated(dependency), 'SMART_VAULT_DEP_DEPRECATED');
     }
 }
