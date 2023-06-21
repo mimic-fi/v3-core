@@ -50,7 +50,7 @@ contract OneInchV5Connector {
         external
         returns (uint256 amountOut)
     {
-        require(tokenIn != tokenOut, '1INCH_SWAP_SAME_TOKEN');
+        require(tokenIn != tokenOut, '1INCH_V5_SWAP_SAME_TOKEN');
 
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
