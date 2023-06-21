@@ -18,6 +18,7 @@ import 'solmate/src/utils/CREATE3.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
 
 import '@mimic-fi/v3-authorizer/contracts/Authorizer.sol';
+import '@mimic-fi/v3-price-oracle/contracts/PriceOracle.sol';
 import '@mimic-fi/v3-smart-vault/contracts/SmartVault.sol';
 import '@mimic-fi/v3-registry/contracts/interfaces/IRegistry.sol';
 
@@ -28,9 +29,14 @@ contract Deployer {
     IRegistry public immutable registry;
 
     /**
-     * @dev Emitted every time a permissions manager is deployed
+     * @dev Emitted every time an authorizer is deployed
      */
     event AuthorizerDeployed(string namespace, string name, address instance, address implementation);
+
+    /**
+     * @dev Emitted every time a price oracle is deployed
+     */
+    event PriceOracleDeployed(string namespace, string name, address instance, address implementation);
 
     /**Bas
      * @dev Emitted every time a smart vault is deployed
@@ -61,17 +67,31 @@ contract Deployer {
     }
 
     /**
+     * @dev Price oracle params
+     * @param impl Address of the Price Oracle implementation to be used
+     * @param authorizer Address of the authorizer to be linked
+     * @param signer Address of the allowed signer
+     * @param pivot Address of the token to be used as the pivot
+     * @param feeds List of feeds to be set for the price oracle
+     */
+    struct PriceOracleParams {
+        address impl;
+        address authorizer;
+        address signer;
+        address pivot;
+        PriceOracle.FeedData[] feeds;
+    }
+
+    /**
      * @dev Smart vault params
      * @param impl Address of the Smart Vault implementation to be used
-     * @param authorized Address of the authorizer to be linked
-     * @param priceOracle Optional Price Oracle to set for the Smart Vault
-     * @param priceFeedParams List of price feeds to be set for the Smart Vault
+     * @param authorizer Address of the authorizer to be linked
+     * @param priceOracle Optional price Oracle to set for the Smart Vault
      */
     struct SmartVaultParams {
         address impl;
         address authorizer;
         address priceOracle;
-        SmartVault.PriceFeed[] priceFeedParams;
     }
 
     /**
@@ -104,17 +124,29 @@ contract Deployer {
      * @dev Deploys a new authorizer instance
      */
     function deployAuthorizer(string memory namespace, string memory name, AuthorizerParams memory params) external {
-        address instance = _deployClone(namespace, name, params.impl, true);
+        _validateImplementation(params.impl);
+        address instance = _deployClone(namespace, name, params.impl);
         Authorizer(instance).initialize(params.owners);
         emit AuthorizerDeployed(namespace, name, instance, params.impl);
+    }
+
+    /**
+     * @dev Deploys a new price oracle instance
+     */
+    function deployPriceOracle(string memory namespace, string memory name, PriceOracleParams memory params) external {
+        _validateImplementation(params.impl);
+        address instance = _deployClone(namespace, name, params.impl);
+        PriceOracle(instance).initialize(params.authorizer, params.signer, params.pivot, params.feeds);
+        emit PriceOracleDeployed(namespace, name, instance, params.impl);
     }
 
     /**
      * @dev Deploys a new smart vault instance
      */
     function deploySmartVault(string memory namespace, string memory name, SmartVaultParams memory params) external {
-        address payable instance = payable(_deployClone(namespace, name, params.impl, true));
-        SmartVault(instance).initialize(params.authorizer, params.priceOracle, params.priceFeedParams);
+        _validateImplementation(params.impl);
+        address payable instance = payable(_deployClone(namespace, name, params.impl));
+        SmartVault(instance).initialize(params.authorizer, params.priceOracle);
         emit SmartVaultDeployed(namespace, name, instance, params.impl);
     }
 
@@ -122,23 +154,29 @@ contract Deployer {
      * @dev Deploys a new task instance
      */
     function deployTask(string memory namespace, string memory name, TaskParams memory params) external {
-        address instance = _deployClone(namespace, name, params.impl, !params.custom);
+        if (!params.custom) _validateImplementation(params.impl);
+        address instance = _deployClone(namespace, name, params.impl);
         if (params.initializeData.length > 0) instance.functionCall(params.initializeData, 'DEPLOYER_TASK_INIT_FAILED');
         emit TaskDeployed(namespace, name, instance, params.impl);
     }
 
     /**
+     * @dev Validates if an implementation is registered, not deprecated, and considered stateful
+     * @param implementation Address of the implementation to be checked
+     */
+    function _validateImplementation(address implementation) internal view {
+        require(registry.isRegistered(implementation), 'DEPLOYER_IMPL_NOT_REGISTERED');
+        require(!registry.isStateless(implementation), 'DEPLOYER_IMPL_STATELESS');
+        require(!registry.isDeprecated(implementation), 'DEPLOYER_IMPL_DEPRECATED');
+    }
+
+    /**
      * @dev Deploys a new clone using CREATE3
      */
-    function _deployClone(string memory namespace, string memory name, address implementation, bool check)
+    function _deployClone(string memory namespace, string memory name, address implementation)
         internal
         returns (address)
     {
-        if (check) {
-            require(registry.isRegistered(implementation), 'DEPLOYER_IMPL_NOT_REGISTERED');
-            require(!registry.isDeprecated(implementation), 'DEPLOYER_IMPL_DEPRECATED');
-        }
-
         bytes memory bytecode = abi.encodePacked(
             hex'3d602d80600a3d3981f3363d3d373d3d3d363d73',
             implementation,

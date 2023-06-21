@@ -21,6 +21,7 @@ import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
+import '@mimic-fi/v3-price-oracle/contracts/interfaces/IPriceOracle.sol';
 import '@mimic-fi/v3-smart-vault/contracts/interfaces/ISmartVault.sol';
 
 import './interfaces/IBaseTask.sol';
@@ -172,7 +173,7 @@ contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @dev Internal function to transfer task's assets to the Smart Vault
+     * @dev Transfers task's assets to the Smart Vault
      * @param token Address of the token to be transferred
      * @param amount Amount of tokens to be transferred
      * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to transfer the native token balance
@@ -182,11 +183,12 @@ contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @dev Fetches a base/quote price from the smart vault's oracle. This function can be overwritten to implement
-     * a secondary way of fetching oracle prices.
+     * @dev Fetches a base/quote price from the smart vault's price oracle
      */
-    function _getPrice(address base, address quote) internal view virtual returns (uint256) {
-        return base == quote ? FixedPoint.ONE : ISmartVault(smartVault).getPrice(base, quote);
+    function _getPrice(address base, address quote) internal view returns (uint256) {
+        address priceOracle = ISmartVault(smartVault).priceOracle();
+        require(priceOracle != address(0), 'TASK_PRICE_ORACLE_NOT_SET');
+        return IPriceOracle(priceOracle).getPrice(base, quote);
     }
 
     /**

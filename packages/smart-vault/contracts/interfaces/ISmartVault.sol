@@ -15,26 +15,20 @@
 pragma solidity >=0.8.0;
 
 import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorized.sol';
-import '@mimic-fi/v3-price-oracle/contracts/interfaces/IPriceFeedProvider.sol';
 
 /**
  * @dev Smart Vault interface
  */
-interface ISmartVault is IAuthorized, IPriceFeedProvider {
+interface ISmartVault is IAuthorized {
     /**
      * @dev Emitted every time the price oracle is set
      */
     event PriceOracleSet(address indexed priceOracle);
 
     /**
-     * @dev Emitted every time a price feed is set for (base, quote) pair
+     * @dev Emitted every time a connector check is overridden
      */
-    event PriceFeedSet(address indexed base, address indexed quote, address feed);
-
-    /**
-     * @dev Emitted every time a dependency check is overridden
-     */
-    event DependencyCheckOverridden(address indexed dependency, bool ignored);
+    event ConnectorCheckOverridden(address indexed connector, bool ignored);
 
     /**
      * @dev Emitted every time `execute` is called
@@ -87,24 +81,10 @@ interface ISmartVault is IAuthorized, IPriceFeedProvider {
     function wrappedNativeToken() external view returns (address);
 
     /**
-     * @dev Tells if a dependency check is ignored
-     * @param dependency Address of the dependency being queried
+     * @dev Tells if a connector check is ignored
+     * @param connector Address of the connector being queried
      */
-    function isDependencyCheckIgnored(address dependency) external view returns (bool);
-
-    /**
-     * @dev Tells the price of a token (base) in a given quote
-     * @param base Token to rate
-     * @param quote Token used for the price rate
-     */
-    function getPrice(address base, address quote) external view returns (uint256);
-
-    /**
-     * @dev Tells the price feed address for (base, quote) pair. It returns the zero address if there is no one set.
-     * @param base Token to be rated
-     * @param quote Token used for the price rate
-     */
-    function getPriceFeed(address base, address quote) external view returns (address);
+    function isConnectorCheckIgnored(address connector) external view returns (bool);
 
     /**
      * @dev Sets the price oracle
@@ -113,19 +93,11 @@ interface ISmartVault is IAuthorized, IPriceFeedProvider {
     function setPriceOracle(address newPriceOracle) external;
 
     /**
-     * @dev Sets a of price feed
-     * @param base Token base to be set
-     * @param quote Token quote to be set
-     * @param feed Price feed to be set
+     * @dev Overrides connector checks
+     * @param connector Address of the connector to override its check
+     * @param ignored Whether the connector check should be ignored
      */
-    function setPriceFeed(address base, address quote, address feed) external;
-
-    /**
-     * @dev Overrides dependency checks
-     * @param dependency Address of the dependency to override its check
-     * @param ignored Whether the dependency check should be ignored
-     */
-    function overrideDependencyCheck(address dependency, bool ignored) external;
+    function overrideConnectorCheck(address connector, bool ignored) external;
 
     /**
      * @dev Executes a connector inside of the Smart Vault context

@@ -23,7 +23,6 @@ import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorizer.sol';
 import '@mimic-fi/v3-fee-controller/contracts/interfaces/IFeeController.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-helpers/contracts/math/UncheckedMath.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/IWrappedNativeToken.sol';
 import '@mimic-fi/v3-price-oracle/contracts/interfaces/IPriceOracle.sol';
@@ -38,7 +37,6 @@ import './interfaces/ISmartVault.sol';
 contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
     using FixedPoint for uint256;
-    using UncheckedMath for uint256;
 
     // Price oracle reference
     address public override priceOracle;
@@ -52,20 +50,8 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     // Wrapped native token reference
     address public immutable override wrappedNativeToken;
 
-    // Wrapped native token reference
-    mapping (address => bool) public override isDependencyCheckIgnored;
-
-    // Mapping of price feeds from "token A" to "token B"
-    mapping (address => mapping (address => address)) public override getPriceFeed;
-
-    /**
-     * @dev Price feed data, only used during initialization
-     */
-    struct PriceFeed {
-        address base;
-        address quote;
-        address feed;
-    }
+    // Tells whether a connector check is ignored or not
+    mapping (address => bool) public override isConnectorCheckIgnored;
 
     /**
      * @dev Creates a new Smart Vault implementation with the references that should be shared among all implementations
@@ -82,14 +68,12 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     /**
      * @dev Initializes the Smart Vault instance
      * @param _authorizer Address of the authorizer to be linked
-     * @param _priceOracle Address of the price oracle to be set
-     * @param _feeds List of price feeds to be set
+     * @param _priceOracle Address of the price oracle to be set, it is ignored in case it's zero
      */
-    function initialize(address _authorizer, address _priceOracle, PriceFeed[] memory _feeds) external initializer {
+    function initialize(address _authorizer, address _priceOracle) external initializer {
         __ReentrancyGuard_init();
         _initialize(_authorizer);
         _setPriceOracle(_priceOracle);
-        for (uint256 i = 0; i < _feeds.length; i++) _setPriceFeed(_feeds[i].base, _feeds[i].quote, _feeds[i].feed);
     }
 
     /**
@@ -97,15 +81,6 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      */
     receive() external payable {
         // solhint-disable-previous-line no-empty-blocks
-    }
-
-    /**
-     * @dev Tells the price of a token (base) in a given quote
-     * @param base Token to rate
-     * @param quote Token used for the price rate
-     */
-    function getPrice(address base, address quote) external view override returns (uint256) {
-        return IPriceOracle(priceOracle).getPrice(address(this), base, quote);
     }
 
     /**
@@ -117,32 +92,17 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @dev Sets a price feed. Sender must be authorized.
-     * @param base Token base to be set
-     * @param quote Token quote to be set
-     * @param feed Price feed to be set
+     * @dev Overrides connector checks. Sender must be authorized.
+     * @param connector Address of the connector to override its check
+     * @param ignored Whether the connector check should be ignored
      */
-    function setPriceFeed(address base, address quote, address feed)
-        public
-        override
-        nonReentrant
-        authP(authParams(base, quote, feed))
-    {
-        _setPriceFeed(base, quote, feed);
-    }
-
-    /**
-     * @dev Overrides dependency checks. Sender must be authorized.
-     * @param dependency Address of the dependency to override its check
-     * @param ignored Whether the dependency check should be ignored
-     */
-    function overrideDependencyCheck(address dependency, bool ignored)
+    function overrideConnectorCheck(address connector, bool ignored)
         external
         nonReentrant
-        authP(authParams(dependency, ignored))
+        authP(authParams(connector, ignored))
     {
-        isDependencyCheckIgnored[dependency] = ignored;
-        emit DependencyCheckOverridden(dependency, ignored);
+        isConnectorCheckIgnored[connector] = ignored;
+        emit ConnectorCheckOverridden(connector, ignored);
     }
 
     /**
@@ -158,7 +118,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         authP(authParams(connector))
         returns (bytes memory result)
     {
-        _validateDependency(connector, true);
+        _validateConnector(connector);
         result = Address.functionDelegateCall(connector, data, 'SMART_VAULT_EXECUTE_FAILED');
         emit Executed(connector, data, result);
     }
@@ -259,32 +219,18 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @param newPriceOracle Address of the new price oracle to be set
      */
     function _setPriceOracle(address newPriceOracle) internal {
-        require(newPriceOracle != address(0), 'SMART_VAULT_ORACLE_ZERO');
-        _validateDependency(newPriceOracle, true);
         priceOracle = newPriceOracle;
         emit PriceOracleSet(newPriceOracle);
     }
 
     /**
-     * @dev Sets a price feed
-     * @param base Token base to be set
-     * @param quote Token quote to be set
-     * @param feed Price feed to be set
+     * @dev Validates a connector against the Mimic Registry
+     * @param connector Address of the connector to validate
      */
-    function _setPriceFeed(address base, address quote, address feed) internal {
-        getPriceFeed[base][quote] = feed;
-        emit PriceFeedSet(base, quote, feed);
-    }
-
-    /**
-     * @dev Validates a dependency against the Mimic Registry
-     * @param dependency Address of the dependency to validate
-     * @param stateless Whether the given dependency must be stateless or not
-     */
-    function _validateDependency(address dependency, bool stateless) private view {
-        if (isDependencyCheckIgnored[dependency]) return;
-        require(IRegistry(registry).isRegistered(dependency), 'SMART_VAULT_DEP_NOT_REGISTERED');
-        require(IRegistry(registry).isStateless(dependency) == stateless, 'SMART_VAULT_DEP_BAD_STATE_COND');
-        require(!IRegistry(registry).isDeprecated(dependency), 'SMART_VAULT_DEP_DEPRECATED');
+    function _validateConnector(address connector) private view {
+        if (isConnectorCheckIgnored[connector]) return;
+        require(IRegistry(registry).isRegistered(connector), 'SMART_VAULT_CON_NOT_REGISTERED');
+        require(IRegistry(registry).isStateless(connector), 'SMART_VAULT_CON_NOT_STATELESS');
+        require(!IRegistry(registry).isDeprecated(connector), 'SMART_VAULT_CON_DEPRECATED');
     }
 }

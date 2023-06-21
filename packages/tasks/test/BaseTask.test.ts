@@ -1,11 +1,19 @@
-import { assertEvent, deploy, deployProxy, fp, getSigners, NATIVE_TOKEN_ADDRESS } from '@mimic-fi/v3-helpers'
+import {
+  assertEvent,
+  deploy,
+  deployProxy,
+  fp,
+  getSigners,
+  NATIVE_TOKEN_ADDRESS,
+  ZERO_ADDRESS,
+} from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 
 describe('BaseTask', () => {
   let task: Contract, smartVault: Contract
-  let authorizer: Contract, priceOracle: Contract, registry: Contract, feeController: Contract, wrappedNT: Contract
+  let authorizer: Contract, registry: Contract, feeController: Contract, wrappedNT: Contract
   let owner: SignerWithAddress, other: SignerWithAddress, mimic: SignerWithAddress, feeCollector: SignerWithAddress
 
   before('setup signers', async () => {
@@ -20,10 +28,6 @@ describe('BaseTask', () => {
       feeCollector.address,
       mimic.address,
     ])
-    priceOracle = await deploy('@mimic-fi/v3-price-oracle/artifacts/contracts/PriceOracle.sol/PriceOracle', [
-      wrappedNT.address,
-    ])
-    await registry.connect(mimic).register('price-oracle@0.0.1', priceOracle.address, true)
   })
 
   beforeEach('create smart vault', async () => {
@@ -35,7 +39,7 @@ describe('BaseTask', () => {
     smartVault = await deployProxy(
       '@mimic-fi/v3-smart-vault/artifacts/contracts/SmartVault.sol/SmartVault',
       [registry.address, feeController.address, wrappedNT.address],
-      [authorizer.address, priceOracle.address, []]
+      [authorizer.address, ZERO_ADDRESS, []]
     )
   })
 

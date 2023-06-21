@@ -12,17 +12,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 /**
- * @title IPriceFeedProvider
- * @dev Contract providing price feed references for (base, quote) token pairs
+ * @title BytesHelpers
+ * @dev Provides a list of Bytes helper methods
  */
-interface IPriceFeedProvider {
-    /**
-     * @dev Tells the price feed address for (base, quote) pair. It returns the zero address if there is no one set.
-     * @param base Token to be rated
-     * @param quote Token used for the price rate
-     */
-    function getPriceFeed(address base, address quote) external view returns (address);
+library BytesHelpers {
+    function toUint256(bytes memory self, uint256 offset) internal pure returns (uint256 result) {
+        require(self.length >= offset + 32, 'BYTES_OUT_OF_BOUNDS');
+        assembly {
+            result := mload(add(add(self, 0x20), offset))
+        }
+    }
 }
