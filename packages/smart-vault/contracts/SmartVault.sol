@@ -136,7 +136,11 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @param dependency Address of the dependency to override its check
      * @param ignored Whether the dependency check should be ignored
      */
-    function overrideDependencyCheck(address dependency, bool ignored) external authP(authParams(dependency, ignored)) {
+    function overrideDependencyCheck(address dependency, bool ignored)
+        external
+        nonReentrant
+        authP(authParams(dependency, ignored))
+    {
         isDependencyCheckIgnored[dependency] = ignored;
         emit DependencyCheckOverridden(dependency, ignored);
     }
