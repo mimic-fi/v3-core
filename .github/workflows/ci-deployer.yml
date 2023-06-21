@@ -24,7 +24,6 @@ jobs:
       - name: Lint
         run: yarn workspace @mimic-fi/v3-deployer lint
 
-
   test:
     runs-on: ubuntu-latest
     steps:
@@ -34,4 +33,3 @@ jobs:
         uses: ./.github/actions/setup
       - name: Test
         run: yarn workspace @mimic-fi/v3-deployer test
-

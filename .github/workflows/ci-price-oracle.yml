@@ -24,7 +24,6 @@ jobs:
       - name: Lint
         run: yarn workspace @mimic-fi/v3-price-oracle lint
 
-
   test:
     runs-on: ubuntu-latest
     steps:
@@ -35,3 +34,14 @@ jobs:
       - name: Test
         run: yarn workspace @mimic-fi/v3-price-oracle test
 
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Test mainnet
+        run: yarn workspace @mimic-fi/v3-price-oracle test:mainnet
+      - name: Test polygon
+        run: yarn workspace @mimic-fi/v3-price-oracle test:polygon
