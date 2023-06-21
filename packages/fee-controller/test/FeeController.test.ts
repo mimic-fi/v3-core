@@ -1,11 +1,9 @@
-import { assertEvent, deploy, fp, getSigners, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { assertEvent, assertNoEvent, BigNumberish, deploy, fp, getSigners, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 
 describe('FeeController', () => {
-  const FEE_PCT = fp(0.01)
-
   let feeController: Contract, owner: SignerWithAddress, other: SignerWithAddress, collector: SignerWithAddress
 
   // eslint-disable-next-line no-secrets/no-secrets
@@ -17,63 +15,18 @@ describe('FeeController', () => {
   })
 
   beforeEach('create registry', async () => {
-    feeController = await deploy('FeeController', [FEE_PCT, collector.address, owner.address])
+    feeController = await deploy('FeeController', [collector.address, owner.address])
   })
 
   describe('initialization', () => {
-    it('sets the default percentage correctly', async () => {
-      expect(await feeController.defaultFeePercentage()).to.be.equal(FEE_PCT)
-      expect(await feeController.getApplicableFeePercentage(smartVault)).to.be.equal(FEE_PCT)
-    })
-
     it('sets the default collector correctly', async () => {
       expect(await feeController.defaultFeeCollector()).to.be.equal(collector.address)
-      expect(await feeController.getApplicableFeeCollector(smartVault)).to.be.equal(collector.address)
+      expect(await feeController.hasFee(smartVault)).to.be.false
+      await expect(feeController.getFee(smartVault)).to.be.revertedWith('FEE_CONTROLLER_SV_NOT_SET')
     })
 
     it('sets the owner correctly', async () => {
       expect(await feeController.owner()).to.be.equal(owner.address)
-    })
-  })
-
-  describe('setDefaultPercentage', () => {
-    context('when the sender is authorized', () => {
-      beforeEach('set sender', () => {
-        feeController = feeController.connect(owner)
-      })
-
-      context('when the new percentage is below 1', () => {
-        const newFeePct = FEE_PCT.add(1)
-
-        it('sets the default fee percentage', async () => {
-          const tx = await feeController.setDefaultFeePercentage(newFeePct)
-
-          await assertEvent(tx, 'DefaultFeePercentageSet', { pct: newFeePct })
-
-          expect(await feeController.defaultFeePercentage()).to.be.equal(newFeePct)
-          expect(await feeController.getApplicableFeePercentage(smartVault)).to.be.equal(newFeePct)
-        })
-      })
-
-      context('when the new percentage is above 1', () => {
-        const newFeePct = fp(1).add(1)
-
-        it('reverts', async () => {
-          await expect(feeController.setDefaultFeePercentage(newFeePct)).to.be.revertedWith(
-            'FEE_CONTROLLER_PCT_ABOVE_ONE'
-          )
-        })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      beforeEach('set sender', () => {
-        feeController = feeController.connect(other)
-      })
-
-      it('reverts', async () => {
-        await expect(feeController.setDefaultFeePercentage(0)).to.be.revertedWith('Ownable: caller is not the owner')
-      })
     })
   })
 
@@ -92,7 +45,6 @@ describe('FeeController', () => {
           await assertEvent(tx, 'DefaultFeeCollectorSet', { collector: newCollector })
 
           expect(await feeController.defaultFeeCollector()).to.be.equal(newCollector)
-          expect(await feeController.getApplicableFeeCollector(smartVault)).to.be.equal(newCollector)
         })
       })
 
@@ -120,33 +72,170 @@ describe('FeeController', () => {
     })
   })
 
-  describe('setCustomPercentage', () => {
+  describe('setMaxFeePercentage', () => {
     context('when the sender is authorized', () => {
       beforeEach('set sender', () => {
         feeController = feeController.connect(owner)
       })
 
-      context('when the new percentage is below 1', () => {
-        const newFeePct = FEE_PCT.add(1)
+      const itSetsTheMaxFeePercentage = (maxPct: BigNumberish) => {
+        it('sets the max fee percentage', async () => {
+          const tx = await feeController.setMaxFeePercentage(smartVault, maxPct)
 
-        it('sets the custom fee percentage', async () => {
-          const tx = await feeController.setCustomFeePercentage(smartVault, newFeePct)
+          await assertEvent(tx, 'MaxFeePercentageSet', { smartVault, maxPct })
 
-          await assertEvent(tx, 'CustomFeePercentageSet', { smartVault, pct: newFeePct })
+          const fee = await feeController.getFee(smartVault)
+          expect(fee.max).to.be.equal(maxPct)
+        })
+      }
 
-          expect(await feeController.getApplicableFeePercentage(smartVault)).to.be.equal(newFeePct)
+      const itUpdatesTheFeePercentage = (maxPct: BigNumberish) => {
+        it('sets the fee percentage', async () => {
+          const tx = await feeController.setMaxFeePercentage(smartVault, maxPct)
 
-          expect(await feeController.defaultFeePercentage()).to.be.equal(FEE_PCT)
-          expect(await feeController.getApplicableFeePercentage(ZERO_ADDRESS)).to.be.equal(FEE_PCT)
+          await assertEvent(tx, 'FeePercentageSet', { smartVault, pct: maxPct })
+
+          const fee = await feeController.getFee(smartVault)
+          expect(fee.pct).to.be.equal(maxPct)
+        })
+      }
+
+      const itDoesNotUpdateTheFeePercentage = (maxPct: BigNumberish) => {
+        it('sets the fee percentage', async () => {
+          const previousFee = await feeController.getFee(smartVault)
+
+          const tx = await feeController.setMaxFeePercentage(smartVault, maxPct)
+          await assertNoEvent(tx, 'FeePercentageSet')
+
+          const currentFee = await feeController.getFee(smartVault)
+          expect(currentFee.pct).to.be.equal(previousFee.pct)
+        })
+      }
+
+      context('when there was no max set for the given smart vault', () => {
+        context('when the new percentage is below 1', () => {
+          const maxPct = fp(0.1)
+
+          itSetsTheMaxFeePercentage(maxPct)
+          itUpdatesTheFeePercentage(maxPct)
+        })
+
+        context('when the new percentage is above 1', () => {
+          const newFeePct = fp(1).add(1)
+
+          it('reverts', async () => {
+            await expect(feeController.setMaxFeePercentage(smartVault, newFeePct)).to.be.revertedWith(
+              'FEE_CONTROLLER_MAX_PCT_ABOVE_ONE'
+            )
+          })
         })
       })
 
-      context('when the new percentage is above 1', () => {
-        const newFeePct = fp(1).add(1)
+      context('when there was one already set for the given smart vault', () => {
+        const maxPct = fp(0.1)
+
+        context('when the new percentage is below the previous', () => {
+          const previousMaxPct = maxPct.add(1)
+
+          beforeEach('set max fee percentage', async () => {
+            await feeController.setMaxFeePercentage(smartVault, previousMaxPct)
+          })
+
+          context('when the new max is below the previous pct', () => {
+            const feePct = maxPct.add(1)
+
+            beforeEach('set max fee percentage', async () => {
+              await feeController.setFeePercentage(smartVault, feePct)
+            })
+
+            itSetsTheMaxFeePercentage(maxPct)
+            itUpdatesTheFeePercentage(maxPct)
+          })
+
+          context('when the new max is above the previous pct', () => {
+            const feePct = maxPct.sub(1)
+
+            beforeEach('set max fee percentage', async () => {
+              await feeController.setFeePercentage(smartVault, feePct)
+            })
+
+            itSetsTheMaxFeePercentage(maxPct)
+            itDoesNotUpdateTheFeePercentage(maxPct)
+          })
+        })
+
+        context('when the new percentage is above the previous', () => {
+          const previousMaxPct = maxPct.sub(1)
+
+          beforeEach('set max fee percentage', async () => {
+            await feeController.setMaxFeePercentage(smartVault, previousMaxPct)
+          })
+
+          it('reverts', async () => {
+            await expect(feeController.setMaxFeePercentage(smartVault, maxPct)).to.be.revertedWith(
+              'FEE_CONTROLLER_MAX_PCT_ABOVE_PRE'
+            )
+          })
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      beforeEach('set sender', () => {
+        feeController = feeController.connect(other)
+      })
+
+      it('reverts', async () => {
+        await expect(feeController.setMaxFeePercentage(smartVault, 0)).to.be.revertedWith(
+          'Ownable: caller is not the owner'
+        )
+      })
+    })
+  })
+
+  describe('setFeePercentage', () => {
+    context('when the sender is authorized', () => {
+      beforeEach('set sender', () => {
+        feeController = feeController.connect(owner)
+      })
+
+      context('when there was a max set for the given smart vault', () => {
+        const maxFeePct = fp(0.1)
+
+        beforeEach('set max fee percentage', async () => {
+          await feeController.setMaxFeePercentage(smartVault, maxFeePct)
+        })
+
+        context('when the new percentage is below the max', () => {
+          const feePct = maxFeePct.sub(1)
+
+          it('sets the fee percentage', async () => {
+            const tx = await feeController.setFeePercentage(smartVault, feePct)
+            await assertEvent(tx, 'FeePercentageSet', { smartVault, pct: feePct })
+
+            const fee = await feeController.getFee(smartVault)
+            expect(fee.pct).to.be.equal(feePct)
+            expect(fee.max).to.be.equal(maxFeePct)
+          })
+        })
+
+        context('when the new percentage is above the max', () => {
+          const feePct = maxFeePct.add(1)
+
+          it('reverts', async () => {
+            await expect(feeController.setFeePercentage(smartVault, feePct)).to.be.revertedWith(
+              'FEE_CONTROLLER_PCT_ABOVE_MAX'
+            )
+          })
+        })
+      })
+
+      context('when there was no max set for the given smart vault', () => {
+        const feePct = fp(0.01)
 
         it('reverts', async () => {
-          await expect(feeController.setCustomFeePercentage(smartVault, newFeePct)).to.be.revertedWith(
-            'FEE_CONTROLLER_PCT_ABOVE_ONE'
+          await expect(feeController.setFeePercentage(smartVault, feePct)).to.be.revertedWith(
+            'FEE_CONTROLLER_SV_NOT_SET'
           )
         })
       })
@@ -158,14 +247,14 @@ describe('FeeController', () => {
       })
 
       it('reverts', async () => {
-        await expect(feeController.setCustomFeePercentage(smartVault, 0)).to.be.revertedWith(
+        await expect(feeController.setFeePercentage(smartVault, 0)).to.be.revertedWith(
           'Ownable: caller is not the owner'
         )
       })
     })
   })
 
-  describe('setCustomCollector', () => {
+  describe('setFeeCollector', () => {
     context('when the sender is authorized', () => {
       beforeEach('set sender', () => {
         feeController = feeController.connect(owner)
@@ -174,15 +263,27 @@ describe('FeeController', () => {
       context('when the new collector is not zero', () => {
         const newCollector = '0x0000000000000000000000000000000000000001'
 
-        it('sets the custom fee collector', async () => {
-          const tx = await feeController.setCustomFeeCollector(smartVault, newCollector)
+        context('when there was a max set for the given smart vault', () => {
+          beforeEach('set max fee pct', async () => {
+            await feeController.setMaxFeePercentage(smartVault, fp(0.1))
+          })
 
-          await assertEvent(tx, 'CustomFeeCollectorSet', { smartVault, collector: newCollector })
+          it('sets the custom fee collector', async () => {
+            const tx = await feeController.setFeeCollector(smartVault, newCollector)
 
-          expect(await feeController.getApplicableFeeCollector(smartVault)).to.be.equal(newCollector)
+            await assertEvent(tx, 'FeeCollectorSet', { smartVault, collector: newCollector })
 
-          expect(await feeController.defaultFeeCollector()).to.be.equal(collector.address)
-          expect(await feeController.getApplicableFeeCollector(ZERO_ADDRESS)).to.be.equal(collector.address)
+            const fee = await feeController.getFee(smartVault)
+            expect(fee.collector).to.be.equal(newCollector)
+          })
+        })
+
+        context('when there was no max set for the given smart vault', () => {
+          it('reverts', async () => {
+            await expect(feeController.setFeeCollector(smartVault, newCollector)).to.be.revertedWith(
+              'FEE_CONTROLLER_SV_NOT_SET'
+            )
+          })
         })
       })
 
@@ -190,7 +291,7 @@ describe('FeeController', () => {
         const collector = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(feeController.setCustomFeeCollector(smartVault, collector)).to.be.revertedWith(
+          await expect(feeController.setFeeCollector(smartVault, collector)).to.be.revertedWith(
             'FEE_CONTROLLER_COLLECTOR_ZERO'
           )
         })
@@ -203,7 +304,7 @@ describe('FeeController', () => {
       })
 
       it('reverts', async () => {
-        await expect(feeController.setCustomFeeCollector(smartVault, ZERO_ADDRESS)).to.be.revertedWith(
+        await expect(feeController.setFeeCollector(smartVault, ZERO_ADDRESS)).to.be.revertedWith(
           'Ownable: caller is not the owner'
         )
       })

@@ -234,7 +234,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         require(amount > 0, 'SMART_VAULT_WITHDRAW_AMOUNT_ZERO');
         require(recipient != address(0), 'SMART_VAULT_WITHDRAW_DEST_ZERO');
 
-        (uint256 pct, address collector) = IFeeController(feeController).getFee(address(this));
+        (, uint256 pct, address collector) = IFeeController(feeController).getFee(address(this));
         uint256 feeAmount = amount.mulDown(pct);
         _safeTransfer(token, collector, feeAmount);
 

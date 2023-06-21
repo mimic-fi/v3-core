@@ -25,62 +25,53 @@ import './interfaces/IFeeController.sol';
  * @dev Controller used to manage all the fee-related information of the protocol
  */
 contract FeeController is IFeeController, Ownable {
-    // Default fee percentage
-    uint256 public override defaultFeePercentage;
+    /**
+     * @dev Fee information stored per smart vault
+     * @param pct Current fee percentage that should be applied to a smart vault
+     * @param maxPct Maximum fee percentage that can be charged to a smart vault
+     * @param collector Address that will receive the charged fees for this smart vault
+     */
+    struct Fee {
+        uint256 pct;
+        uint256 maxPct;
+        address collector;
+    }
 
     // Address of the default collector
     address public override defaultFeeCollector;
 
-    // List of custom fee percentages indexed by smart vault address
-    mapping (address => uint256) public override getCustomFeePercentage;
-
-    // List of custom fee collectors indexed by smart vault address
-    mapping (address => address) public override getCustomFeeCollector;
+    // List of fees indexed per smart vault address
+    mapping (address => Fee) internal _fees;
 
     /**
-     * @dev Creates a new Fee collector contract
-     * @param pct Default fee percentage to be set
+     * @dev Creates a new fee controller contract
      * @param collector Default fee collector to be set
      * @param owner Address that will own the fee collector
      */
-    constructor(uint256 pct, address collector, address owner) {
+    constructor(address collector, address owner) {
         _transferOwnership(owner);
-        _setDefaultFeePercentage(pct);
         _setDefaultFeeCollector(collector);
     }
 
     /**
-     * @dev Tells the applicable fee information for a smart vault
+     * @dev Tells if there is a fee set for a smart vault
      * @param smartVault Address of the smart vault being queried
      */
-    function getFee(address smartVault) external view override returns (uint256 pct, address collector) {
-        return (getApplicableFeePercentage(smartVault), getApplicableFeeCollector(smartVault));
+    function hasFee(address smartVault) external view override returns (bool) {
+        return _fees[smartVault].maxPct != 0;
     }
 
     /**
-     * @dev Tells the applicable fee percentage for a smart vault
+     * @dev Tells the fee information for a smart vault
      * @param smartVault Address of the smart vault being queried
      */
-    function getApplicableFeePercentage(address smartVault) public view override returns (uint256) {
-        uint256 customFeePercentage = getCustomFeePercentage[smartVault];
-        return customFeePercentage > 0 ? customFeePercentage : defaultFeePercentage;
-    }
+    function getFee(address smartVault) external view override returns (uint256 max, uint256 pct, address collector) {
+        Fee storage fee = _fees[smartVault];
+        require(fee.maxPct > 0, 'FEE_CONTROLLER_SV_NOT_SET');
 
-    /**
-     * @dev Tells the applicable fee collector for a smart vault
-     * @param smartVault Address of the smart vault being queried
-     */
-    function getApplicableFeeCollector(address smartVault) public view override returns (address) {
-        address customFeeCollector = getCustomFeeCollector[smartVault];
-        return customFeeCollector != address(0) ? customFeeCollector : defaultFeeCollector;
-    }
-
-    /**
-     * @dev Sets the default fee percentage
-     * @param pct Default fee percentage to be set
-     */
-    function setDefaultFeePercentage(uint256 pct) external override onlyOwner {
-        _setDefaultFeePercentage(pct);
+        pct = fee.pct;
+        max = fee.maxPct;
+        collector = fee.collector != address(0) ? fee.collector : defaultFeeCollector;
     }
 
     /**
@@ -92,35 +83,45 @@ contract FeeController is IFeeController, Ownable {
     }
 
     /**
-     * @dev Sets a custom fee percentage
+     * @dev Sets a max fee percentage for a smart vault
+     * @param smartVault Address of smart vault to set a fee percentage for
+     * @param maxPct Max fee percentage to be set
+     */
+    function setMaxFeePercentage(address smartVault, uint256 maxPct) external override onlyOwner {
+        require(maxPct > 0, 'FEE_CONTROLLER_MAX_PCT_ZERO');
+
+        Fee storage fee = _fees[smartVault];
+        if (fee.maxPct == 0) {
+            require(maxPct < FixedPoint.ONE, 'FEE_CONTROLLER_MAX_PCT_ABOVE_ONE');
+        } else {
+            require(maxPct < fee.maxPct, 'FEE_CONTROLLER_MAX_PCT_ABOVE_PRE');
+        }
+
+        fee.maxPct = maxPct;
+        emit MaxFeePercentageSet(smartVault, maxPct);
+        if (fee.pct == 0 || fee.pct > maxPct) _setFeePercentage(smartVault, maxPct);
+    }
+
+    /**
+     * @dev Sets a fee percentage for a smart vault
      * @param smartVault Address of smart vault to set a fee percentage for
      * @param pct Fee percentage to be set
      */
-    function setCustomFeePercentage(address smartVault, uint256 pct) external override onlyOwner {
-        require(pct < FixedPoint.ONE, 'FEE_CONTROLLER_PCT_ABOVE_ONE');
-        getCustomFeePercentage[smartVault] = pct;
-        emit CustomFeePercentageSet(smartVault, pct);
+    function setFeePercentage(address smartVault, uint256 pct) external override onlyOwner {
+        _setFeePercentage(smartVault, pct);
     }
 
     /**
-     * @dev Sets a custom fee collector
+     * @dev Sets a fee collector for a smart vault
      * @param smartVault Address of smart vault to set a fee collector for
      * @param collector Fee collector to be set
      */
-    function setCustomFeeCollector(address smartVault, address collector) external override onlyOwner {
+    function setFeeCollector(address smartVault, address collector) external override onlyOwner {
         require(collector != address(0), 'FEE_CONTROLLER_COLLECTOR_ZERO');
-        getCustomFeeCollector[smartVault] = collector;
-        emit CustomFeeCollectorSet(smartVault, collector);
-    }
-
-    /**
-     * @dev Sets the default fee percentage
-     * @param pct Default fee percentage to be set
-     */
-    function _setDefaultFeePercentage(uint256 pct) private {
-        require(pct < FixedPoint.ONE, 'FEE_CONTROLLER_PCT_ABOVE_ONE');
-        defaultFeePercentage = pct;
-        emit DefaultFeePercentageSet(pct);
+        Fee storage fee = _fees[smartVault];
+        require(fee.maxPct > 0, 'FEE_CONTROLLER_SV_NOT_SET');
+        fee.collector = collector;
+        emit FeeCollectorSet(smartVault, collector);
     }
 
     /**
@@ -131,5 +132,18 @@ contract FeeController is IFeeController, Ownable {
         require(collector != address(0), 'FEE_CONTROLLER_COLLECTOR_ZERO');
         defaultFeeCollector = collector;
         emit DefaultFeeCollectorSet(collector);
+    }
+
+    /**
+     * @dev Sets the fee percentage of a smart vault
+     * @param smartVault Address of the smart vault to set a fee percentage for
+     * @param pct Fee percentage to be set
+     */
+    function _setFeePercentage(address smartVault, uint256 pct) private {
+        Fee storage fee = _fees[smartVault];
+        require(fee.maxPct > 0, 'FEE_CONTROLLER_SV_NOT_SET');
+        require(pct <= fee.maxPct, 'FEE_CONTROLLER_PCT_ABOVE_MAX');
+        fee.pct = pct;
+        emit FeePercentageSet(smartVault, pct);
     }
 }
