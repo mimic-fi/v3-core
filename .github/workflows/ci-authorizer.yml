@@ -1,0 +1,35 @@
+name: Authorizer CI
+
+env:
+  CI: true
+
+on:
+  push:
+    branches: "*"
+    paths:
+      - packages/authorizer/**
+  pull_request:
+    branches: "*"
+    paths:
+      - packages/authorizer/**
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Lint
+        run: yarn workspace @mimic-fi/v3-authorizer lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Test
+        run: yarn workspace @mimic-fi/v3-authorizer test
