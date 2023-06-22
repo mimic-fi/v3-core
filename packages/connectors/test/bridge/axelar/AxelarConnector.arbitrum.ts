@@ -15,7 +15,7 @@ describe('AxelarConnector', () => {
   before('create axelar connector', async function () {
     this.connector = await deploy('AxelarConnector', [AXELAR_GATEWAY])
   })
-  
+
   context('ARB', () => {
     itBehavesLikeAxelarConnector(SOURCE_CHAIN_ID, ARB, AXELAR_GATEWAY, WHALE)
   })
