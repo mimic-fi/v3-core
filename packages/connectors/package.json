@@ -15,8 +15,9 @@
     "lint:solidity": "solhint 'contracts/**/*.sol' --config ../../node_modules/solhint-config-mimic/index.js",
     "lint:typescript": "eslint . --ext .ts",
     "test": "hardhat test",
-    "test:mainnet": "yarn test --fork mainnet --block-number 17525323",
-    "test:polygon": "yarn test --fork polygon --block-number 44153231",
+    "test:mainnet": "yarn test --fork mainnet --block-number 17525323 --chain-id 1",
+    "test:polygon": "yarn test --fork polygon --block-number 44153231 --chain-id 137",
+    "test:avalanche": "yarn test --fork avalanche --block-number 31333905 --chain-id 43114",
     "prepare": "yarn build"
   },
   "dependencies": {
