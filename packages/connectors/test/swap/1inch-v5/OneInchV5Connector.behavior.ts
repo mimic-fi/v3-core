@@ -3,7 +3,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 
-import { loadOrGet1inchSwapData } from '../../helpers/1inch'
+import { loadOrGet1inchSwapData } from '../../helpers/1inch-v5'
 
 export function itBehavesLikeOneInchV5Connector(
   CHAIN: number,
