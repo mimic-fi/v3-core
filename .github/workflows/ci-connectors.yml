@@ -51,3 +51,7 @@ jobs:
         run: yarn workspace @mimic-fi/v3-connectors test:mainnet
       - name: Test polygon
         run: yarn workspace @mimic-fi/v3-connectors test:polygon
+      - name: Test optimism
+        run: yarn workspace @mimic-fi/v3-connectors test:optimism
+      - name: Test arbitrum
+        run: yarn workspace @mimic-fi/v3-connectors test:arbitrum
