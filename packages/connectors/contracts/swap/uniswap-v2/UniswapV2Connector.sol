@@ -48,7 +48,7 @@ contract UniswapV2Connector {
      * @param tokenOut Token being received
      * @param amountIn Amount of tokenIn being swapped
      * @param minAmountOut Minimum amount of tokenOut willing to receive
-     * @param hopTokens List of hop-tokens between tokenIn and tokenOut
+     * @param hopTokens Optional list of hop-tokens between tokenIn and tokenOut, only used for multi-hops
      */
     function execute(
         address tokenIn,
@@ -64,8 +64,8 @@ contract UniswapV2Connector {
 
         ERC20Helpers.approve(tokenIn, address(uniswapV2Router), amountIn);
         hopTokens.length == 0
-            ? _singleSwapUniswapV2(tokenIn, tokenOut, amountIn, minAmountOut)
-            : _batchSwapUniswapV2(tokenIn, tokenOut, amountIn, minAmountOut, hopTokens);
+            ? _singleSwap(tokenIn, tokenOut, amountIn, minAmountOut)
+            : _batchSwap(tokenIn, tokenOut, amountIn, minAmountOut, hopTokens);
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         require(postBalanceIn >= preBalanceIn - amountIn, 'UNI_V2_BAD_TOKEN_IN_BALANCE');
@@ -82,7 +82,7 @@ contract UniswapV2Connector {
      * @param amountIn Amount of tokenIn being swapped
      * @param minAmountOut Minimum amount of tokenOut willing to receive
      */
-    function _singleSwapUniswapV2(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut)
+    function _singleSwap(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut)
         internal
         returns (uint256[] memory)
     {
@@ -100,7 +100,7 @@ contract UniswapV2Connector {
      * @param minAmountOut Minimum amount of the last token in the path willing to receive
      * @param hopTokens List of hop-tokens between tokenIn and tokenOut
      */
-    function _batchSwapUniswapV2(
+    function _batchSwap(
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
