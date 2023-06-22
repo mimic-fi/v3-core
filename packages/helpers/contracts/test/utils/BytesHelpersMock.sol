@@ -14,18 +14,18 @@
 
 pragma solidity ^0.8.0;
 
-import '../../utils/Arrays.sol';
+import '../../utils/BytesHelpers.sol';
 
-library ArraysMock {
-    function from1(address a, address b) external pure returns (address[] memory result) {
-        return Arrays.from(a, b);
+library BytesHelpersMock {
+    function concat1(bytes memory self, address value) external pure returns (bytes memory) {
+        return BytesHelpers.concat(self, value);
     }
 
-    function from2(address a, address[] memory b, address c) external pure returns (address[] memory result) {
-        return Arrays.from(a, b, c);
+    function concat2(bytes memory self, uint24 value) external pure returns (bytes memory) {
+        return BytesHelpers.concat(self, value);
     }
 
-    function from3(uint24 a, uint24[] memory b) external pure returns (uint24[] memory result) {
-        return Arrays.from(a, b);
+    function toUint256(bytes memory self, uint256 start) external pure returns (uint256) {
+        return BytesHelpers.toUint256(self, start);
     }
 }

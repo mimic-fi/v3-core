@@ -44,4 +44,16 @@ library Arrays {
         for (uint256 i = 0; i < b.length; i = i.uncheckedAdd(1)) result[i.uncheckedAdd(1)] = b[i];
         result[b.length.uncheckedAdd(1)] = c;
     }
+
+    /**
+     * @dev Builds an array of uint24s based on the given ones
+     */
+    function from(uint24 a, uint24[] memory b) internal pure returns (uint24[] memory result) {
+        // No need for checked math since we are simply adding one to a memory array's length
+        result = new uint24[](b.length.uncheckedAdd(1));
+        result[0] = a;
+
+        // No need for checked math since we are using it to compute indexes manually, always within boundaries
+        for (uint256 i = 0; i < b.length; i = i.uncheckedAdd(1)) result[i.uncheckedAdd(1)] = b[i];
+    }
 }
