@@ -18,7 +18,7 @@
     "test:mainnet": "yarn test --fork mainnet --block-number 17525323",
     "test:polygon": "yarn test --fork polygon --block-number 44153231",
     "test:optimism": "yarn test --fork optimism --block-number 105914596",
-    "test:arbitrum": "yarn test --fork arbitrum --block-number 103731231",
+    "test:arbitrum": "yarn test --fork arbitrum --block-number 103739165"
     "prepare": "yarn build"
   },
   "dependencies": {
