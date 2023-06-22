@@ -45,7 +45,7 @@ contract WormholeConnector {
     uint256 private constant AVALANCHE_ID = 43114;
 
     // Reference to the Wormhole's CircleRelayer contract of the source chain
-    IWormhole private immutable wormholeCircleRelayer;
+    IWormhole public immutable wormholeCircleRelayer;
 
     /**
      * @dev Creates a new Wormhole connector
@@ -89,11 +89,11 @@ contract WormholeConnector {
     }
 
     /**
-     * @dev Internal function to tell the Wormhole network ID based on a chain ID
+     * @dev Tells the Wormhole network ID based on a chain ID
      * @param chainId ID of the chain being queried
      * @return Wormhole network ID associated to the requested chain ID
      */
-    function _getWormholeNetworkId(uint256 chainId) private pure returns (uint16) {
+    function _getWormholeNetworkId(uint256 chainId) internal pure returns (uint16) {
         if (chainId == ETHEREUM_ID) return ETHEREUM_WORMHOLE_NETWORK_ID;
         else if (chainId == POLYGON_ID) return POLYGON_WORMHOLE_NETWORK_ID;
         else if (chainId == ARBITRUM_ID) return ARBITRUM_WORMHOLE_NETWORK_ID;
