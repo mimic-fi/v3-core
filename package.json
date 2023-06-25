@@ -13,11 +13,12 @@
       "packages/helpers",
       "packages/registry",
       "packages/fee-controller",
-      "packages/price-oracle",
       "packages/authorizer",
+      "packages/price-oracle",
       "packages/smart-vault",
       "packages/tasks",
-      "packages/deployer"
+      "packages/deployer",
+      "packages/connectors"
     ]
   }
 }
