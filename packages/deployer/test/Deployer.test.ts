@@ -6,6 +6,7 @@ import { Contract } from 'ethers'
 const ARTIFACTS = {
   REGISTRY: '@mimic-fi/v3-registry/artifacts/contracts/Registry.sol/Registry',
   AUTHORIZER: '@mimic-fi/v3-authorizer/artifacts/contracts/Authorizer.sol/Authorizer',
+  PRICE_ORACLE: '@mimic-fi/v3-price-oracle/artifacts/contracts/PriceOracle.sol/PriceOracle',
   SMART_VAULT: '@mimic-fi/v3-smart-vault/artifacts/contracts/SmartVault.sol/SmartVault',
 }
 
@@ -138,6 +139,143 @@ describe('Deployer', () => {
     })
   })
 
+  describe('deployPriceOracle', () => {
+    let priceOracle: Contract
+
+    const PIVOT = '0x0000000000000000000000000000000000000001'
+    const SIGNER = '0x0000000000000000000000000000000000000002'
+    const AUTHORIZER = '0x0000000000000000000000000000000000000003'
+
+    const BASE_1 = '0x000000000000000000000000000000000000000a'
+    const BASE_2 = '0x000000000000000000000000000000000000000b'
+    const QUOTE_1 = '0x000000000000000000000000000000000000000c'
+    const QUOTE_2 = '0x000000000000000000000000000000000000000d'
+    const FEED_1 = '0x000000000000000000000000000000000000000E'
+    const FEED_2 = '0x000000000000000000000000000000000000000F'
+
+    const priceOracleParams = {
+      authorizer: AUTHORIZER,
+      pivot: PIVOT,
+      signer: SIGNER,
+      feeds: [
+        { base: BASE_1, quote: QUOTE_1, feed: FEED_1 },
+        { base: BASE_2, quote: QUOTE_2, feed: FEED_2 },
+      ],
+    }
+
+    const namespace = 'project'
+    const name = 'price-oracle'
+
+    beforeEach('create price oracle implementation', async () => {
+      priceOracle = await deploy(ARTIFACTS.PRICE_ORACLE)
+    })
+
+    context('when the implementation is registered', () => {
+      beforeEach('register implementations', async () => {
+        await registry.connect(mimic).register('price-oracle@0.0.1', priceOracle.address, false)
+      })
+
+      context('when the implementation is not deprecated', () => {
+        const itDeploysPriceOracleInstance = () => {
+          it('deploys the expected price oracle instance', async () => {
+            const tx = await deployer.deployPriceOracle(namespace, name, {
+              impl: priceOracle.address,
+              ...priceOracleParams,
+            })
+
+            const event = await assertEvent(tx, 'PriceOracleDeployed', {
+              namespace,
+              name,
+              implementation: priceOracle.address,
+            })
+
+            const expectedAddress = await deployer.getAddress(tx.from, namespace, name)
+            expect(event.args.instance).to.be.equal(expectedAddress)
+          })
+
+          it('initializes the price oracle instance correctly', async () => {
+            const tx = await deployer.deployPriceOracle(namespace, name, {
+              impl: priceOracle.address,
+              ...priceOracleParams,
+            })
+
+            const instance = await instanceAt(
+              ARTIFACTS.PRICE_ORACLE,
+              await deployer.getAddress(tx.from, namespace, name)
+            )
+
+            await expect(instance.initialize(AUTHORIZER, PIVOT, SIGNER, [])).to.be.revertedWith(
+              'Initializable: contract is already initialized'
+            )
+
+            expect(await instance.authorizer()).to.be.equal(AUTHORIZER)
+            expect(await instance.pivot()).to.be.equal(PIVOT)
+            expect(await instance.isSignerAllowed(SIGNER)).to.be.true
+
+            expect(await instance.getFeed(BASE_1, QUOTE_1)).to.be.equal(FEED_1)
+            expect(await instance.getFeed(BASE_2, QUOTE_2)).to.be.equal(FEED_2)
+          })
+        }
+
+        context('when the namespace and name where not used', () => {
+          beforeEach('set sender', () => {
+            deployer = deployer.connect(sender)
+          })
+
+          itDeploysPriceOracleInstance()
+        })
+
+        context('when the namespace and name where already used', () => {
+          beforeEach('deploy price oracle', async () => {
+            await deployer
+              .connect(sender)
+              .deployPriceOracle(namespace, name, { impl: priceOracle.address, ...priceOracleParams })
+          })
+
+          context('when deploying from the same address', () => {
+            beforeEach('set sender', () => {
+              deployer = deployer.connect(sender)
+            })
+
+            it('reverts', async () => {
+              await expect(
+                deployer.deployPriceOracle(namespace, name, { impl: priceOracle.address, ...priceOracleParams })
+              ).to.be.revertedWith('DEPLOYMENT_FAILED')
+            })
+          })
+
+          context('when deploying from another address', () => {
+            beforeEach('set sender', () => {
+              deployer = deployer.connect(mimic)
+            })
+
+            itDeploysPriceOracleInstance()
+          })
+        })
+      })
+
+      context('when the implementation is deprecated', () => {
+        beforeEach('deprecate implementation', async () => {
+          await registry.connect(mimic).deprecate(priceOracle.address)
+        })
+
+        it('reverts', async () => {
+          await expect(
+            deployer.deployPriceOracle(namespace, name, { impl: priceOracle.address, ...priceOracleParams })
+          ).to.be.revertedWith('DEPLOYER_IMPL_DEPRECATED')
+        })
+      })
+    })
+
+    context('when the implementation is not registered', () => {
+      it('reverts', async () => {
+        await expect(
+          deployer.deployPriceOracle(namespace, name, { impl: priceOracle.address, ...priceOracleParams })
+        ).to.be.revertedWith('DEPLOYER_IMPL_NOT_REGISTERED')
+      })
+    })
+  })
+
   describe('deploySmartVault', () => {
     let smartVault: Contract
 
@@ -147,20 +285,9 @@ describe('Deployer', () => {
     const AUTHORIZER = '0x0000000000000000000000000000000000000003'
     const PRICE_ORACLE = '0x0000000000000000000000000000000000000004'
 
-    const BASE_1 = '0x000000000000000000000000000000000000000a'
-    const BASE_2 = '0x000000000000000000000000000000000000000b'
-    const QUOTE_1 = '0x000000000000000000000000000000000000000c'
-    const QUOTE_2 = '0x000000000000000000000000000000000000000d'
-    const FEED_1 = '0x000000000000000000000000000000000000000E'
-    const FEED_2 = '0x000000000000000000000000000000000000000F'
-
     const smartVaultParams = {
       authorizer: AUTHORIZER,
       priceOracle: PRICE_ORACLE,
-      priceFeedParams: [
-        { base: BASE_1, quote: QUOTE_1, feed: FEED_1 },
-        { base: BASE_2, quote: QUOTE_2, feed: FEED_2 },
-      ],
     }
 
     const namespace = 'project'
@@ -215,8 +342,6 @@ describe('Deployer', () => {
 
             expect(await instance.authorizer()).to.be.equal(AUTHORIZER)
             expect(await instance.priceOracle()).to.be.equal(PRICE_ORACLE)
-            expect(await instance.getPriceFeed(BASE_1, QUOTE_1)).to.be.equal(FEED_1)
-            expect(await instance.getPriceFeed(BASE_2, QUOTE_2)).to.be.equal(FEED_2)
           })
         }
 

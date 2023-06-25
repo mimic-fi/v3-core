@@ -14,22 +14,75 @@
 
 pragma solidity >=0.8.0;
 
+import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorized.sol';
+
 /**
  * @title IPriceOracle
- * @dev Oracle that interfaces with external feeds to provide quotes for tokens based on any other token.
+ * @dev Price oracle interface
+ *
+ * Tells the price of a token (base) in a given quote based the following rule: the response is expressed using the
+ * corresponding number of decimals so that when performing a fixed point product of it by a `base` amount it results
+ * in a value expressed in `quote` decimals. For example, if `base` is ETH and `quote` is USDC, then the returned
+ * value is expected to be expressed using 6 decimals:
+ *
+ * FixedPoint.mul(X[ETH], price[USDC/ETH]) = FixedPoint.mul(X[18], price[6]) = X * price [6]
  */
-interface IPriceOracle {
+interface IPriceOracle is IAuthorized {
     /**
-     * @dev Tells the price of a token (base) in a given quote. The response is expressed using the corresponding
-     * number of decimals so that when performing a fixed point product of it by a `base` amount it results in
-     * a value expressed in `quote` decimals. For example, if `base` is ETH and `quote` is USDC, then the returned
-     * value is expected to be expressed using 6 decimals:
-     *
-     * FixedPoint.mul(X[ETH], price[USDC/ETH]) = FixedPoint.mul(X[18], price[6]) = X * price [6]
-     *
-     * @param provider Contract providing the price feeds to use by the oracle
+     * @dev Emitted every time a signer is changed
+     */
+    event SignerSet(address indexed signer, bool allowed);
+
+    /**
+     * @dev Emitted every time a feed is set for (base, quote) pair
+     */
+    event FeedSet(address indexed base, address indexed quote, address feed);
+
+    /**
+     * @dev Tells whether an address is as an allowed signer or not
+     * @param signer Address of the signer being queried
+     */
+    function isSignerAllowed(address signer) external view returns (bool);
+
+    /**
+     * @dev Tells the list of allowed signers
+     */
+    function getAllowedSigners() external view returns (address[] memory);
+
+    /**
+     * @dev Tells the price of a token `base` expressed in a token `quote`
      * @param base Token to rate
      * @param quote Token used for the price rate
      */
-    function getPrice(address provider, address base, address quote) external view returns (uint256);
+    function getPrice(address base, address quote) external view returns (uint256);
+
+    /**
+     * @dev Tells the price of a token `base` expressed in a token `quote`
+     * @param base Token to rate
+     * @param quote Token used for the price rate
+     * @param data Encoded data to validate in order to compute the requested rate
+     */
+    function getPrice(address base, address quote, bytes memory data) external view returns (uint256);
+
+    /**
+     * @dev Tells the feed address for (base, quote) pair. It returns the zero address if there is no one set.
+     * @param base Token to be rated
+     * @param quote Token used for the price rate
+     */
+    function getFeed(address base, address quote) external view returns (address);
+
+    /**
+     * @dev Sets a signer condition
+     * @param signer Address of the signer to be set
+     * @param allowed Whether the requested signer is allowed
+     */
+    function setSigner(address signer, bool allowed) external;
+
+    /**
+     * @dev Sets a feed for a (base, quote) pair
+     * @param base Token base to be set
+     * @param quote Token quote to be set
+     * @param feed Feed to be set
+     */
+    function setFeed(address base, address quote, address feed) external;
 }

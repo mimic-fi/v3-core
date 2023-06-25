@@ -15,30 +15,35 @@
 pragma solidity ^0.8.0;
 
 import '@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol';
-import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
-import '@openzeppelin/contracts/utils/math/SafeCast.sol';
 
+import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
+import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
+import '@openzeppelin/contracts/utils/math/SafeCast.sol';
+import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import '@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol';
+
+import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/math/UncheckedMath.sol';
+import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 
 import './interfaces/IPriceOracle.sol';
-import './interfaces/IPriceFeedProvider.sol';
 
 /**
- * @title PriceOracle
- * @dev Oracle that interfaces with external feeds to provide quotes for tokens based on any other token.
+ * @title OnChainOracle
+ * @dev Price oracle mixing both on-chain and off-chain oracle alternatives
  *
- * This Price Oracle only operates with ERC20 tokens, it does not allow querying quotes for any other denomination.
- * Additionally, it only supports external feeds that implement ChainLink's proposed `AggregatorV3Interface` interface.
+ * The on-chain oracle that interfaces with Chainlink feeds to provide rates between two tokens. This oracle only
+ * operates with ERC20 tokens, it does not allow querying quotes for any other denomination. Additionally, it only
+ * supports feeds that implement ChainLink's proposed `AggregatorV3Interface` interface.
  *
- * IMPORTANT! As many other implementations in this repo, this contract is intended to be used as a LIBRARY, not
- * a contract. Due to limitations of the Solidity compiler, it's not possible to work with immutable variables in
- * libraries yet. Therefore, we are relying on contracts without storage variables so they can be safely
- * delegate-called if desired.
+ *  The off-chain oracle that uses off-chain signatures to compute prices between two tokens
  */
-contract PriceOracle is IPriceOracle {
+contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
     using FixedPoint for uint256;
     using UncheckedMath for uint256;
+    using BytesHelpers for bytes;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     // Number of decimals used for fixed point operations: 18
     uint256 private constant FP_DECIMALS = 18;
@@ -47,25 +52,82 @@ contract PriceOracle is IPriceOracle {
     uint256 private constant INVERSE_FEED_MAX_DECIMALS = 36;
 
     // It allows denoting a single token to pivot between feeds in case a direct path is not available
-    address public immutable pivot;
+    address public pivot;
+
+    // Mapping of feeds from "token A" to "token B"
+    mapping (address => mapping (address => address)) public override getFeed;
+
+    // Enumerable set of trusted signers
+    EnumerableSet.AddressSet private _signers;
 
     /**
-     * @dev Creates a new Price Oracle implementation with the references that should be shared among all implementations
-     * @param _pivot Address of the token to be used as the pivot
+     * @dev Feed data, only used during initialization
+     * @param base Token to rate
+     * @param quote Token used for the price rate
+     * @param feed Chainlink oracle to fetch the given pair price
      */
-    constructor(address _pivot) {
+    struct FeedData {
+        address base;
+        address quote;
+        address feed;
+    }
+
+    /**
+     * @dev Price data
+     * @param base Token to rate
+     * @param quote Token used for the price rate
+     * @param rate Price of a token (base) expressed in `quote`
+     * @param deadline Expiration timestamp until when the given quote is considered valid
+     */
+    struct PriceData {
+        address base;
+        address quote;
+        uint256 rate;
+        uint256 deadline;
+    }
+
+    /**
+     * @dev Initializes the price oracle.
+     * Note this function can only be called from a function marked with the `initializer` modifier.
+     * @param _authorizer Address of the authorizer to be set
+     * @param _signer Address of the initial allowed signer
+     * @param _pivot Address of the token to be used as the pivot
+     * @param _feeds List of feeds to be initialized with
+     */
+    function initialize(address _authorizer, address _signer, address _pivot, FeedData[] memory _feeds)
+        external
+        initializer
+    {
+        __ReentrancyGuard_init();
+        _initialize(_authorizer);
+        _setSigner(_signer, true);
         pivot = _pivot;
+        for (uint256 i = 0; i < _feeds.length; i++) _setFeed(_feeds[i].base, _feeds[i].quote, _feeds[i].feed);
+    }
+
+    /**
+     * @dev Tells whether an address is as an allowed signer or not
+     * @param signer Address of the signer being queried
+     */
+    function isSignerAllowed(address signer) public view override returns (bool) {
+        return _signers.contains(signer);
+    }
+
+    /**
+     * @dev Tells the list of allowed signers
+     */
+    function getAllowedSigners() external view override returns (address[] memory) {
+        return _signers.values();
     }
 
     /**
      * @dev Tells the price of a token (base) in a given quote. The response is expressed using the corresponding
      * number of decimals so that when performing a fixed point product of it by a `base` amount it results in
      * a value expressed in `quote` decimals.
-     * @param provider Provider to fetch the price feeds from
      * @param base Token to rate
      * @param quote Token used for the price rate
      */
-    function getPrice(address provider, address base, address quote) external view override returns (uint256) {
+    function getPrice(address base, address quote) public view override returns (uint256) {
         if (base == quote) return FixedPoint.ONE;
 
         // If `base * result / 1e18` must be expressed in `quote` decimals, then
@@ -77,39 +139,81 @@ contract PriceOracle is IPriceOracle {
 
         // No need for checked math as we are checking it manually beforehand
         uint256 resultDecimals = quoteDecimals.uncheckedAdd(FP_DECIMALS).uncheckedSub(baseDecimals);
-        (uint256 price, uint256 decimals) = _getPrice(IPriceFeedProvider(provider), base, quote);
+        (uint256 price, uint256 decimals) = _getPrice(base, quote);
         return _scalePrice(price, decimals, resultDecimals);
     }
 
     /**
-     * @dev Internal function to tell the price of a token (base) in a given quote.
-     * @param provider Provider to fetch the price feeds from
+     /**
+     * @dev Tries fetching a price for base/quote pair from an external encoded data. It fall-backs using the on-chain
+     * oracle in case the require price is missing. It reverts in case the off-chain data verification fails.
+     * @param base Token to rate
+     * @param quote Token used for the price rate
+     * @param data Encoded prices data along with its corresponding signature
+     */
+    function getPrice(address base, address quote, bytes memory data) external view override returns (uint256) {
+        if (base == quote) return FixedPoint.ONE;
+
+        PriceData[] memory prices = _decodePricesData(data);
+        for (uint256 i = 0; i < prices.length; i++) {
+            PriceData memory price = prices[i];
+            if (price.base == base && price.quote == quote) {
+                require(price.deadline >= block.timestamp, 'ORACLE_PRICE_OUTDATED');
+                return price.rate;
+            }
+        }
+
+        return getPrice(base, quote);
+    }
+
+    /**
+     * @dev Sets a signer condition
+     * @param signer Address of the signer to be set
+     * @param allowed Whether the requested signer is allowed
+     */
+    function setSigner(address signer, bool allowed) external override nonReentrant authP(authParams(signer, allowed)) {
+        _setSigner(signer, allowed);
+    }
+
+    /**
+     * @dev Sets a feed for a (base, quote) pair. Sender must be authorized.
+     * @param base Token base to be set
+     * @param quote Token quote to be set
+     * @param feed Feed to be set
+     */
+    function setFeed(address base, address quote, address feed)
+        external
+        override
+        nonReentrant
+        authP(authParams(base, quote, feed))
+    {
+        _setFeed(base, quote, feed);
+    }
+
+    /**
+     * @dev Tells the price of a token (base) in a given quote.
      * @param base Token to rate
      * @param quote Token used for the price rate
      * @return price Requested price rate
      * @return decimals Decimals of the requested price rate
      */
-    function _getPrice(IPriceFeedProvider provider, address base, address quote)
-        internal
-        view
-        returns (uint256 price, uint256 decimals)
-    {
-        address feed = provider.getPriceFeed(base, quote);
+    function _getPrice(address base, address quote) internal view returns (uint256 price, uint256 decimals) {
+        address feed = getFeed[base][quote];
         if (feed != address(0)) return _getFeedData(feed);
 
-        address inverseFeed = provider.getPriceFeed(quote, base);
+        address inverseFeed = getFeed[quote][base];
         if (inverseFeed != address(0)) return _getInversePrice(inverseFeed);
 
-        address baseFeed = provider.getPriceFeed(base, pivot);
-        address quoteFeed = provider.getPriceFeed(quote, pivot);
+        address baseFeed = getFeed[base][pivot];
+        address quoteFeed = getFeed[quote][pivot];
         if (baseFeed != address(0) && quoteFeed != address(0)) return _getPivotPrice(baseFeed, quoteFeed);
 
-        revert('MISSING_PRICE_FEED');
+        revert('ORACLE_MISSING_FEED');
     }
 
     /**
-     * @dev Internal function to fetch data from a price feed
-     * @param feed Address of the price feed to fetch data from. It must support ChainLink's `AggregatorV3Interface`.
+     * @dev Fetches data from a Chainlink feed
+     * @param feed Address of the Chainlink feed to fetch data from. It must support ChainLink `AggregatorV3Interface`.
      * @return price Requested price
      * @return decimals Decimals of the requested price
      */
@@ -120,8 +224,8 @@ contract PriceOracle is IPriceOracle {
     }
 
     /**
-     * @dev Internal function to report a price based on an inverse feed
-     * @param inverseFeed Price feed of the inverse pair
+     * @dev Tells a price based on an inverse feed
+     * @param inverseFeed Feed of the inverse pair
      * @return price Requested price rate
      * @return decimals Decimals of the requested price rate
      */
@@ -136,9 +240,9 @@ contract PriceOracle is IPriceOracle {
     }
 
     /**
-     * @dev Internal function to report a price based on two relative price feeds
-     * @param baseFeed Price feed of the base token
-     * @param quoteFeed Price feed of the quote token
+     * @dev Report a price based on two relative feeds
+     * @param baseFeed Feed of the base token
+     * @param quoteFeed Feed of the quote token
      * @return price Requested price rate
      * @return decimals Decimals of the requested price rate
      */
@@ -161,7 +265,7 @@ contract PriceOracle is IPriceOracle {
     }
 
     /**
-     * @dev Internal function to upscale or downscale a price rate
+     * @dev Upscales or downscale a price rate
      * @param price Value to be scaled
      * @param priceDecimals Decimals in which `price` is originally represented
      * @return resultDecimals Decimals requested for the result
@@ -171,5 +275,88 @@ contract PriceOracle is IPriceOracle {
             resultDecimals >= priceDecimals
                 ? (price * 10**(resultDecimals.uncheckedSub(priceDecimals)))
                 : (price / 10**(priceDecimals.uncheckedSub(resultDecimals)));
+    }
+
+    /**
+     * @dev Decodes a list of off-chain encoded prices. It returns an empty array in case it is malformed. It reverts
+     * if the data is considered properly encoded but the signer is not allowed.
+     * @param data Data to be decoded
+     */
+    function _decodePricesData(bytes memory data) internal view returns (PriceData[] memory) {
+        if (!_isOffChainDataEncodedProperly(data)) return new PriceData[](0);
+
+        (PriceData[] memory prices, bytes memory signature) = abi.decode(data, (PriceData[], bytes));
+        bytes32 message = ECDSA.toEthSignedMessageHash(keccak256(abi.encode(prices)));
+        (address recovered, ECDSA.RecoverError error) = ECDSA.tryRecover(message, signature);
+        require(error == ECDSA.RecoverError.NoError && isSignerAllowed(recovered), 'ORACLE_INVALID_SIGNER');
+        return prices;
+    }
+
+    /**
+     * @dev Sets the off-chain oracle signer
+     * @param signer Address of the signer to be set
+     */
+    function _setSigner(address signer, bool allowed) internal {
+        allowed ? _signers.add(signer) : _signers.remove(signer);
+        emit SignerSet(signer, allowed);
+    }
+
+    /**
+     * @dev Sets a new feed for a (base, quote) pair
+     * @param base Token base to be set
+     * @param quote Token quote to be set
+     * @param feed Feed to be set
+     */
+    function _setFeed(address base, address quote, address feed) internal {
+        getFeed[base][quote] = feed;
+        emit FeedSet(base, quote, feed);
+    }
+
+    /**
+     * @dev Tells if a data array is encoded as expected for a list off-chain prices
+     * @param data Data to be evaluated
+     */
+    function _isOffChainDataEncodedProperly(bytes memory data) private pure returns (bool) {
+        // Check the minimum expected data length based on how ABI encoding works.
+        // Considering the structure (PriceData[], bytes), the encoding should have the following pattern:
+        //
+        // [ PRICES OFFSET ][ SIG OFFSET ][ PRICES DATA LENGTH ][ PRICES DATA ][ SIG LENGTH ][ VRS SIG ]
+        // [       32      ][     32     ][         32         ][   N * 128   ][     32     ][  32 * 3 ]
+        //
+        // Therefore the minimum length expected is:
+        uint256 minimumLength = 32 + 32 + 32 + 32 + 96;
+        if (data.length < minimumLength) return false;
+
+        // There must be at least the same number of bytes specified by the prices offset value:
+        uint256 pricesOffset = data.toUint256(0);
+        if (data.length < pricesOffset) return false;
+
+        // The exact expected data length can be now computed based on the prices length:
+        uint256 pricesLength = data.toUint256(pricesOffset);
+        if (data.length != minimumLength + (pricesLength * 128)) return false;
+
+        // The signature offset can be computed based on the prices length:
+        uint256 signatureOffset = data.toUint256(32);
+        if (signatureOffset != (32 * 3) + (pricesLength * 128)) return false;
+
+        // Finally the signature length must be 64 or 65:
+        uint256 signatureLength = data.toUint256(signatureOffset);
+        if (signatureLength != 64 && signatureLength != 65) return false;
+
+        // Finally confirm the data types for each of the price data attributes:
+        for (uint256 i = 0; i < pricesLength; i++) {
+            uint256 offset = i * 128;
+
+            // Base should be a valid address
+            uint256 priceBase = data.toUint256(32 * 3 + offset);
+            if (priceBase > type(uint160).max) return false;
+
+            // Quote should be a valid address
+            uint256 priceQuote = data.toUint256(32 * 4 + offset);
+            if (priceQuote > type(uint160).max) return false;
+        }
+
+        // Otherwise the data can be decoded properly
+        return true;
     }
 }

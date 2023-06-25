@@ -1,22 +1,190 @@
-import { bn, deploy } from '@mimic-fi/v3-helpers'
+import {
+  advanceTime,
+  assertEvent,
+  BigNumberish,
+  bn,
+  currentTimestamp,
+  DAY,
+  deploy,
+  deployProxy,
+  fp,
+  getSigner,
+  getSigners,
+  ZERO_ADDRESS,
+} from '@mimic-fi/v3-helpers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
-import { Contract } from 'ethers'
+import { BigNumber, Contract, ethers } from 'ethers'
+import { defaultAbiCoder } from 'ethers/lib/utils'
 
 describe('PriceOracle', () => {
-  let oracle: Contract
+  let priceOracle: Contract, authorizer: Contract
+  let owner: SignerWithAddress, signer: SignerWithAddress
 
   const PIVOT = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' // ETH
+  const BASE = '0x0000000000000000000000000000000000000001'
+  const QUOTE = '0x0000000000000000000000000000000000000002'
+  const FEED = '0x0000000000000000000000000000000000000003'
 
-  beforeEach('create oracle', async () => {
-    oracle = await deploy('PriceOracle', [PIVOT])
+  before('setup signers', async () => {
+    // eslint-disable-next-line prettier/prettier
+    [, owner, signer] = await getSigners()
   })
 
-  describe('getPrice', () => {
-    let provider: Contract, base: Contract, quote: Contract
+  beforeEach('create price oracle', async () => {
+    authorizer = await deployProxy(
+      '@mimic-fi/v3-authorizer/artifacts/contracts/Authorizer.sol/Authorizer',
+      [],
+      [[owner.address]]
+    )
 
-    beforeEach('deploy provider', async () => {
-      provider = await deploy('PriceFeedProviderMock')
+    priceOracle = await deployProxy(
+      'PriceOracle',
+      [],
+      [authorizer.address, signer.address, PIVOT, [{ base: BASE, quote: QUOTE, feed: FEED }]]
+    )
+  })
+
+  describe('initialization', async () => {
+    it('has an authorizer reference', async () => {
+      expect(await priceOracle.authorizer()).to.be.equal(authorizer.address)
     })
+
+    it('sets the pivot properly', async () => {
+      expect(await priceOracle.pivot()).to.be.equal(PIVOT)
+    })
+
+    it('sets the allowed signer properly', async () => {
+      expect(await priceOracle.isSignerAllowed(signer.address)).to.be.true
+    })
+
+    it('sets the initial feeds properly', async () => {
+      expect(await priceOracle.getFeed(BASE, QUOTE)).to.be.equal(FEED)
+    })
+  })
+
+  describe('setSigner', () => {
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async () => {
+        const setSignerRole = priceOracle.interface.getSighash('setSigner')
+        await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setSignerRole, [])
+        priceOracle = priceOracle.connect(owner)
+      })
+
+      context('when allowing the signer', () => {
+        const allowed = true
+
+        it('allows the signer', async () => {
+          await priceOracle.setSigner(owner.address, allowed)
+          expect(await priceOracle.isSignerAllowed(owner.address)).to.be.true
+        })
+
+        it('does not affect other signers', async () => {
+          await priceOracle.setSigner(owner.address, allowed)
+          expect(await priceOracle.isSignerAllowed(signer.address)).to.be.true
+        })
+
+        it('emits an event', async () => {
+          const tx = await priceOracle.setSigner(owner.address, allowed)
+          await assertEvent(tx, 'SignerSet', { signer: owner, allowed })
+        })
+      })
+
+      context('when removing the signer', () => {
+        const allowed = false
+
+        it('disallows the signer', async () => {
+          await priceOracle.setSigner(owner.address, allowed)
+          expect(await priceOracle.isSignerAllowed(owner.address)).to.be.false
+        })
+
+        it('does not affect other signers', async () => {
+          await priceOracle.setSigner(owner.address, allowed)
+          expect(await priceOracle.isSignerAllowed(signer.address)).to.be.true
+        })
+
+        it('emits an event', async () => {
+          const tx = await priceOracle.setSigner(owner.address, allowed)
+          await assertEvent(tx, 'SignerSet', { signer: owner, allowed })
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async () => {
+        await expect(priceOracle.setSigner(owner.address, true)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
+    })
+  })
+
+  describe('setFeed', () => {
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async () => {
+        const setFeedRole = await priceOracle.interface.getSighash('setFeed')
+        await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
+        priceOracle = priceOracle.connect(owner)
+      })
+
+      const itCanBeSet = () => {
+        it('can be set', async () => {
+          const tx = await priceOracle.setFeed(BASE, QUOTE, FEED)
+
+          expect(await priceOracle.getFeed(BASE, QUOTE)).to.be.equal(FEED)
+
+          await assertEvent(tx, 'FeedSet', { base: BASE, quote: QUOTE, feed: FEED })
+        })
+      }
+
+      const itCanBeUnset = () => {
+        it('can be unset', async () => {
+          const tx = await priceOracle.setFeed(BASE, QUOTE, ZERO_ADDRESS)
+
+          expect(await priceOracle.getFeed(BASE, QUOTE)).to.be.equal(ZERO_ADDRESS)
+
+          await assertEvent(tx, 'FeedSet', { base: BASE, quote: QUOTE, feed: ZERO_ADDRESS })
+        })
+      }
+
+      context('when the feed is set', () => {
+        beforeEach('set feed', async () => {
+          await priceOracle.setFeed(BASE, QUOTE, FEED)
+          expect(await priceOracle.getFeed(BASE, QUOTE)).to.be.equal(FEED)
+        })
+
+        itCanBeSet()
+        itCanBeUnset()
+      })
+
+      context('when the feed is not set', () => {
+        beforeEach('unset feed', async () => {
+          await priceOracle.setFeed(BASE, QUOTE, ZERO_ADDRESS)
+          expect(await priceOracle.getFeed(BASE, QUOTE)).to.be.equal(ZERO_ADDRESS)
+        })
+
+        itCanBeSet()
+        itCanBeUnset()
+      })
+    })
+
+    context('when sender is not authorized', () => {
+      it('reverts', async () => {
+        await expect(priceOracle.setFeed(BASE, QUOTE, FEED)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
+    })
+  })
+
+  describe('getPrice (on-chain)', () => {
+    let base: Contract, quote: Contract
+
+    beforeEach('authorize sender', async () => {
+      const setFeedRole = await priceOracle.interface.getSighash('setFeed')
+      await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
+      priceOracle = priceOracle.connect(owner)
+    })
+
+    const getPrice = async (): Promise<BigNumber> => {
+      return priceOracle['getPrice(address,address)'](base.address, quote.address)
+    }
 
     context('when there is no feed', () => {
       beforeEach('deploy tokens', async () => {
@@ -25,9 +193,7 @@ describe('PriceOracle', () => {
       })
 
       it('reverts', async () => {
-        await expect(oracle.getPrice(provider.address, base.address, quote.address)).to.be.revertedWith(
-          'MISSING_PRICE_FEED'
-        )
+        await expect(getPrice()).to.be.revertedWith('ORACLE_MISSING_FEED')
       })
     })
 
@@ -41,9 +207,7 @@ describe('PriceOracle', () => {
         })
 
         it('reverts', async () => {
-          await expect(oracle.getPrice(provider.address, base.address, quote.address)).to.be.revertedWith(
-            'BASE_DECIMALS_TOO_BIG'
-          )
+          await expect(getPrice()).to.be.revertedWith('BASE_DECIMALS_TOO_BIG')
         })
       }
 
@@ -59,11 +223,11 @@ describe('PriceOracle', () => {
 
         beforeEach('set feed', async () => {
           const feed = await deploy('FeedMock', [reportedPrice, feedDecimals])
-          await provider.setPriceFeeds([base.address], [quote.address], [feed.address])
+          await priceOracle.setFeed(base.address, quote.address, feed.address)
         })
 
         it(`expresses the price with ${resultDecimals} decimals`, async () => {
-          expect(await oracle.getPrice(provider.address, base.address, quote.address)).to.be.equal(expectedPrice)
+          expect(await getPrice()).to.be.equal(expectedPrice)
         })
       }
 
@@ -326,9 +490,7 @@ describe('PriceOracle', () => {
         })
 
         it('reverts', async () => {
-          await expect(oracle.getPrice(provider.address, base.address, quote.address)).to.be.revertedWith(
-            'BASE_DECIMALS_TOO_BIG'
-          )
+          await expect(getPrice()).to.be.revertedWith('BASE_DECIMALS_TOO_BIG')
         })
       }
 
@@ -344,11 +506,11 @@ describe('PriceOracle', () => {
 
         beforeEach('set inverse feed', async () => {
           const feed = await deploy('FeedMock', [reportedInversePrice, feedDecimals])
-          await provider.setPriceFeeds([quote.address], [base.address], [feed.address])
+          await priceOracle.setFeed(quote.address, base.address, feed.address)
         })
 
         it(`expresses the price with ${resultDecimals} decimals`, async () => {
-          const price = await oracle.getPrice(provider.address, base.address, quote.address)
+          const price = await getPrice()
 
           if (feedDecimals > 18) {
             // There is no precision error
@@ -624,9 +786,7 @@ describe('PriceOracle', () => {
         })
 
         it('reverts', async () => {
-          await expect(oracle.getPrice(provider.address, base.address, quote.address)).to.be.revertedWith(
-            'BASE_DECIMALS_TOO_BIG'
-          )
+          await expect(getPrice()).to.be.revertedWith('BASE_DECIMALS_TOO_BIG')
         })
       }
 
@@ -648,16 +808,14 @@ describe('PriceOracle', () => {
 
         beforeEach('set feed', async () => {
           const baseFeed = await deploy('FeedMock', [reportedBasePrice, baseFeedDecimals])
+          await priceOracle.setFeed(base.address, PIVOT, baseFeed.address)
+
           const quoteFeed = await deploy('FeedMock', [reportedQuotePrice, quoteFeedDecimals])
-          await provider.setPriceFeeds(
-            [base.address, quote.address],
-            [PIVOT, PIVOT],
-            [baseFeed.address, quoteFeed.address]
-          )
+          await priceOracle.setFeed(quote.address, PIVOT, quoteFeed.address)
         })
 
         it(`expresses the price with ${resultDecimals} decimals`, async () => {
-          expect(await oracle.getPrice(provider.address, base.address, quote.address)).to.be.equal(expectedPrice)
+          expect(await getPrice()).to.be.equal(expectedPrice)
         })
       }
 
@@ -1387,6 +1545,252 @@ describe('PriceOracle', () => {
             })
           })
         })
+      })
+    })
+  })
+
+  describe('getPrice (off-chain)', () => {
+    let base: Contract,
+      quote: Contract,
+      feed: Contract,
+      data = '0x'
+
+    const OFF_CHAIN_ORACLE_PRICE = fp(5)
+    const SMART_VAULT_ORACLE_PRICE = fp(10)
+
+    const getPrice = async (): Promise<BigNumber> => {
+      return priceOracle['getPrice(address,address,bytes)'](base.address, quote.address, data)
+    }
+
+    beforeEach('deploy base and quote', async () => {
+      base = await deploy('TokenMock', ['BASE', 18])
+      quote = await deploy('TokenMock', ['QUOTE', 18])
+      feed = await deploy('FeedMock', [SMART_VAULT_ORACLE_PRICE, 18])
+    })
+
+    const setUpSmartVaultOracleFeed = () => {
+      beforeEach('set smart vault oracle', async () => {
+        const setFeedRole = await priceOracle.interface.getSighash('setFeed')
+        await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
+        await priceOracle.connect(owner).setFeed(base.address, quote.address, feed.address)
+      })
+    }
+
+    const itRetrievesThePriceFromTheSmartVaultOracle = () => {
+      it('retrieves the pair price from the smart vault oracle', async () => {
+        expect(await getPrice()).to.be.equal(SMART_VAULT_ORACLE_PRICE)
+      })
+    }
+
+    const itRetrievesThePriceFromTheOffChainFeed = () => {
+      it('retrieves the pair price from the off-chain feed', async () => {
+        expect(await getPrice()).to.be.equal(OFF_CHAIN_ORACLE_PRICE)
+      })
+    }
+
+    const itRevertsDueToMissingFeed = () => {
+      it('reverts due to missing feed', async () => {
+        await expect(getPrice()).to.be.revertedWith('ORACLE_MISSING_FEED')
+      })
+    }
+
+    const itRevertsDueToInvalidSignature = () => {
+      it('reverts due to invalid signature', async () => {
+        await expect(getPrice()).to.be.revertedWith('ORACLE_INVALID_SIGNER')
+      })
+    }
+
+    context('when the feed data is well-formed', () => {
+      type PriceData = { base: string; quote: string; rate: BigNumberish; deadline: BigNumberish }
+
+      let pricesData: PriceData[]
+
+      const encodeFeedsWithSignature = async (prices: PriceData[], signer: SignerWithAddress): Promise<string> => {
+        const PricesDataType = 'PriceData(address base, address quote, uint256 rate, uint256 deadline)[]'
+        const encodedPrices = await defaultAbiCoder.encode([PricesDataType], [prices])
+        const message = ethers.utils.solidityKeccak256(['bytes'], [encodedPrices])
+        const signature = await signer.signMessage(ethers.utils.arrayify(message))
+        return defaultAbiCoder.encode([PricesDataType, 'bytes signature'], [prices, signature])
+      }
+
+      const itRetrievesPricesProperly = () => {
+        context('when the feed data is up-to-date', () => {
+          context('when there is no feed in the smart vault oracle', () => {
+            itRetrievesThePriceFromTheOffChainFeed()
+          })
+
+          context('when there is a feed in the smart vault oracle', () => {
+            setUpSmartVaultOracleFeed()
+            itRetrievesThePriceFromTheOffChainFeed()
+          })
+        })
+
+        context('when the feed data is outdated', () => {
+          beforeEach('advance time', async () => {
+            await advanceTime(DAY * 2)
+          })
+
+          const itRevertsDueToOutdatedFeed = () => {
+            it('reverts due to outdated feed', async () => {
+              await expect(getPrice()).to.be.revertedWith('ORACLE_PRICE_OUTDATED')
+            })
+          }
+
+          context('when there is no feed in the smart vault oracle', () => {
+            itRevertsDueToOutdatedFeed()
+          })
+
+          context('when there is a feed in the smart vault oracle', () => {
+            setUpSmartVaultOracleFeed()
+            itRevertsDueToOutdatedFeed()
+          })
+        })
+      }
+
+      context('when there is no off-chain feed given', () => {
+        beforeEach('build feed data', async () => {
+          pricesData = []
+        })
+
+        context('when the feed data is properly signed', () => {
+          beforeEach('sign with known signer', async () => {
+            const signer = await getSigner(2)
+            data = await encodeFeedsWithSignature(pricesData, signer)
+
+            const setSignerRole = priceOracle.interface.getSighash('setSigner')
+            await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setSignerRole, [])
+            await priceOracle.connect(owner).setSigner(signer.address, true)
+          })
+
+          context('when there is no feed in the smart vault oracle', () => {
+            itRevertsDueToMissingFeed()
+          })
+
+          context('when there is a feed in the smart vault oracle', () => {
+            setUpSmartVaultOracleFeed()
+            itRetrievesThePriceFromTheSmartVaultOracle()
+          })
+        })
+
+        context('when the feed data is not properly signed', () => {
+          beforeEach('sign with unknown signer', async () => {
+            const signer = await getSigner()
+            data = await encodeFeedsWithSignature(pricesData, signer)
+          })
+
+          context('when there is no feed in the smart vault oracle', () => {
+            itRevertsDueToInvalidSignature()
+          })
+
+          context('when there is a feed in the smart vault oracle', () => {
+            setUpSmartVaultOracleFeed()
+            itRevertsDueToInvalidSignature()
+          })
+        })
+      })
+
+      context('when there is only one feed given', () => {
+        beforeEach('build feed data', async () => {
+          pricesData = [
+            {
+              base: base.address,
+              quote: quote.address,
+              rate: OFF_CHAIN_ORACLE_PRICE,
+              deadline: (await currentTimestamp()).add(DAY),
+            },
+          ]
+        })
+
+        context('when the feed data is properly signed', () => {
+          beforeEach('sign with known signer', async () => {
+            const signer = await getSigner()
+            data = await encodeFeedsWithSignature(pricesData, signer)
+
+            const setSignerRole = priceOracle.interface.getSighash('setSigner')
+            await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setSignerRole, [])
+            await priceOracle.connect(owner).setSigner(signer.address, true)
+          })
+
+          itRetrievesPricesProperly()
+        })
+
+        context('when the feed data is not properly signed', () => {
+          beforeEach('sign with unknown signer', async () => {
+            const signer = await getSigner()
+            data = await encodeFeedsWithSignature(pricesData, signer)
+          })
+
+          context('when there is no feed in the smart vault oracle', () => {
+            itRevertsDueToInvalidSignature()
+          })
+
+          context('when there is a feed in the smart vault oracle', () => {
+            setUpSmartVaultOracleFeed()
+            itRevertsDueToInvalidSignature()
+          })
+        })
+      })
+
+      context('when there are many feeds given', () => {
+        let anotherBase: Contract, anotherQuote: Contract
+
+        before('deploy another base and quote', async () => {
+          anotherBase = await deploy('TokenMock', ['BASE', 18])
+          anotherQuote = await deploy('TokenMock', ['QUOTE', 18])
+        })
+
+        beforeEach('build feed data', async () => {
+          const deadline = (await currentTimestamp()).add(DAY)
+          pricesData = [
+            { base: base.address, quote: anotherQuote.address, rate: OFF_CHAIN_ORACLE_PRICE.mul(2), deadline },
+            { base: base.address, quote: quote.address, rate: OFF_CHAIN_ORACLE_PRICE, deadline },
+            { base: anotherBase.address, quote: anotherQuote.address, rate: OFF_CHAIN_ORACLE_PRICE.mul(3), deadline },
+          ]
+        })
+
+        context('when the feed data is properly signed', () => {
+          beforeEach('sign with known signer', async () => {
+            const signer = await getSigner()
+            data = await encodeFeedsWithSignature(pricesData, signer)
+
+            const setSignerRole = priceOracle.interface.getSighash('setSigner')
+            await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setSignerRole, [])
+            await priceOracle.connect(owner).setSigner(signer.address, true)
+          })
+
+          itRetrievesPricesProperly()
+        })
+
+        context('when the feed data is not properly signed', () => {
+          beforeEach('sign with unknown signer', async () => {
+            const signer = await getSigner()
+            data = await encodeFeedsWithSignature(pricesData, signer)
+          })
+
+          context('when there is no feed in the smart vault oracle', () => {
+            itRevertsDueToInvalidSignature()
+          })
+
+          context('when there is a feed in the smart vault oracle', () => {
+            setUpSmartVaultOracleFeed()
+            itRevertsDueToInvalidSignature()
+          })
+        })
+      })
+    })
+
+    context('when the feed data is malformed', () => {
+      beforeEach('set malformed extra calldata', async () => {
+        data = '0xaabbccdd'
+      })
+
+      context('when there is no feed in the smart vault oracle', () => {
+        itRevertsDueToMissingFeed()
+      })
+
+      context('when there is a feed in the smart vault oracle', () => {
+        setUpSmartVaultOracleFeed()
+        itRetrievesThePriceFromTheSmartVaultOracle()
       })
     })
   })

@@ -17,7 +17,7 @@ import { ethers } from 'hardhat'
 
 describe('SmartVault', () => {
   let smartVault: Contract
-  let authorizer: Contract, priceOracle: Contract, registry: Contract, feeController: Contract, wrappedNT: Contract
+  let authorizer: Contract, registry: Contract, feeController: Contract, wrappedNT: Contract
   let owner: SignerWithAddress, mimic: SignerWithAddress, feeCollector: SignerWithAddress
 
   before('setup signers', async () => {
@@ -32,10 +32,6 @@ describe('SmartVault', () => {
       feeCollector.address,
       mimic.address,
     ])
-    priceOracle = await deploy('@mimic-fi/v3-price-oracle/artifacts/contracts/PriceOracle.sol/PriceOracle', [
-      wrappedNT.address,
-    ])
-    await registry.connect(mimic).register('price-oracle@0.0.1', priceOracle.address, true)
   })
 
   beforeEach('create smart vault', async () => {
@@ -47,7 +43,7 @@ describe('SmartVault', () => {
     smartVault = await deployProxy(
       'SmartVault',
       [registry.address, feeController.address, wrappedNT.address],
-      [authorizer.address, priceOracle.address, []]
+      [authorizer.address, ZERO_ADDRESS]
     )
   })
 
@@ -68,24 +64,22 @@ describe('SmartVault', () => {
       expect(await smartVault.authorizer()).to.be.equal(authorizer.address)
     })
 
-    it('has a price oracle reference', async () => {
-      expect(await smartVault.priceOracle()).to.be.equal(priceOracle.address)
+    it('does not have price oracle reference', async () => {
+      expect(await smartVault.priceOracle()).to.be.equal(ZERO_ADDRESS)
     })
 
     it('cannot be initialized twice', async () => {
-      await expect(smartVault.initialize(authorizer.address, priceOracle.address, [])).to.be.revertedWith(
+      await expect(smartVault.initialize(authorizer.address, ZERO_ADDRESS)).to.be.revertedWith(
         'Initializable: contract is already initialized'
       )
     })
   })
 
   describe('setPriceOracle', () => {
-    let newPriceOracle: Contract
+    let priceOracle: Contract
 
     beforeEach('deploy implementation', async () => {
-      newPriceOracle = await deploy('@mimic-fi/v3-price-oracle/artifacts/contracts/PriceOracle.sol/PriceOracle', [
-        wrappedNT.address,
-      ])
+      priceOracle = await deploy('@mimic-fi/v3-price-oracle/artifacts/contracts/PriceOracle.sol/PriceOracle')
     })
 
     context('when the sender is authorized', async () => {
@@ -95,163 +89,61 @@ describe('SmartVault', () => {
         smartVault = smartVault.connect(owner)
       })
 
-      const itSetsTheImplementation = () => {
-        it('sets the implementation', async () => {
-          await smartVault.setPriceOracle(newPriceOracle.address)
-          expect(await smartVault.priceOracle()).to.be.equal(newPriceOracle.address)
-        })
+      it('sets the implementation', async () => {
+        await smartVault.setPriceOracle(priceOracle.address)
 
-        it('emits an event', async () => {
-          const tx = await smartVault.setPriceOracle(newPriceOracle.address)
-          await assertEvent(tx, 'PriceOracleSet', { priceOracle: newPriceOracle })
-        })
-      }
-
-      context('when the implementation is registered', async () => {
-        beforeEach('deploy implementation', async () => {
-          await registry.connect(mimic).register('price-oracle@0.0.2', newPriceOracle.address, true)
-        })
-
-        context('when the implementation is not deprecated', async () => {
-          itSetsTheImplementation()
-        })
-
-        context('when the implementation is deprecated', async () => {
-          beforeEach('deprecate implementation', async () => {
-            await registry.connect(mimic).deprecate(newPriceOracle.address)
-          })
-
-          it('reverts', async () => {
-            await expect(smartVault.setPriceOracle(newPriceOracle.address)).to.be.revertedWith(
-              'SMART_VAULT_DEP_DEPRECATED'
-            )
-          })
-        })
+        expect(await smartVault.priceOracle()).to.be.equal(priceOracle.address)
       })
 
-      context('when the implementation is not registered', async () => {
-        context('when the dependency check is not overridden', async () => {
-          it('reverts', async () => {
-            await expect(smartVault.setPriceOracle(newPriceOracle.address)).to.be.revertedWith(
-              'SMART_VAULT_DEP_NOT_REGISTERED'
-            )
-          })
-        })
+      it('emits an event', async () => {
+        const tx = await smartVault.setPriceOracle(priceOracle.address)
 
-        context('when the dependency check is overridden', async () => {
-          beforeEach('override dependency check', async () => {
-            const overrideRole = smartVault.interface.getSighash('overrideDependencyCheck')
-            await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideRole, [])
-            await smartVault.connect(owner).overrideDependencyCheck(newPriceOracle.address, true)
-          })
-
-          itSetsTheImplementation()
-        })
+        await assertEvent(tx, 'PriceOracleSet', { priceOracle: priceOracle })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.setPriceOracle(newPriceOracle.address)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(smartVault.setPriceOracle(priceOracle.address)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })
 
-  describe('setPriceFeed', () => {
-    const BASE = '0x0000000000000000000000000000000000000001'
-    const QUOTE = '0x0000000000000000000000000000000000000002'
-    const FEED = '0x0000000000000000000000000000000000000003'
+  describe('overrideConnectorCheck', () => {
+    let connector: Contract
 
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async () => {
-        const setPriceFeedRole = await smartVault.interface.getSighash('setPriceFeed')
-        await authorizer.connect(owner).authorize(owner.address, smartVault.address, setPriceFeedRole, [])
-        smartVault = smartVault.connect(owner)
-      })
-
-      const itCanBeSet = () => {
-        it('can be set', async () => {
-          const tx = await smartVault.setPriceFeed(BASE, QUOTE, FEED)
-
-          expect(await smartVault.getPriceFeed(BASE, QUOTE)).to.be.equal(FEED)
-
-          await assertEvent(tx, 'PriceFeedSet', { base: BASE, quote: QUOTE, feed: FEED })
-        })
-      }
-
-      const itCanBeUnset = () => {
-        it('can be unset', async () => {
-          const tx = await smartVault.setPriceFeed(BASE, QUOTE, ZERO_ADDRESS)
-
-          expect(await smartVault.getPriceFeed(BASE, QUOTE)).to.be.equal(ZERO_ADDRESS)
-
-          await assertEvent(tx, 'PriceFeedSet', { base: BASE, quote: QUOTE, feed: ZERO_ADDRESS })
-        })
-      }
-
-      context('when the feed is set', () => {
-        beforeEach('set feed', async () => {
-          await smartVault.setPriceFeed(BASE, QUOTE, FEED)
-          expect(await smartVault.getPriceFeed(BASE, QUOTE)).to.be.equal(FEED)
-        })
-
-        itCanBeSet()
-        itCanBeUnset()
-      })
-
-      context('when the feed is not set', () => {
-        beforeEach('unset feed', async () => {
-          await smartVault.setPriceFeed(BASE, QUOTE, ZERO_ADDRESS)
-          expect(await smartVault.getPriceFeed(BASE, QUOTE)).to.be.equal(ZERO_ADDRESS)
-        })
-
-        itCanBeSet()
-        itCanBeUnset()
-      })
-    })
-
-    context('when sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(smartVault.setPriceFeed(BASE, QUOTE, FEED)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
-      })
-    })
-  })
-
-  describe('overrideDependencyCheck', () => {
-    let dependency: Contract
-
-    beforeEach('deploy dependency', async () => {
-      dependency = await deploy('TokenMock', ['TKN'])
+    beforeEach('deploy connector', async () => {
+      connector = await deploy('TokenMock', ['TKN'])
     })
 
     it('is active by default', async () => {
-      expect(await smartVault.isDependencyCheckIgnored(dependency.address)).to.be.false
+      expect(await smartVault.isConnectorCheckIgnored(connector.address)).to.be.false
     })
 
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async () => {
-        const setPriceFeedRole = await smartVault.interface.getSighash('overrideDependencyCheck')
-        await authorizer.connect(owner).authorize(owner.address, smartVault.address, setPriceFeedRole, [])
+        const overrideConnectorCheckRole = await smartVault.interface.getSighash('overrideConnectorCheck')
+        await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideConnectorCheckRole, [])
         smartVault = smartVault.connect(owner)
       })
 
       const itCanBeIgnored = () => {
         it('can be ignored', async () => {
-          const tx = await smartVault.overrideDependencyCheck(dependency.address, true)
+          const tx = await smartVault.overrideConnectorCheck(connector.address, true)
 
-          expect(await smartVault.isDependencyCheckIgnored(dependency.address)).to.be.true
+          expect(await smartVault.isConnectorCheckIgnored(connector.address)).to.be.true
 
-          await assertEvent(tx, 'DependencyCheckOverridden', { dependency, ignored: true })
+          await assertEvent(tx, 'ConnectorCheckOverridden', { connector, ignored: true })
         })
       }
 
       const itCanBeActive = () => {
         it('can be active', async () => {
-          const tx = await smartVault.overrideDependencyCheck(dependency.address, false)
+          const tx = await smartVault.overrideConnectorCheck(connector.address, false)
 
-          expect(await smartVault.isDependencyCheckIgnored(dependency.address)).to.be.false
+          expect(await smartVault.isConnectorCheckIgnored(connector.address)).to.be.false
 
-          await assertEvent(tx, 'DependencyCheckOverridden', { dependency, ignored: false })
+          await assertEvent(tx, 'ConnectorCheckOverridden', { connector, ignored: false })
         })
       }
 
@@ -262,8 +154,8 @@ describe('SmartVault', () => {
 
       context('when the check is ignored', () => {
         beforeEach('ignore check', async () => {
-          await smartVault.overrideDependencyCheck(dependency.address, true)
-          expect(await smartVault.isDependencyCheckIgnored(dependency.address)).to.be.true
+          await smartVault.overrideConnectorCheck(connector.address, true)
+          expect(await smartVault.isConnectorCheckIgnored(connector.address)).to.be.true
         })
 
         itCanBeIgnored()
@@ -273,7 +165,7 @@ describe('SmartVault', () => {
 
     context('when sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.overrideDependencyCheck(dependency.address, true)).to.be.revertedWith(
+        await expect(smartVault.overrideConnectorCheck(connector.address, true)).to.be.revertedWith(
           'AUTH_SENDER_NOT_ALLOWED'
         )
       })
@@ -341,7 +233,7 @@ describe('SmartVault', () => {
             })
 
             it('reverts', async () => {
-              await expect(smartVault.execute(connector.address, data)).to.be.revertedWith('SMART_VAULT_DEP_DEPRECATED')
+              await expect(smartVault.execute(connector.address, data)).to.be.revertedWith('SMART_VAULT_CON_DEPRECATED')
             })
           })
         })
@@ -355,26 +247,26 @@ describe('SmartVault', () => {
 
           it('reverts', async () => {
             await expect(smartVault.execute(connector.address, data)).to.be.revertedWith(
-              'SMART_VAULT_DEP_BAD_STATE_COND'
+              'SMART_VAULT_CON_NOT_STATELESS'
             )
           })
         })
       })
 
       context('when the connector is not registered', async () => {
-        context('when the dependency check is not overridden', async () => {
+        context('when the connector check is not overridden', async () => {
           it('reverts', async () => {
             await expect(smartVault.execute(connector.address, data)).to.be.revertedWith(
-              'SMART_VAULT_DEP_NOT_REGISTERED'
+              'SMART_VAULT_CON_NOT_REGISTERED'
             )
           })
         })
 
-        context('when the dependency check is overridden', async () => {
-          beforeEach('override dependency check', async () => {
-            const overrideRole = smartVault.interface.getSighash('overrideDependencyCheck')
+        context('when the connector check is overridden', async () => {
+          beforeEach('override connector check', async () => {
+            const overrideRole = smartVault.interface.getSighash('overrideConnectorCheck')
             await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideRole, [])
-            await smartVault.connect(owner).overrideDependencyCheck(connector.address, true)
+            await smartVault.connect(owner).overrideConnectorCheck(connector.address, true)
           })
 
           itExecutesTheConnector()

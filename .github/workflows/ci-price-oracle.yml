@@ -43,6 +43,8 @@ jobs:
         uses: actions/checkout@v3
       - name: Set up environment
         uses: ./.github/actions/setup
+      - name: Set up hardhat config
+        run: .github/scripts/setup-hardhat-config.sh ${{secrets.GOERLI_RPC}} ${{secrets.MUMBAI_RPC}} ${{secrets.MAINNET_RPC}} ${{secrets.POLYGON_RPC}} ${{secrets.OPTIMISM_RPC}} ${{secrets.ARBITRUM_RPC}} ${{secrets.GNOSIS_RPC}} ${{secrets.AVALANCHE_RPC}} ${{secrets.BSC_RPC}} ${{secrets.FANTOM_RPC}}
       - name: Build
         run: yarn build
       - name: Test mainnet
