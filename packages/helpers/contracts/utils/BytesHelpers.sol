@@ -19,10 +19,27 @@ pragma solidity ^0.8.0;
  * @dev Provides a list of Bytes helper methods
  */
 library BytesHelpers {
-    function toUint256(bytes memory self, uint256 offset) internal pure returns (uint256 result) {
-        require(self.length >= offset + 32, 'BYTES_OUT_OF_BOUNDS');
+    /**
+     * @dev Concatenates an address to a bytes array
+     */
+    function concat(bytes memory self, address value) internal pure returns (bytes memory) {
+        return abi.encodePacked(self, value);
+    }
+
+    /**
+     * @dev Concatenates an uint24 to a bytes array
+     */
+    function concat(bytes memory self, uint24 value) internal pure returns (bytes memory) {
+        return abi.encodePacked(self, value);
+    }
+
+    /**
+     * @dev Reads an uint256 from a bytes array starting at a given position
+     */
+    function toUint256(bytes memory self, uint256 start) internal pure returns (uint256 result) {
+        require(self.length >= start + 32, 'BYTES_OUT_OF_BOUNDS');
         assembly {
-            result := mload(add(add(self, 0x20), offset))
+            result := mload(add(add(self, 0x20), start))
         }
     }
 }
