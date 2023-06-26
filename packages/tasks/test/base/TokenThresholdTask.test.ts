@@ -3,46 +3,21 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 
+import { deployEnvironment } from '../../src/setup'
+
 /* eslint-disable no-secrets/no-secrets */
 
 describe('TokenThresholdTask', () => {
   let task: Contract
-  let smartVault: Contract, authorizer: Contract, registry: Contract, feeController: Contract, priceOracle: Contract
-  let owner: SignerWithAddress, mimic: SignerWithAddress, feeCollector: SignerWithAddress, wrappedNT: Contract
+  let smartVault: Contract, authorizer: Contract, priceOracle: Contract, owner: SignerWithAddress
 
   const tokenA = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
   const tokenB = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
 
-  before('load signers', async () => {
+  before('setup', async () => {
     // eslint-disable-next-line prettier/prettier
-    [, owner, mimic, feeCollector] = await getSigners()
-  })
-
-  before('create dependencies', async () => {
-    wrappedNT = await deploy('WrappedNativeTokenMock')
-    registry = await deploy('@mimic-fi/v3-registry/artifacts/contracts/Registry.sol/Registry', [mimic.address])
-    feeController = await deploy('@mimic-fi/v3-fee-controller/artifacts/contracts/FeeController.sol/FeeController', [
-      feeCollector.address,
-      mimic.address,
-    ])
-  })
-
-  beforeEach('create smart vault', async () => {
-    authorizer = await deployProxy(
-      '@mimic-fi/v3-authorizer/artifacts/contracts/Authorizer.sol/Authorizer',
-      [],
-      [[owner.address]]
-    )
-    priceOracle = await deployProxy(
-      '@mimic-fi/v3-price-oracle/artifacts/contracts/PriceOracle.sol/PriceOracle',
-      [],
-      [authorizer.address, owner.address, wrappedNT.address, []]
-    )
-    smartVault = await deployProxy(
-      '@mimic-fi/v3-smart-vault/artifacts/contracts/SmartVault.sol/SmartVault',
-      [registry.address, feeController.address, wrappedNT.address],
-      [authorizer.address, priceOracle.address, []]
-    )
+    ([, owner] = await getSigners())
+    ;({ authorizer, priceOracle, smartVault } = await deployEnvironment(owner))
   })
 
   beforeEach('deploy task', async () => {

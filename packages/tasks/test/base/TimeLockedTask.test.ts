@@ -4,47 +4,25 @@ import {
   assertNoEvent,
   currentTimestamp,
   DAY,
-  deploy,
   deployProxy,
   getSigners,
   MONTH,
   setNextBlockTimestamp,
-  ZERO_ADDRESS,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 
+import { deployEnvironment } from '../../src/setup'
+
 describe('TimeLockedTask', () => {
   let task: Contract
-  let smartVault: Contract, authorizer: Contract, registry: Contract, feeController: Contract, wrappedNT: Contract
-  let owner: SignerWithAddress, mimic: SignerWithAddress, feeCollector: SignerWithAddress
+  let smartVault: Contract, authorizer: Contract, owner: SignerWithAddress
 
-  before('load signers', async () => {
+  before('setup', async () => {
     // eslint-disable-next-line prettier/prettier
-    [, owner, mimic, feeCollector] = await getSigners()
-  })
-
-  before('create dependencies', async () => {
-    wrappedNT = await deploy('WrappedNativeTokenMock')
-    registry = await deploy('@mimic-fi/v3-registry/artifacts/contracts/Registry.sol/Registry', [mimic.address])
-    feeController = await deploy('@mimic-fi/v3-fee-controller/artifacts/contracts/FeeController.sol/FeeController', [
-      feeCollector.address,
-      mimic.address,
-    ])
-  })
-
-  beforeEach('create smart vault', async () => {
-    authorizer = await deployProxy(
-      '@mimic-fi/v3-authorizer/artifacts/contracts/Authorizer.sol/Authorizer',
-      [],
-      [[owner.address]]
-    )
-    smartVault = await deployProxy(
-      '@mimic-fi/v3-smart-vault/artifacts/contracts/SmartVault.sol/SmartVault',
-      [registry.address, feeController.address, wrappedNT.address],
-      [authorizer.address, ZERO_ADDRESS, []]
-    )
+    ([, owner] = await getSigners())
+    ;({ authorizer, smartVault } = await deployEnvironment(owner))
   })
 
   beforeEach('deploy task', async () => {
