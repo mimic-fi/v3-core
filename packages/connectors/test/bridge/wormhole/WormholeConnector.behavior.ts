@@ -18,9 +18,9 @@ export function itBehavesLikeWormholeConnector(
   context('when the recipient is not the zero address', async () => {
     let amountIn: BigNumber
     let minAmountOut: BigNumber
-    
+
     const relayerFee = bn(35000000)
-          
+
     beforeEach('set amount in and min amount out', async () => {
       const decimals = await token.decimals()
       amountIn = bn(300).mul(bn(10).pow(decimals))

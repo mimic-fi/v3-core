@@ -3,10 +3,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 
-import { loadOrGet1inchSwapData } from '../../helpers/1inch'
-
-export function itBehavesLikeOneInchV5Connector(
-  CHAIN: number,
+export function itBehavesLikeUniswapV2Connector(
   USDC: string,
   WETH: string,
   WBTC: string,
@@ -51,48 +48,51 @@ export function itBehavesLikeOneInchV5Connector(
     return expectedAmountOut.sub(pct(expectedAmountOut, slippage))
   }
 
-  context('USDC-WETH', () => {
-    const amountIn = toUSDC(10e3)
+  context('single swap', () => {
+    const hopTokens = []
 
-    it('swaps correctly USDC-WETH', async function () {
-      const previousBalance = await weth.balanceOf(this.connector.address)
-      await usdc.connect(whale).transfer(this.connector.address, amountIn)
+    context('USDC-WETH', () => {
+      const amountIn = toUSDC(10e3)
 
-      const data = await loadOrGet1inchSwapData(CHAIN, this.connector, usdc, weth, amountIn, SLIPPAGE)
-      await this.connector.connect(whale).execute(USDC, WETH, amountIn, 0, data)
+      it('swaps correctly', async function () {
+        const previousBalance = await weth.balanceOf(this.connector.address)
+        await usdc.connect(whale).transfer(this.connector.address, amountIn)
 
-      const currentBalance = await weth.balanceOf(this.connector.address)
-      const expectedMinAmountOut = await getExpectedMinAmountOut(USDC, WETH, amountIn, SLIPPAGE)
-      expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
+        await this.connector.connect(whale).execute(USDC, WETH, amountIn, 0, hopTokens)
+
+        const currentBalance = await weth.balanceOf(this.connector.address)
+        const expectedMinAmountOut = await getExpectedMinAmountOut(USDC, WETH, amountIn, SLIPPAGE)
+        expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
+      })
+    })
+
+    context('WETH-USDC', () => {
+      const amountIn = fp(1)
+
+      it('swaps correctly', async function () {
+        const previousBalance = await usdc.balanceOf(this.connector.address)
+        await weth.connect(whale).transfer(this.connector.address, amountIn)
+
+        await this.connector.connect(whale).execute(WETH, USDC, amountIn, 0, hopTokens)
+
+        const currentBalance = await usdc.balanceOf(this.connector.address)
+        const expectedMinAmountOut = await getExpectedMinAmountOut(WETH, USDC, amountIn, SLIPPAGE)
+        expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
+      })
     })
   })
 
-  context('WETH-USDC', () => {
-    const amountIn = fp(1)
+  context('batch swap', () => {
+    const hopTokens = [WETH]
 
-    it('swaps correctly WETH-USDC', async function () {
-      const previousBalance = await usdc.balanceOf(this.connector.address)
-      await weth.connect(whale).transfer(this.connector.address, amountIn)
-
-      const data = await loadOrGet1inchSwapData(CHAIN, this.connector, weth, usdc, amountIn, SLIPPAGE)
-      await this.connector.connect(whale).execute(WETH, USDC, amountIn, 0, data)
-
-      const currentBalance = await usdc.balanceOf(this.connector.address)
-      const expectedMinAmountOut = await getExpectedMinAmountOut(WETH, USDC, amountIn, SLIPPAGE)
-      expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
-    })
-  })
-
-  if (WBTC !== ZERO_ADDRESS) {
     context('USDC-WBTC', () => {
       const amountIn = toUSDC(10e3)
 
-      it('swaps correctly USDC-WBTC', async function () {
+      it('swaps correctly', async function () {
         const previousBalance = await wbtc.balanceOf(this.connector.address)
         await usdc.connect(whale).transfer(this.connector.address, amountIn)
 
-        const data = await loadOrGet1inchSwapData(CHAIN, this.connector, usdc, wbtc, amountIn, SLIPPAGE)
-        await this.connector.connect(whale).execute(USDC, WBTC, amountIn, 0, data)
+        await this.connector.connect(whale).execute(USDC, WBTC, amountIn, 0, hopTokens)
 
         const currentBalance = await wbtc.balanceOf(this.connector.address)
         const expectedMinAmountOut = await getExpectedMinAmountOut(USDC, WBTC, amountIn, SLIPPAGE)
@@ -103,17 +103,16 @@ export function itBehavesLikeOneInchV5Connector(
     context('WBTC-USDC', () => {
       const amountIn = toWBTC(1)
 
-      it('swaps correctly WTBC-USDC', async function () {
+      it('swaps correctly', async function () {
         const previousBalance = await usdc.balanceOf(this.connector.address)
         await wbtc.connect(whale).transfer(this.connector.address, amountIn)
 
-        const data = await loadOrGet1inchSwapData(CHAIN, this.connector, wbtc, usdc, amountIn, SLIPPAGE)
-        await this.connector.connect(whale).execute(WBTC, USDC, amountIn, 0, data)
+        await this.connector.connect(whale).execute(WBTC, USDC, amountIn, 0, hopTokens)
 
         const currentBalance = await usdc.balanceOf(this.connector.address)
         const expectedMinAmountOut = await getExpectedMinAmountOut(WBTC, USDC, amountIn, SLIPPAGE)
         expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
       })
     })
-  }
+  })
 }
