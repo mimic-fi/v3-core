@@ -1,37 +1,43 @@
-import { currentBlockNumber } from '@mimic-fi/v3-helpers'
+import { bn, currentBlockNumber } from '@mimic-fi/v3-helpers'
 import { BigNumber, Contract } from 'ethers'
 import fs from 'fs'
 import hre from 'hardhat'
 import { HardhatNetworkConfig } from 'hardhat/types'
 import path from 'path'
 
-import { get1inchSwapData } from '../../../src/1inch'
+import { getParaswapSwapData, SwapData } from '../../../src/paraswap-v5'
 
-type Fixture = {
+type Fixture = SwapData & {
   tokenIn: string
   tokenOut: string
   amountIn: string
-  slippage: number
-  data: string
 }
 
-export async function loadOrGet1inchSwapData(
+export async function loadOrGetParaswapSwapData(
   chainId: number,
   sender: Contract,
   tokenIn: Contract,
   tokenOut: Contract,
   amountIn: BigNumber,
   slippage: number
-): Promise<string> {
+): Promise<SwapData> {
   const config = hre.network.config as HardhatNetworkConfig
   const blockNumber = config?.forking?.blockNumber?.toString() || (await currentBlockNumber()).toString()
 
   const fixture = await readFixture(chainId, tokenIn, tokenOut, blockNumber)
-  if (fixture) return fixture.data
+  if (fixture) {
+    return {
+      data: fixture.data,
+      sig: fixture.sig,
+      signer: fixture.signer,
+      minAmountOut: bn(fixture.minAmountOut),
+      expectedAmountOut: bn(fixture.expectedAmountOut),
+    }
+  }
 
-  const data = await get1inchSwapData(chainId, sender, tokenIn, tokenOut, amountIn, slippage)
-  await saveFixture(chainId, tokenIn, tokenOut, amountIn, slippage, data, blockNumber)
-  return data
+  const swapData = await getParaswapSwapData(chainId, sender, tokenIn, tokenOut, amountIn, slippage)
+  await saveFixture(chainId, tokenIn, tokenOut, amountIn, swapData, blockNumber)
+  return swapData
 }
 
 async function readFixture(
@@ -51,16 +57,18 @@ async function saveFixture(
   tokenIn: Contract,
   tokenOut: Contract,
   amountIn: BigNumber,
-  slippage: number,
-  data: string,
+  swapData: SwapData,
   blockNumber: string
 ): Promise<void> {
   const output = {
+    data: swapData.data,
+    sig: swapData.sig,
+    signer: swapData.signer,
     tokenIn: tokenIn.address,
     tokenOut: tokenOut.address,
     amountIn: amountIn.toString(),
-    slippage,
-    data,
+    minAmountOut: swapData.minAmountOut.toString(),
+    expectedAmountOut: swapData.expectedAmountOut.toString(),
   }
 
   const fixturesPath = path.join(__dirname, 'fixtures')

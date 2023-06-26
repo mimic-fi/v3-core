@@ -17,6 +17,8 @@
     "test": "hardhat test",
     "test:mainnet": "yarn test --fork mainnet --block-number 17525323",
     "test:polygon": "yarn test --fork polygon --block-number 44153231",
+    "test:optimism": "yarn test --fork optimism --block-number 105914596",
+    "test:arbitrum": "yarn test --fork arbitrum --block-number 105116582",
     "prepare": "yarn build"
   },
   "dependencies": {
