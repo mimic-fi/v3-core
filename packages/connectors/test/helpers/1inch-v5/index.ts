@@ -5,7 +5,7 @@ import hre from 'hardhat'
 import { HardhatNetworkConfig } from 'hardhat/types'
 import path from 'path'
 
-import { get1inchSwapData } from '../../../src/1inch'
+import { get1inchSwapData } from '../../../src/1inch-v5'
 
 type Fixture = {
   tokenIn: string
