@@ -55,5 +55,7 @@ jobs:
         run: yarn workspace @mimic-fi/v3-connectors test:optimism
       - name: Test arbitrum
         run: yarn workspace @mimic-fi/v3-connectors test:arbitrum
+      - name: Test gnosis
+        run: yarn workspace @mimic-fi/v3-connectors test:gnosis
       - name: Test avalanche
         run: yarn workspace @mimic-fi/v3-connectors test:avalanche
