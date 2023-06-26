@@ -17,6 +17,8 @@
     "test": "hardhat test",
     "test:mainnet": "yarn test --fork mainnet --block-number 17525323 --chain-id 1",
     "test:polygon": "yarn test --fork polygon --block-number 44153231 --chain-id 137",
+    "test:optimism": "yarn test --fork optimism --block-number 105914596 --chain-id 10",
+    "test:arbitrum": "yarn test --fork arbitrum --block-number 105116582 --chain-id 42161",
     "test:avalanche": "yarn test --fork avalanche --block-number 31333905 --chain-id 43114",
     "prepare": "yarn build"
   },

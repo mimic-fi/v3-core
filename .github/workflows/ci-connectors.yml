@@ -44,12 +44,16 @@ jobs:
       - name: Set up environment
         uses: ./.github/actions/setup
       - name: Set up hardhat config
-        run: .github/scripts/setup-hardhat-config.sh ${{secrets.GOERLI_RPC}} ${{secrets.MUMBAI_RPC}} ${{secrets.MAINNET_RPC}} ${{secrets.POLYGON_RPC}} ${{secrets.OPTIMISM_RPC}} ${{secrets.ARBITRUM_RPC}} ${{secrets.GNOSIS_RPC}} ${{secrets.AVALANCHE_RPC}} ${{secrets.BSC_RPC}} ${{secrets.FANTOM_RPC}}
+        run: .github/scripts/setup-hardhat-config.sh ${{secrets.MAINNET_RPC}} ${{secrets.POLYGON_RPC}} ${{secrets.OPTIMISM_RPC}} ${{secrets.ARBITRUM_RPC}} ${{secrets.GNOSIS_RPC}} ${{secrets.AVALANCHE_RPC}} ${{secrets.BSC_RPC}} ${{secrets.FANTOM_RPC}}
       - name: Build
         run: yarn build
       - name: Test mainnet
         run: yarn workspace @mimic-fi/v3-connectors test:mainnet
       - name: Test polygon
         run: yarn workspace @mimic-fi/v3-connectors test:polygon
+      - name: Test optimism
+        run: yarn workspace @mimic-fi/v3-connectors test:optimism
+      - name: Test arbitrum
+        run: yarn workspace @mimic-fi/v3-connectors test:arbitrum
       - name: Test avalanche
         run: yarn workspace @mimic-fi/v3-connectors test:avalanche
