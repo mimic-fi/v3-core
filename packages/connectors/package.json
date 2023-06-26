@@ -19,6 +19,7 @@
     "test:polygon": "yarn test --fork polygon --block-number 44153231",
     "test:optimism": "yarn test --fork optimism --block-number 105914596",
     "test:arbitrum": "yarn test --fork arbitrum --block-number 105116582",
+    "test:gnosis": "yarn test --fork gnosis --block-number 28580764",
     "prepare": "yarn build"
   },
   "dependencies": {
