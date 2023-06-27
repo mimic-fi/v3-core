@@ -12,16 +12,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
-import './IBaseSwapTask.sol';
+contract HopSwapConnectorMock {
+    event LogExecute(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, address hopDexAddress);
 
-/**
- * @dev 1inch v5 swapper task interface
- */
-interface IOnceInchV5Swapper is IBaseSwapTask {
-    /**
-     * @dev Execution function
-     */
-    function call(address tokenIn, uint256 amountIn, uint256 minAmountOut, bytes memory data) external;
+    function execute(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, address hopDexAddress)
+        external
+    {
+        emit LogExecute(tokenIn, tokenOut, amountIn, minAmountOut, hopDexAddress);
+    }
 }

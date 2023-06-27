@@ -14,14 +14,8 @@
 
 pragma solidity >=0.8.0;
 
-import './IBaseSwapTask.sol';
+interface IHopL2Amm {
+    function hToken() external view returns (address);
 
-/**
- * @dev 1inch v5 swapper task interface
- */
-interface IOnceInchV5Swapper is IBaseSwapTask {
-    /**
-     * @dev Execution function
-     */
-    function call(address tokenIn, uint256 amountIn, uint256 minAmountOut, bytes memory data) external;
+    function exchangeAddress() external view returns (address);
 }
