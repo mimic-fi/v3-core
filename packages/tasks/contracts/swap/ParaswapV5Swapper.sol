@@ -101,7 +101,6 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
         bytes memory data,
         bytes memory sig
     ) internal view {
-        if (quoteSigner == address(0)) return;
         bytes32 message = _hash(tokenIn, tokenOut, amountIn, minAmountOut, expectedAmountOut, deadline, data);
         address signer = ECDSA.recover(ECDSA.toEthSignedMessageHash(message), sig);
         require(signer == quoteSigner, 'TASK_INVALID_QUOTE_SIGNER');
@@ -113,6 +112,7 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
      * @param newQuoteSigner Address of the new quote signer to be set
      */
     function _setQuoteSigner(address newQuoteSigner) internal {
+        require(newQuoteSigner != address(0), 'TASK_QUOTE_SIGNER_ZERO');
         quoteSigner = newQuoteSigner;
         emit QuoteSignerSet(newQuoteSigner);
     }
