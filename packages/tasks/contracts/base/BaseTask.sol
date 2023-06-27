@@ -28,7 +28,7 @@ import './interfaces/IBaseTask.sol';
 
 /**
  * @title BaseTask
- * @dev Base task implementation with a Smart Vault reference and using the Authorizer mixin
+ * @dev Base task implementation with a Smart Vault reference and using the Authorizer
  */
 contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
     // Whether the task is paused or not

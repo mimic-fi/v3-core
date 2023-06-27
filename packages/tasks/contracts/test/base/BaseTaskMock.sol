@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import '../../BaseTask.sol';
+import '../../base/BaseTask.sol';
 
 contract BaseTaskMock is BaseTask {
     function initialize(BaseConfig memory config) external initializer {

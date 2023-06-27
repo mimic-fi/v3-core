@@ -12,13 +12,13 @@ import { expect } from 'chai'
 import { Contract } from 'ethers'
 
 describe('BaseTask', () => {
-  let task: Contract, smartVault: Contract
-  let authorizer: Contract, registry: Contract, feeController: Contract, wrappedNT: Contract
-  let owner: SignerWithAddress, other: SignerWithAddress, mimic: SignerWithAddress, feeCollector: SignerWithAddress
+  let task: Contract
+  let smartVault: Contract, authorizer: Contract, registry: Contract, feeController: Contract, wrappedNT: Contract
+  let owner: SignerWithAddress, mimic: SignerWithAddress, feeCollector: SignerWithAddress
 
-  before('setup signers', async () => {
+  before('load signers', async () => {
     // eslint-disable-next-line prettier/prettier
-    [, owner, other, mimic, feeCollector] = await getSigners()
+    [, owner, mimic, feeCollector] = await getSigners()
   })
 
   before('create dependencies', async () => {
@@ -169,7 +169,7 @@ describe('BaseTask', () => {
         const token = NATIVE_TOKEN_ADDRESS
 
         beforeEach('fund task', async () => {
-          await other.sendTransaction({ to: task.address, value: balance })
+          await owner.sendTransaction({ to: task.address, value: balance })
         })
 
         it('transfers it to smart vault', async () => {
@@ -210,10 +210,6 @@ describe('BaseTask', () => {
     })
 
     context('when the sender does not have permissions', async () => {
-      beforeEach('set sender', async () => {
-        task = task.connect(other)
-      })
-
       it('reverts', async () => {
         await expect(task.transferToSmartVault(NATIVE_TOKEN_ADDRESS, balance)).to.be.revertedWith('SENDER_NOT_ALLOWED')
       })
