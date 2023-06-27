@@ -1,46 +1,18 @@
-import {
-  assertEvent,
-  deploy,
-  deployProxy,
-  fp,
-  getSigners,
-  NATIVE_TOKEN_ADDRESS,
-  ZERO_ADDRESS,
-} from '@mimic-fi/v3-helpers'
+import { assertEvent, deploy, deployProxy, fp, getSigners, NATIVE_TOKEN_ADDRESS } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 
+import { deployEnvironment } from '../../src/setup'
+
 describe('BaseTask', () => {
   let task: Contract
-  let smartVault: Contract, authorizer: Contract, registry: Contract, feeController: Contract, wrappedNT: Contract
-  let owner: SignerWithAddress, mimic: SignerWithAddress, feeCollector: SignerWithAddress
+  let smartVault: Contract, authorizer: Contract, owner: SignerWithAddress
 
-  before('load signers', async () => {
+  before('setup', async () => {
     // eslint-disable-next-line prettier/prettier
-    [, owner, mimic, feeCollector] = await getSigners()
-  })
-
-  before('create dependencies', async () => {
-    wrappedNT = await deploy('WrappedNativeTokenMock')
-    registry = await deploy('@mimic-fi/v3-registry/artifacts/contracts/Registry.sol/Registry', [mimic.address])
-    feeController = await deploy('@mimic-fi/v3-fee-controller/artifacts/contracts/FeeController.sol/FeeController', [
-      feeCollector.address,
-      mimic.address,
-    ])
-  })
-
-  beforeEach('create smart vault', async () => {
-    authorizer = await deployProxy(
-      '@mimic-fi/v3-authorizer/artifacts/contracts/Authorizer.sol/Authorizer',
-      [],
-      [[owner.address]]
-    )
-    smartVault = await deployProxy(
-      '@mimic-fi/v3-smart-vault/artifacts/contracts/SmartVault.sol/SmartVault',
-      [registry.address, feeController.address, wrappedNT.address],
-      [authorizer.address, ZERO_ADDRESS, []]
-    )
+    ([, owner] = await getSigners())
+    ;({ authorizer, smartVault } = await deployEnvironment(owner))
   })
 
   beforeEach('deploy task', async () => {
@@ -60,7 +32,7 @@ describe('BaseTask', () => {
 
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async () => {
-        const setGroupIdRole = await task.interface.getSighash('setGroupId')
+        const setGroupIdRole = task.interface.getSighash('setGroupId')
         await authorizer.connect(owner).authorize(owner.address, task.address, setGroupIdRole, [])
         task = task.connect(owner)
       })
@@ -84,7 +56,7 @@ describe('BaseTask', () => {
   describe('pause', () => {
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async () => {
-        const pauseRole = await task.interface.getSighash('pause')
+        const pauseRole = task.interface.getSighash('pause')
         await authorizer.connect(owner).authorize(owner.address, task.address, pauseRole, [])
         task = task.connect(owner)
       })
@@ -120,7 +92,7 @@ describe('BaseTask', () => {
   describe('unpause', () => {
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async () => {
-        const unpauseRole = await task.interface.getSighash('unpause')
+        const unpauseRole = task.interface.getSighash('unpause')
         await authorizer.connect(owner).authorize(owner.address, task.address, unpauseRole, [])
         task = task.connect(owner)
       })
@@ -160,7 +132,7 @@ describe('BaseTask', () => {
 
     context('when the sender has permissions', async () => {
       beforeEach('authorize sender', async () => {
-        const transferToSmartVaultRole = await task.interface.getSighash('transferToSmartVault')
+        const transferToSmartVaultRole = task.interface.getSighash('transferToSmartVault')
         await authorizer.connect(owner).authorize(owner.address, task.address, transferToSmartVaultRole, [])
         task = task.connect(owner)
       })
