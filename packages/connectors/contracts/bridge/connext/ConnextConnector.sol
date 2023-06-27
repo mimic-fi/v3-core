@@ -70,10 +70,12 @@ contract ConnextConnector {
     ) external {
         require(block.chainid != chainId, 'CONNEXT_BRIDGE_SAME_CHAIN');
         require(recipient != address(0), 'CONNEXT_BRIDGE_RECIPIENT_ZERO');
-        require(relayerFee <= amountIn, 'CONNEXT_RELAYER_FEE_GT_AMOUNT_IN');
+        require(minAmountOut <= amountIn, 'CONNEXT_MIN_AMOUNT_GT_AMOUNT_IN');
+        require(relayerFee <= minAmountOut, 'CONNEXT_RELAYER_FEE_GT_MIN_AMT');
 
         uint32 domain = _getChainDomain(chainId);
-        uint256 slippage = minAmountOut > amountIn ? 0 : 100 - ((minAmountOut * 100) / amountIn); // in BPS e.g. 30 = 0.3%
+        // We validated `minAmountOut` is lower than or equal to `amountIn`, then we can compute slippage in BPS (e.g. 30 = 0.3%)
+        uint256 slippage = 100 - ((minAmountOut * 100) / amountIn);
         uint256 amountInAfterFees = amountIn - relayerFee;
 
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));

@@ -49,6 +49,26 @@ export function itBehavesLikeConnextConnector(
           const currentConnectorBalance = await token.balanceOf(this.connector.address)
           expect(currentConnectorBalance).to.be.equal(previousConnectorBalance)
         })
+
+        context('when minAmountOut is greater than amountIn', () => {
+          it('reverts', async function () {
+            await expect(
+              this.connector
+                .connect(whale)
+                .execute(destinationChainId, tokenAddress, amountIn, amountIn.add(1), whale.address, relayerFee)
+            ).to.be.revertedWith('CONNEXT_MIN_AMOUNT_GT_AMOUNT_IN')
+          })
+        })
+
+        context('when relayerFee is greater than minAmountOut', () => {
+          it('reverts', async function () {
+            await expect(
+              this.connector
+                .connect(whale)
+                .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, minAmountOut.add(1))
+            ).to.be.revertedWith('CONNEXT_RELAYER_FEE_GT_MIN_AMOUNT')
+          })
+        })
       } else {
         it('reverts', async function () {
           await expect(
