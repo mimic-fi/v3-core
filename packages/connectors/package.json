@@ -16,7 +16,7 @@
     "lint:typescript": "eslint . --ext .ts",
     "test": "hardhat test",
     "test:mainnet": "yarn test --fork mainnet --block-number 17525323 --chain-id 1",
-    "test:polygon": "yarn test --fork polygon --block-number 42310578 --chain-id 137",
+    "test:polygon": "yarn test --fork polygon --block-number 44053231 --chain-id 137",
     "test:optimism": "yarn test --fork optimism --block-number 105914596 --chain-id 10",
     "test:arbitrum": "yarn test --fork arbitrum --block-number 105116582 --chain-id 42161",
     "test:gnosis": "yarn test --fork gnosis --block-number 28580764 --chain-id 100",

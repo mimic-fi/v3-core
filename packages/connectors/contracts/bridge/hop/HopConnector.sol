@@ -90,8 +90,10 @@ contract HopConnector {
 
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
 
-        if (fromL1 && toL2) _bridgeFromL1ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, relayer, fee);
-        else if (!fromL1 && toL2) _bridgeFromL2ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, fee);
+        if (fromL1 && toL2)
+            _bridgeFromL1ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, relayer, fee);
+        else if (!fromL1 && toL2)
+            _bridgeFromL2ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, fee);
         else if (!fromL1 && !toL2) _bridgeFromL2ToL1(chainId, token, amountIn, minAmountOut, recipient, bridge, fee);
         else revert('HOP_BRIDGE_OP_NOT_SUPPORTED');
 
