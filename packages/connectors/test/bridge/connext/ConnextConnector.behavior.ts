@@ -66,7 +66,7 @@ export function itBehavesLikeConnextConnector(
               this.connector
                 .connect(whale)
                 .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, minAmountOut.add(1))
-            ).to.be.revertedWith('CONNEXT_RELAYER_FEE_GT_MIN_AMOUNT')
+            ).to.be.revertedWith('CONNEXT_RELAYER_FEE_GT_MIN_AMT')
           })
         })
       } else {

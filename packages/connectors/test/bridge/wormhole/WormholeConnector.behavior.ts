@@ -19,7 +19,7 @@ export function itBehavesLikeWormholeConnector(
     let amountIn: BigNumber
     let minAmountOut: BigNumber
 
-    const relayerFee = bn(35000000)
+    const relayerFee = sourceChainId == 1 ? bn(270000) : bn(35000000)
 
     beforeEach('set amount in and min amount out', async () => {
       const decimals = await token.decimals()
@@ -56,7 +56,7 @@ export function itBehavesLikeWormholeConnector(
               this.connector
                 .connect(whale)
                 .execute(destinationChainId, tokenAddress, relayerFee.sub(1), minAmountOut, whale.address)
-            ).to.be.revertedWith('WORMHOLE_RELAYER_FEE_GT_AMOUNT_IN')
+            ).to.be.revertedWith('WORMHOLE_RELAYER_FEE_GT_AMT_IN')
           })
         })
 
