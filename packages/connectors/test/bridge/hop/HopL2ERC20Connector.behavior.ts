@@ -25,10 +25,9 @@ export function itBehavesLikeHopERC20Connector(
   })
 
   context('when the recipient is not the zero address', async () => {
-    let amountIn: BigNumber, minAmountOut: BigNumber, bonderFee: BigNumber
+    let amountIn: BigNumber, minAmountOut: BigNumber, bonderFee: BigNumber, deadline: BigNumber
 
     const slippage = 0.01
-    const deadline = MAX_UINT256
 
     beforeEach('set amount in', async () => {
       const decimals = await token.decimals()
@@ -37,6 +36,10 @@ export function itBehavesLikeHopERC20Connector(
     })
 
     function bridgesFromL2Properly(destinationChainId: number) {
+      before('set deadline', async () => {
+        deadline = destinationChainId === 1 ? bn(0) : MAX_UINT256
+      })
+
       if (destinationChainId != sourceChainId) {
         beforeEach('estimate bonder fee and compute data', async function () {
           bonderFee = await getHopBonderFee(sourceChainId, destinationChainId, token, amountIn, slippage)

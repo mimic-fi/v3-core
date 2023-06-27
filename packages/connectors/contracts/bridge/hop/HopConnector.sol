@@ -18,7 +18,6 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-helpers/contracts/math/UncheckedMath.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/IWrappedNativeToken.sol';
@@ -32,7 +31,6 @@ import './IHopL1Bridge.sol';
  */
 contract HopConnector {
     using FixedPoint for uint256;
-    using UncheckedMath for uint256;
     using Denominations for address;
 
     // Ethereum mainnet chain ID = 1
@@ -67,7 +65,7 @@ contract HopConnector {
      * @param minAmountOut Minimum amount of tokens willing to receive on the destination chain
      * @param recipient Address that will receive the tokens on the destination chain
      * @param bridge Address of the bridge component (i.e. hopBridge or hopAMM)
-     * @param deadline Deadline to be applied if the destination is L2 when swapping the hToken for the token to be bridged
+     * @param deadline Deadline to be used when bridging to L2 in order to swap the corresponding hToken
      * @param relayer Only used when transfering from L1 to L2 if a 3rd party is relaying the transfer on the user's behalf
      * @param fee Fee to be sent to the bridge based on the source and destination chain (i.e. relayerFee or bonderFee)
      */
@@ -92,17 +90,20 @@ contract HopConnector {
 
         if (fromL1 && toL2)
             _bridgeFromL1ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, relayer, fee);
-        else if (!fromL1 && toL2)
+        else if (!fromL1 && toL2) {
+            require(relayer == address(0), 'HOP_RELAYER_NOT_NEEDED');
             _bridgeFromL2ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, fee);
-        else if (!fromL1 && !toL2) _bridgeFromL2ToL1(chainId, token, amountIn, minAmountOut, recipient, bridge, fee);
-        else revert('HOP_BRIDGE_OP_NOT_SUPPORTED');
+        } else if (!fromL1 && !toL2) {
+            require(deadline == 0, 'HOP_DEADLINE_NOT_NEEDED');
+            _bridgeFromL2ToL1(chainId, token, amountIn, minAmountOut, recipient, bridge, fee);
+        } else revert('HOP_BRIDGE_OP_NOT_SUPPORTED');
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
         require(postBalanceIn >= preBalanceIn - amountIn, 'HOP_BAD_TOKEN_IN_BALANCE');
     }
 
     /**
-     * @dev Internal function to bridge assets from L1 to L2
+     * @dev Bridges assets from L1 to L2
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
      * @param amountIn Amount of tokens to be bridged
@@ -139,7 +140,7 @@ contract HopConnector {
     }
 
     /**
-     * @dev Internal function to bridge assets from L2 to L1
+     * @dev Bridges assets from L2 to L1
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
      * @param amountIn Amount of tokens to be bridged
@@ -172,7 +173,7 @@ contract HopConnector {
     }
 
     /**
-     * @dev Internal function to bridge assets from L2 to L2
+     * @dev Bridges assets from L2 to L2
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
      * @param amountIn Amount of tokens to be bridged

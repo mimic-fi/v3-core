@@ -1,4 +1,4 @@
-import { fp, impersonate, instanceAt, MAX_UINT256, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { bn, fp, impersonate, instanceAt, MAX_UINT256, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
@@ -27,10 +27,9 @@ export function itBehavesLikeHopNativeConnector(
   })
 
   context('when the recipient is not the zero address', async () => {
-    let amountIn: BigNumber, minAmountOut: BigNumber, bonderFee: BigNumber
+    let amountIn: BigNumber, minAmountOut: BigNumber, bonderFee: BigNumber, deadline: BigNumber
 
     const slippage = 0.01
-    const deadline = MAX_UINT256
 
     beforeEach('set amount in', async () => {
       amountIn = sourceChainId === 137 || sourceChainId === 100 ? fp(100) : fp(4)
@@ -38,6 +37,10 @@ export function itBehavesLikeHopNativeConnector(
     })
 
     function bridgesFromL2Properly(destinationChainId: number) {
+      before('set deadline', async () => {
+        deadline = destinationChainId === 1 ? bn(0) : MAX_UINT256
+      })
+
       if (!ignoreChains.includes(destinationChainId)) {
         if (destinationChainId != sourceChainId) {
           beforeEach('estimate bonder fee and compute data', async function () {
