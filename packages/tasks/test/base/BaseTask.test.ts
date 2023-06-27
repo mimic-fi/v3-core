@@ -32,7 +32,7 @@ describe('BaseTask', () => {
 
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async () => {
-        const setGroupIdRole = await task.interface.getSighash('setGroupId')
+        const setGroupIdRole = task.interface.getSighash('setGroupId')
         await authorizer.connect(owner).authorize(owner.address, task.address, setGroupIdRole, [])
         task = task.connect(owner)
       })
@@ -56,7 +56,7 @@ describe('BaseTask', () => {
   describe('pause', () => {
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async () => {
-        const pauseRole = await task.interface.getSighash('pause')
+        const pauseRole = task.interface.getSighash('pause')
         await authorizer.connect(owner).authorize(owner.address, task.address, pauseRole, [])
         task = task.connect(owner)
       })
@@ -92,7 +92,7 @@ describe('BaseTask', () => {
   describe('unpause', () => {
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async () => {
-        const unpauseRole = await task.interface.getSighash('unpause')
+        const unpauseRole = task.interface.getSighash('unpause')
         await authorizer.connect(owner).authorize(owner.address, task.address, unpauseRole, [])
         task = task.connect(owner)
       })
@@ -132,7 +132,7 @@ describe('BaseTask', () => {
 
     context('when the sender has permissions', async () => {
       beforeEach('authorize sender', async () => {
-        const transferToSmartVaultRole = await task.interface.getSighash('transferToSmartVault')
+        const transferToSmartVaultRole = task.interface.getSighash('transferToSmartVault')
         await authorizer.connect(owner).authorize(owner.address, task.address, transferToSmartVaultRole, [])
         task = task.connect(owner)
       })
