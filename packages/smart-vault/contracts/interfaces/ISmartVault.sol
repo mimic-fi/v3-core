@@ -61,6 +61,16 @@ interface ISmartVault is IAuthorized {
     event Withdrawn(address indexed token, address indexed recipient, uint256 amount, uint256 fee);
 
     /**
+     * @dev Emitted every time a smart vault is paused
+     */
+    event Paused();
+
+    /**
+     * @dev Emitted every time a smart vault is unpaused
+     */
+    event Unpaused();
+
+    /**
      * @dev Tells the address of the price oracle
      */
     function priceOracle() external view returns (address);
@@ -85,6 +95,11 @@ interface ISmartVault is IAuthorized {
      * @param connector Address of the connector being queried
      */
     function isConnectorCheckIgnored(address connector) external view returns (bool);
+
+    /**
+     * @dev Tells if the smart vault is paused or not
+     */
+    function isPaused() external view returns (bool);
 
     /**
      * @dev Sets the price oracle
@@ -143,4 +158,14 @@ interface ISmartVault is IAuthorized {
      * @param amount Amount of tokens to withdraw
      */
     function withdraw(address token, address recipient, uint256 amount) external;
+
+    /**
+     * @dev Pauses a smart vault
+     */
+    function pause() external;
+
+    /**
+     * @dev Unpauses a smart vault
+     */
+    function unpause() external;
 }
