@@ -1,11 +1,13 @@
-import { bn, fp, impersonate, instanceAt, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { fp, impersonate, instanceAt, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 
-export function itBehavesLikeWormholeConnector(
+export function itBehavesLikeConnextConnector(
   sourceChainId: number,
   tokenAddress: string,
+  amountIn: BigNumber,
+  connextAddress: string,
   whaleAddress: string
 ): void {
   let token: Contract, whale: SignerWithAddress
@@ -16,35 +18,33 @@ export function itBehavesLikeWormholeConnector(
   })
 
   context('when the recipient is not the zero address', async () => {
-    let amountIn: BigNumber
+    const slippage = 0.5
+    const relayerFee = amountIn.div(10)
+
     let minAmountOut: BigNumber
 
-    const relayerFee = sourceChainId == 1 ? bn(270000) : bn(35000000)
-
-    beforeEach('set amount in and min amount out', async () => {
-      const decimals = await token.decimals()
-      amountIn = bn(300).mul(bn(10).pow(decimals))
-      minAmountOut = amountIn.sub(relayerFee)
+    beforeEach('set min amount out', async () => {
+      minAmountOut = amountIn.sub(amountIn.mul(fp(slippage)).div(fp(1)))
     })
 
     function bridgesProperly(destinationChainId: number) {
       if (destinationChainId != sourceChainId) {
         it('should send the tokens to the gateway', async function () {
           const previousSenderBalance = await token.balanceOf(whale.address)
-          const previousTotalSupply = await token.totalSupply()
+          const previousGatewayBalance = await token.balanceOf(connextAddress)
           const previousConnectorBalance = await token.balanceOf(this.connector.address)
 
           await token.connect(whale).transfer(this.connector.address, amountIn)
           await this.connector
             .connect(whale)
-            .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
+            .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
 
           const currentSenderBalance = await token.balanceOf(whale.address)
           expect(currentSenderBalance).to.be.equal(previousSenderBalance.sub(amountIn))
 
-          // check tokens are burnt on the source chain
-          const currentTotalSupply = await token.totalSupply()
-          expect(currentTotalSupply).to.be.equal(previousTotalSupply.sub(amountIn))
+          const amountInAfterFees = amountIn.sub(relayerFee)
+          const currentGatewayBalance = await token.balanceOf(connextAddress)
+          expect(currentGatewayBalance).to.be.equal(previousGatewayBalance.add(amountInAfterFees))
 
           const currentConnectorBalance = await token.balanceOf(this.connector.address)
           expect(currentConnectorBalance).to.be.equal(previousConnectorBalance)
@@ -55,8 +55,8 @@ export function itBehavesLikeWormholeConnector(
             await expect(
               this.connector
                 .connect(whale)
-                .execute(destinationChainId, tokenAddress, relayerFee.sub(1), minAmountOut, whale.address)
-            ).to.be.revertedWith('WORMHOLE_RELAYER_FEE_GT_AMT_IN')
+                .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, amountIn.add(1))
+            ).to.be.revertedWith('CONNEXT_RELAYER_FEE_GT_AMOUNT_IN')
           })
         })
 
@@ -65,8 +65,8 @@ export function itBehavesLikeWormholeConnector(
             await expect(
               this.connector
                 .connect(whale)
-                .execute(destinationChainId, tokenAddress, amountIn, amountIn.add(1), whale.address)
-            ).to.be.revertedWith('WORMHOLE_MIN_AMOUNT_OUT_TOO_BIG')
+                .execute(destinationChainId, tokenAddress, amountIn, amountIn.add(1), whale.address, relayerFee)
+            ).to.be.revertedWith('CONNEXT_MIN_AMOUNT_OUT_TOO_BIG')
           })
         })
       } else {
@@ -74,14 +74,38 @@ export function itBehavesLikeWormholeConnector(
           await expect(
             this.connector
               .connect(whale)
-              .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
-          ).to.be.revertedWith('WORMHOLE_BRIDGE_SAME_CHAIN')
+              .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
+          ).to.be.revertedWith('CONNEXT_BRIDGE_SAME_CHAIN')
         })
       }
     }
 
-    context('bridge to avalanche', () => {
-      const destinationChainId = 43114
+    context('bridge to optimism', () => {
+      const destinationChainId = 10
+
+      bridgesProperly(destinationChainId)
+    })
+
+    context('bridge to polygon', () => {
+      const destinationChainId = 137
+
+      bridgesProperly(destinationChainId)
+    })
+
+    context('bridge to bsc', () => {
+      const destinationChainId = 56
+
+      bridgesProperly(destinationChainId)
+    })
+
+    context('bridge to arbitrum', () => {
+      const destinationChainId = 42161
+
+      bridgesProperly(destinationChainId)
+    })
+
+    context('bridge to gnosis', () => {
+      const destinationChainId = 100
 
       bridgesProperly(destinationChainId)
     })
@@ -97,16 +121,18 @@ export function itBehavesLikeWormholeConnector(
 
       it('reverts', async function () {
         await expect(
-          this.connector.connect(whale).execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
-        ).to.be.revertedWith('WORMHOLE_UNKNOWN_CHAIN_ID')
+          this.connector
+            .connect(whale)
+            .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
+        ).to.be.revertedWith('CONNEXT_UNKNOWN_CHAIN_ID')
       })
     })
   })
 
   context('when the recipient is the zero address', async () => {
     it('reverts', async function () {
-      await expect(this.connector.connect(whale).execute(0, tokenAddress, 0, 0, ZERO_ADDRESS)).to.be.revertedWith(
-        'WORMHOLE_BRIDGE_RECIPIENT_ZERO'
+      await expect(this.connector.connect(whale).execute(0, tokenAddress, 0, 0, ZERO_ADDRESS, 0)).to.be.revertedWith(
+        'CONNEXT_BRIDGE_RECIPIENT_ZERO'
       )
     })
   })

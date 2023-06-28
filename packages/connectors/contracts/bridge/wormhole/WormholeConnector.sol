@@ -71,6 +71,7 @@ contract WormholeConnector {
 
         uint16 wormholeNetworkId = _getWormholeNetworkId(chainId);
         uint256 relayerFee = wormholeCircleRelayer.relayerFee(wormholeNetworkId, token);
+        require(relayerFee <= amountIn, 'WORMHOLE_RELAYER_FEE_GT_AMT_IN');
         require(minAmountOut <= amountIn - relayerFee, 'WORMHOLE_MIN_AMOUNT_OUT_TOO_BIG');
 
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
