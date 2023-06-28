@@ -70,8 +70,8 @@ contract ConnextConnector {
     ) external {
         require(block.chainid != chainId, 'CONNEXT_BRIDGE_SAME_CHAIN');
         require(recipient != address(0), 'CONNEXT_BRIDGE_RECIPIENT_ZERO');
-        require(minAmountOut <= amountIn, 'CONNEXT_MIN_AMOUNT_GT_AMOUNT_IN');
-        require(relayerFee <= minAmountOut, 'CONNEXT_RELAYER_FEE_GT_MIN_AMT');
+        require(relayerFee <= amountIn, 'CONNEXT_RELAYER_FEE_GT_AMOUNT_IN');
+        require(minAmountOut <= amountIn - relayerFee, 'CONNEXT_MIN_AMOUNT_OUT_TOO_BIG');
 
         uint32 domain = _getChainDomain(chainId);
         // We validated `minAmountOut` is lower than or equal to `amountIn`, then we can compute slippage in BPS (e.g. 30 = 0.3%)
