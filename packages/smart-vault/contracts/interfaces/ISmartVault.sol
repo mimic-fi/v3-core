@@ -21,6 +21,16 @@ import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorized.sol';
  */
 interface ISmartVault is IAuthorized {
     /**
+     * @dev Emitted every time a smart vault is paused
+     */
+    event Paused();
+
+    /**
+     * @dev Emitted every time a smart vault is unpaused
+     */
+    event Unpaused();
+
+    /**
      * @dev Emitted every time the price oracle is set
      */
     event PriceOracleSet(address indexed priceOracle);
@@ -61,14 +71,9 @@ interface ISmartVault is IAuthorized {
     event Withdrawn(address indexed token, address indexed recipient, uint256 amount, uint256 fee);
 
     /**
-     * @dev Emitted every time a smart vault is paused
+     * @dev Tells if the smart vault is paused or not
      */
-    event Paused();
-
-    /**
-     * @dev Emitted every time a smart vault is unpaused
-     */
-    event Unpaused();
+    function isPaused() external view returns (bool);
 
     /**
      * @dev Tells the address of the price oracle
@@ -97,9 +102,14 @@ interface ISmartVault is IAuthorized {
     function isConnectorCheckIgnored(address connector) external view returns (bool);
 
     /**
-     * @dev Tells if the smart vault is paused or not
+     * @dev Pauses a smart vault
      */
-    function isPaused() external view returns (bool);
+    function pause() external;
+
+    /**
+     * @dev Unpauses a smart vault
+     */
+    function unpause() external;
 
     /**
      * @dev Sets the price oracle
@@ -158,14 +168,4 @@ interface ISmartVault is IAuthorized {
      * @param amount Amount of tokens to withdraw
      */
     function withdraw(address token, address recipient, uint256 amount) external;
-
-    /**
-     * @dev Pauses a smart vault
-     */
-    function pause() external;
-
-    /**
-     * @dev Unpauses a smart vault
-     */
-    function unpause() external;
 }

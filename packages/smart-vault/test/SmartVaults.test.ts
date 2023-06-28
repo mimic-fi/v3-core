@@ -75,6 +75,80 @@ describe('SmartVault', () => {
     })
   })
 
+  describe('pause', () => {
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async () => {
+        const pauseRole = smartVault.interface.getSighash('pause')
+        await authorizer.connect(owner).authorize(owner.address, smartVault.address, pauseRole, [])
+        smartVault = smartVault.connect(owner)
+      })
+
+      context('when the smart vault is not paused', () => {
+        it('can be paused', async () => {
+          const tx = await smartVault.pause()
+
+          expect(await smartVault.isPaused()).to.be.true
+
+          await assertEvent(tx, 'Paused')
+        })
+      })
+
+      context('when the smart vault is paused', () => {
+        beforeEach('pause', async () => {
+          await smartVault.pause()
+        })
+
+        it('cannot be paused', async () => {
+          await expect(smartVault.pause()).to.be.revertedWith('SMART_VAULT_ALREADY_PAUSED')
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async () => {
+        await expect(smartVault.pause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
+    })
+  })
+
+  describe('unpause', () => {
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async () => {
+        const unpauseRole = smartVault.interface.getSighash('unpause')
+        await authorizer.connect(owner).authorize(owner.address, smartVault.address, unpauseRole, [])
+        smartVault = smartVault.connect(owner)
+      })
+
+      context('when the smart vault is not paused', () => {
+        it('cannot be unpaused', async () => {
+          await expect(smartVault.unpause()).to.be.revertedWith('SMART_VAULT_ALREADY_UNPAUSED')
+        })
+      })
+
+      context('when the smart vault is paused', () => {
+        beforeEach('pause', async () => {
+          const pauseRole = smartVault.interface.getSighash('pause')
+          await authorizer.connect(owner).authorize(owner.address, smartVault.address, pauseRole, [])
+          await smartVault.connect(owner).pause()
+        })
+
+        it('can be unpaused', async () => {
+          const tx = await smartVault.unpause()
+
+          expect(await smartVault.isPaused()).to.be.false
+
+          await assertEvent(tx, 'Unpaused')
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async () => {
+        await expect(smartVault.unpause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
+    })
+  })
+
   describe('setPriceOracle', () => {
     let priceOracle: Contract
 
@@ -739,80 +813,6 @@ describe('SmartVault', () => {
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
         await expect(smartVault.unwrap(amount)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
-      })
-    })
-  })
-
-  describe('pause', () => {
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async () => {
-        const pauseRole = smartVault.interface.getSighash('pause')
-        await authorizer.connect(owner).authorize(owner.address, smartVault.address, pauseRole, [])
-        smartVault = smartVault.connect(owner)
-      })
-
-      context('when the smart vault is not paused', () => {
-        it('can be paused', async () => {
-          const tx = await smartVault.pause()
-
-          expect(await smartVault.isPaused()).to.be.true
-
-          await assertEvent(tx, 'Paused')
-        })
-      })
-
-      context('when the smart vault is paused', () => {
-        beforeEach('pause', async () => {
-          await smartVault.pause()
-        })
-
-        it('cannot be paused', async () => {
-          await expect(smartVault.pause()).to.be.revertedWith('SMART_VAULT_ALREADY_PAUSED')
-        })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(smartVault.pause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
-      })
-    })
-  })
-
-  describe('unpause', () => {
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async () => {
-        const unpauseRole = smartVault.interface.getSighash('unpause')
-        await authorizer.connect(owner).authorize(owner.address, smartVault.address, unpauseRole, [])
-        smartVault = smartVault.connect(owner)
-      })
-
-      context('when the smart vault is not paused', () => {
-        it('cannot be unpaused', async () => {
-          await expect(smartVault.unpause()).to.be.revertedWith('SMART_VAULT_ALREADY_UNPAUSED')
-        })
-      })
-
-      context('when the smart vault is paused', () => {
-        beforeEach('pause', async () => {
-          const pauseRole = smartVault.interface.getSighash('pause')
-          await authorizer.connect(owner).authorize(owner.address, smartVault.address, pauseRole, [])
-          await smartVault.connect(owner).pause()
-        })
-
-        it('can be unpaused', async () => {
-          const tx = await smartVault.unpause()
-
-          expect(await smartVault.isPaused()).to.be.false
-
-          await assertEvent(tx, 'Unpaused')
-        })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(smartVault.unpause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })

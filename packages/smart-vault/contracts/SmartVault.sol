@@ -38,6 +38,9 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     using SafeERC20 for IERC20;
     using FixedPoint for uint256;
 
+    // Whether the smart vault is paused or not
+    bool public override isPaused;
+
     // Price oracle reference
     address public override priceOracle;
 
@@ -52,9 +55,6 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
 
     // Tells whether a connector check is ignored or not
     mapping (address => bool) public override isConnectorCheckIgnored;
-
-    // Whether the smart vault is paused or not
-    bool public override isPaused;
 
     /**
      * @dev Modifier to tag smart vault functions in order to check if it is paused
@@ -96,6 +96,24 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     }
 
     /**
+     * @dev Pauses a smart vault. Sender must be authorized.
+     */
+    function pause() external override auth {
+        require(!isPaused, 'SMART_VAULT_ALREADY_PAUSED');
+        isPaused = true;
+        emit Paused();
+    }
+
+    /**
+     * @dev Unpauses a samrt vault. Sender must be authorized.
+     */
+    function unpause() external override auth {
+        require(isPaused, 'SMART_VAULT_ALREADY_UNPAUSED');
+        isPaused = false;
+        emit Unpaused();
+    }
+
+    /**
      * @dev Sets the price oracle. Sender must be authorized. Smart vault must not be paused.
      * @param newPriceOracle Address of the new price oracle to be set
      */
@@ -103,8 +121,8 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         external
         override
         nonReentrant
-        authP(authParams(newPriceOracle))
         notPaused
+        authP(authParams(newPriceOracle))
     {
         _setPriceOracle(newPriceOracle);
     }
@@ -117,8 +135,8 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     function overrideConnectorCheck(address connector, bool ignored)
         external
         nonReentrant
-        authP(authParams(connector, ignored))
         notPaused
+        authP(authParams(connector, ignored))
     {
         isConnectorCheckIgnored[connector] = ignored;
         emit ConnectorCheckOverridden(connector, ignored);
@@ -134,8 +152,8 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         external
         override
         nonReentrant
-        authP(authParams(connector))
         notPaused
+        authP(authParams(connector))
         returns (bytes memory result)
     {
         _validateConnector(connector);
@@ -154,8 +172,8 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         external
         override
         nonReentrant
-        authP(authParams(target))
         notPaused
+        authP(authParams(target))
         returns (bytes memory result)
     {
         result = Address.functionCallWithValue(target, data, value, 'SMART_VAULT_CALL_FAILED');
@@ -166,7 +184,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @dev Wrap an amount of native tokens to the wrapped ERC20 version of it. Sender must be authorized. Smart vault must not be paused.
      * @param amount Amount of native tokens to be wrapped
      */
-    function wrap(uint256 amount) external override nonReentrant authP(authParams(amount)) notPaused {
+    function wrap(uint256 amount) external override nonReentrant notPaused authP(authParams(amount)) {
         require(amount > 0, 'SMART_VAULT_WRAP_AMOUNT_ZERO');
         require(address(this).balance >= amount, 'SMART_VAULT_WRAP_NO_BALANCE');
         IWrappedNativeToken(wrappedNativeToken).deposit{ value: amount }();
@@ -177,7 +195,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @dev Unwrap an amount of wrapped native tokens. Sender must be authorized. Smart vault must not be paused.
      * @param amount Amount of wrapped native tokens to unwrapped
      */
-    function unwrap(uint256 amount) external override nonReentrant authP(authParams(amount)) notPaused {
+    function unwrap(uint256 amount) external override nonReentrant notPaused authP(authParams(amount)) {
         require(amount > 0, 'SMART_VAULT_UNWRAP_AMOUNT_ZERO');
         IWrappedNativeToken(wrappedNativeToken).withdraw(amount);
         emit Unwrapped(amount);
@@ -193,8 +211,8 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         external
         override
         nonReentrant
-        authP(authParams(token, from, amount))
         notPaused
+        authP(authParams(token, from, amount))
     {
         require(amount > 0, 'SMART_VAULT_COLLECT_AMOUNT_ZERO');
         IERC20(token).safeTransferFrom(from, address(this), amount);
@@ -211,8 +229,8 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         external
         override
         nonReentrant
-        authP(authParams(token, recipient, amount))
         notPaused
+        authP(authParams(token, recipient, amount))
     {
         require(amount > 0, 'SMART_VAULT_WITHDRAW_AMOUNT_ZERO');
         require(recipient != address(0), 'SMART_VAULT_WITHDRAW_DEST_ZERO');
@@ -224,24 +242,6 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         uint256 withdrawn = amount - feeAmount;
         _safeTransfer(token, recipient, withdrawn);
         emit Withdrawn(token, recipient, withdrawn, feeAmount);
-    }
-
-    /**
-     * @dev Pauses a smart vault. Sender must be authorized.
-     */
-    function pause() external override auth {
-        require(!isPaused, 'SMART_VAULT_ALREADY_PAUSED');
-        isPaused = true;
-        emit Paused();
-    }
-
-    /**
-     * @dev Unpauses a samrt vault. Sender must be authorized.
-     */
-    function unpause() external override auth {
-        require(isPaused, 'SMART_VAULT_ALREADY_UNPAUSED');
-        isPaused = false;
-        emit Unpaused();
     }
 
     /**
