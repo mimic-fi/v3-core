@@ -18,7 +18,8 @@
       "packages/smart-vault",
       "packages/tasks",
       "packages/deployer",
-      "packages/connectors"
+      "packages/connectors",
+      "packages/relayer"
     ]
   }
 }
