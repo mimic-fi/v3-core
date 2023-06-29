@@ -38,16 +38,21 @@ abstract contract GasLimitedTask is IGasLimitedTask, BaseTask {
     // Total transaction cost limit expressed in the native token
     uint256 public override txCostLimit;
 
+    // Transaction cost limit percentage
+    uint256 public override txCostLimitPct;
+
     /**
      * @dev Gas limit config params. Only used in the initializer.
      * @param gasPriceLimit Gas price limit expressed in the native token
      * @param priorityFeeLimit Priority fee limit expressed in the native token
      * @param txCostLimit Transaction cost limit to be set
+     * @param txCostLimitPct Transaction cost limit percentage to be set
      */
     struct GasLimitConfig {
         uint256 gasPriceLimit;
         uint256 priorityFeeLimit;
         uint256 txCostLimit;
+        uint256 txCostLimitPct;
     }
 
     /**
@@ -57,6 +62,7 @@ abstract contract GasLimitedTask is IGasLimitedTask, BaseTask {
         _setGasPriceLimit(config.gasPriceLimit);
         _setPriorityFeeLimit(config.priorityFeeLimit);
         _setTxCostLimit(config.txCostLimit);
+        _setTxCostLimitPct(config.txCostLimitPct);
     }
 
     /**
@@ -84,6 +90,14 @@ abstract contract GasLimitedTask is IGasLimitedTask, BaseTask {
     }
 
     /**
+     * @dev Sets the transaction cost limit percentage
+     * @param newTxCostLimitPct New transaction cost limit percentage to be set
+     */
+    function setTxCostLimitPct(uint256 newTxCostLimitPct) external override authP(authParams(newTxCostLimitPct)) {
+        _setTxCostLimitPct(newTxCostLimitPct);
+    }
+
+    /**
      * @dev Initializes gas limited tasks and validates gas price limit
      */
     function _beforeTask(address, uint256) internal virtual override {
@@ -95,12 +109,20 @@ abstract contract GasLimitedTask is IGasLimitedTask, BaseTask {
     /**
      * @dev Validates transaction cost limit
      */
-    function _afterTask(address, uint256) internal virtual override {
+    function _afterTask(address token, uint256 amount) internal virtual override {
         require(__initialGas__ > 0, 'TASK_GAS_NOT_INITIALIZED');
+
         uint256 totalGas = __initialGas__ - gasleft();
         uint256 totalCost = totalGas * tx.gasprice;
         require(txCostLimit == 0 || totalCost <= txCostLimit, 'TASK_TX_COST_LIMIT');
         delete __initialGas__;
+
+        if (txCostLimitPct > 0) {
+            require(amount > 0, 'TASK_TX_COST_LIMIT_PCT');
+            uint256 price = _isWrappedOrNative(token) ? FixedPoint.ONE : _getPrice(_wrappedNativeToken(), token);
+            uint256 totalCostInToken = totalCost.mulDown(price);
+            require(totalCostInToken.divUp(amount) <= txCostLimitPct, 'TASK_TX_COST_LIMIT_PCT');
+        }
     }
 
     /**
@@ -128,5 +150,15 @@ abstract contract GasLimitedTask is IGasLimitedTask, BaseTask {
     function _setTxCostLimit(uint256 newTxCostLimit) internal {
         txCostLimit = newTxCostLimit;
         emit TxCostLimitSet(newTxCostLimit);
+    }
+
+    /**
+     * @dev Sets the transaction cost limit percentage
+     * @param newTxCostLimitPct New transaction cost limit percentage to be set
+     */
+    function _setTxCostLimitPct(uint256 newTxCostLimitPct) internal {
+        require(newTxCostLimitPct <= FixedPoint.ONE, 'TASK_TX_COST_LIMIT_PCT_ABOVE_ONE');
+        txCostLimitPct = newTxCostLimitPct;
+        emit TxCostLimitPctSet(newTxCostLimitPct);
     }
 }

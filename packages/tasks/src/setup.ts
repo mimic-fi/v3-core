@@ -67,6 +67,7 @@ export type TaskConfig = {
     gasPriceLimit: BigNumberish
     priorityFeeLimit: BigNumberish
     txCostLimit: BigNumberish
+    txCostLimitPct: BigNumberish
   }
   timeLockConfig: {
     delay: BigNumberish
@@ -98,6 +99,7 @@ export function buildEmptyTaskConfig(owner: SignerWithAddress, smartVault: Contr
       gasPriceLimit: 0,
       priorityFeeLimit: 0,
       txCostLimit: 0,
+      txCostLimitPct: 0,
     },
     timeLockConfig: {
       delay: 0,
