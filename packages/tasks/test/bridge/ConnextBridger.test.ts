@@ -15,7 +15,7 @@ import { Contract } from 'ethers'
 import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
 import { itBehavesLikeBaseBridgeTask } from './BaseBridgeTask.behavior'
 
-describe.only('ConnextBridger', () => {
+describe('ConnextBridger', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, connector: Contract
   let owner: SignerWithAddress
