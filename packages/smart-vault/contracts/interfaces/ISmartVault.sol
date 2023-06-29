@@ -21,6 +21,16 @@ import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorized.sol';
  */
 interface ISmartVault is IAuthorized {
     /**
+     * @dev Emitted every time a smart vault is paused
+     */
+    event Paused();
+
+    /**
+     * @dev Emitted every time a smart vault is unpaused
+     */
+    event Unpaused();
+
+    /**
      * @dev Emitted every time the price oracle is set
      */
     event PriceOracleSet(address indexed priceOracle);
@@ -61,6 +71,11 @@ interface ISmartVault is IAuthorized {
     event Withdrawn(address indexed token, address indexed recipient, uint256 amount, uint256 fee);
 
     /**
+     * @dev Tells if the smart vault is paused or not
+     */
+    function isPaused() external view returns (bool);
+
+    /**
      * @dev Tells the address of the price oracle
      */
     function priceOracle() external view returns (address);
@@ -85,6 +100,16 @@ interface ISmartVault is IAuthorized {
      * @param connector Address of the connector being queried
      */
     function isConnectorCheckIgnored(address connector) external view returns (bool);
+
+    /**
+     * @dev Pauses a smart vault
+     */
+    function pause() external;
+
+    /**
+     * @dev Unpauses a smart vault
+     */
+    function unpause() external;
 
     /**
      * @dev Sets the price oracle
