@@ -71,6 +71,7 @@ export type TaskConfig = {
   timeLockConfig: {
     delay: BigNumberish
     nextExecutionTimestamp: BigNumberish
+    executionPeriod: BigNumberish
   }
   tokenIndexConfig: {
     acceptanceType: BigNumberish
@@ -102,6 +103,7 @@ export function buildEmptyTaskConfig(owner: SignerWithAddress, smartVault: Contr
     timeLockConfig: {
       delay: 0,
       nextExecutionTimestamp: 0,
+      executionPeriod: 0,
     },
     tokenIndexConfig: {
       acceptanceType: 0,

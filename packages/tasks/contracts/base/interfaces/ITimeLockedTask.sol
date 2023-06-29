@@ -31,6 +31,11 @@ interface ITimeLockedTask is IBaseTask {
     event TimeLockExpirationSet(uint256 expiration);
 
     /**
+     * @dev Emitted every time a new execution period is set
+     */
+    event TimeLockExecutionPeriodSet(uint256 period);
+
+    /**
      * @dev Tells the time-lock delay in seconds
      */
     function timeLockDelay() external view returns (uint256);
@@ -39,6 +44,11 @@ interface ITimeLockedTask is IBaseTask {
      * @dev Tells the time-lock expiration timestamp
      */
     function timeLockExpiration() external view returns (uint256);
+
+    /**
+     * @dev Tells the time-lock execution period
+     */
+    function timeLockExecutionPeriod() external view returns (uint256);
 
     /**
      * @dev Sets the time-lock delay
@@ -51,4 +61,10 @@ interface ITimeLockedTask is IBaseTask {
      * @param expiration New expiration timestamp to be set
      */
     function setTimeLockExpiration(uint256 expiration) external;
+
+    /**
+     * @dev Sets the time-lock execution period
+     * @param period New execution period to be set
+     */
+    function setTimeLockExecutionPeriod(uint256 period) external;
 }
