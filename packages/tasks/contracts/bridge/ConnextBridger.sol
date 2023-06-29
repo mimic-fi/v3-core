@@ -40,7 +40,7 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     function call(address token, uint256 amountIn, uint256 slippage, uint256 relayerFee)
         external
         override
-        authP(authParams(token, amountIn/**, slippage, relayerFee*/)) // TODO
+        authP(authParams(token, amountIn))
         baseBridgeTaskCall(token, amountIn)
     {
         uint256 minAmountOut = amountIn.mulUp(FixedPoint.ONE - slippage);
