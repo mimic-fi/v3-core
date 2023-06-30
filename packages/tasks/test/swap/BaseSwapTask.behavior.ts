@@ -17,7 +17,7 @@ export function itBehavesLikeBaseSwapTask(): void {
         this.task = this.task.connect(this.owner)
       })
 
-      it('sets the token out', async function () {
+      it('sets the connector', async function () {
         await this.task.setConnector(connector.address)
 
         expect(await this.task.connector()).to.be.equal(connector.address)
