@@ -125,7 +125,7 @@ describe('AxelarBridger', () => {
                     chainId,
                     token,
                     amountIn,
-                    addr: smartVault,
+                    recipient: smartVault,
                   })
                 })
 
