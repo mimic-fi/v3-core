@@ -129,7 +129,7 @@ describe('WormholeBridger', () => {
                     token,
                     amountIn,
                     minAmountOut,
-                    addr: smartVault,
+                    recipient: smartVault,
                   })
                 })
 
