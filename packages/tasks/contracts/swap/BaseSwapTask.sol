@@ -118,7 +118,7 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
      * @dev Sets a new connector
      * @param newConnector Address of the connector to be set
      */
-    function setConnector(address newConnector) external override auth {
+    function setConnector(address newConnector) external override authP(authParams(newConnector)) {
         _setConnector(newConnector);
     }
 
@@ -126,7 +126,7 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
      * @dev Sets the default token out
      * @param tokenOut Address of the default token out to be set
      */
-    function setDefaultTokenOut(address tokenOut) external override auth {
+    function setDefaultTokenOut(address tokenOut) external override authP(authParams(tokenOut)) {
         _setDefaultTokenOut(tokenOut);
     }
 
@@ -134,7 +134,7 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
      * @dev Sets the default max slippage
      * @param maxSlippage Default max slippage to be set
      */
-    function setDefaultMaxSlippage(uint256 maxSlippage) external override auth {
+    function setDefaultMaxSlippage(uint256 maxSlippage) external override authP(authParams(maxSlippage)) {
         _setDefaultMaxSlippage(maxSlippage);
     }
 

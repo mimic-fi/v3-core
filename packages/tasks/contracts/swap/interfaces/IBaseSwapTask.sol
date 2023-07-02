@@ -51,12 +51,12 @@ interface IBaseSwapTask is ITask {
     function connector() external view returns (address);
 
     /**
-     * @dev Tells the default token threshold
+     * @dev Tells the default token out
      */
     function defaultTokenOut() external view returns (address);
 
     /**
-     * @dev Tells the default token threshold
+     * @dev Tells the default max slippage
      */
     function defaultMaxSlippage() external view returns (uint256);
 
