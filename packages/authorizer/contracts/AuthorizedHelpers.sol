@@ -44,6 +44,12 @@ contract AuthorizedHelpers {
         r[1] = p2;
     }
 
+    function authParams(address p1, address p2) internal pure returns (uint256[] memory r) {
+        r = new uint256[](2);
+        r[0] = uint256(uint160(p1));
+        r[1] = uint256(uint160(p2));
+    }
+
     function authParams(address p1, address p2, uint256 p3) internal pure returns (uint256[] memory r) {
         r = new uint256[](3);
         r[0] = uint256(uint160(p1));
