@@ -31,9 +31,19 @@ interface IBaseBridgeTask is ITask {
     event DefaultDestinationChainSet(uint256 indexed defaultDestinationChain);
 
     /**
+     * @dev Emitted every time the default max slippage is set
+     */
+    event DefaultMaxSlippageSet(uint256 maxSlippage);
+
+    /**
      * @dev Emitted every time a custom destination chain is set for a token
      */
     event CustomDestinationChainSet(address indexed token, uint256 indexed defaultDestinationChain);
+
+    /**
+     * @dev Emitted every time a custom max slippage is set
+     */
+    event CustomMaxSlippageSet(address indexed token, uint256 maxSlippage);
 
     /**
      * @dev Tells the connector tied to the task
@@ -46,9 +56,20 @@ interface IBaseBridgeTask is ITask {
     function defaultDestinationChain() external view returns (uint256);
 
     /**
+     * @dev Tells the default max slippage
+     */
+    function defaultMaxSlippage() external view returns (uint256);
+
+    /**
      * @dev Tells the destination chain defined for a specific token
      */
-    function customDestinationChain(address token) external view returns (bool exists, uint256 chainId);
+    function customDestinationChain(address token) external view returns (uint256);
+
+    /**
+     * @dev Tells the max slippage defined for a specific token
+     * @param token Address of the token being queried
+     */
+    function customMaxSlippage(address token) external view returns (uint256);
 
     /**
      * @dev Sets a new connector
@@ -58,11 +79,27 @@ interface IBaseBridgeTask is ITask {
 
     /**
      * @dev Sets the default destination chain
+     * @param destinationChain Default destination chain to be set
      */
     function setDefaultDestinationChain(uint256 destinationChain) external;
 
     /**
-     * @dev Sets a list of custom token outs
+     * @dev Sets the default max slippage
+     * @param maxSlippage Default max slippage to be set
      */
-    function setCustomDestinationChain(address tokens, uint256 destinationChains) external;
+    function setDefaultMaxSlippage(uint256 maxSlippage) external;
+
+    /**
+     * @dev Sets a custom destination chain for a token
+     * @param token Address of the token to set a custom destination chain for
+     * @param destinationChain Destination chain to be set
+     */
+    function setCustomDestinationChain(address token, uint256 destinationChain) external;
+
+    /**
+     * @dev Sets a custom max slippage
+     * @param token Address of the token to set a custom max slippage for
+     * @param maxSlippage Max slippage to be set
+     */
+    function setCustomMaxSlippage(address token, uint256 maxSlippage) external;
 }

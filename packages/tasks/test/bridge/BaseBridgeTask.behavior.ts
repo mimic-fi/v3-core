@@ -1,4 +1,4 @@
-import { assertEvent, deploy, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { assertEvent, deploy, fp, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 
@@ -158,8 +158,7 @@ export function itBehavesLikeBaseBridgeTask(): void {
               await this.task.setCustomDestinationChain(token.address, chainId)
 
               const destinationChain = await this.task.customDestinationChain(token.address)
-              expect(destinationChain[0]).to.be.true
-              expect(destinationChain[1]).to.be.equal(chainId)
+              expect(destinationChain).to.be.equal(chainId)
             })
 
             it('emits an event', async function () {
@@ -203,8 +202,7 @@ export function itBehavesLikeBaseBridgeTask(): void {
             await this.task.setCustomDestinationChain(token.address, 0)
 
             const destinationChain = await this.task.customDestinationChain(token.address)
-            expect(destinationChain[0]).to.be.false
-            expect(destinationChain[1]).to.be.equal(0)
+            expect(destinationChain).to.be.equal(0)
           })
 
           it('emits an event', async function () {
@@ -235,6 +233,98 @@ export function itBehavesLikeBaseBridgeTask(): void {
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
         await expect(this.task.setCustomDestinationChain(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
+    })
+  })
+
+  describe('setDefaultMaxSlippage', () => {
+    context('when the sender is authorized', () => {
+      beforeEach('set sender', async function () {
+        const setDefaultMaxSlippageRole = this.task.interface.getSighash('setDefaultMaxSlippage')
+        await this.authorizer
+          .connect(this.owner)
+          .authorize(this.owner.address, this.task.address, setDefaultMaxSlippageRole, [])
+        this.task = this.task.connect(this.owner)
+      })
+
+      context('when the slippage is not above one', () => {
+        const slippage = fp(1)
+
+        it('sets the slippage', async function () {
+          await this.task.setDefaultMaxSlippage(slippage)
+
+          expect(await this.task.defaultMaxSlippage()).to.be.equal(slippage)
+        })
+
+        it('emits an event', async function () {
+          const tx = await this.task.setDefaultMaxSlippage(slippage)
+
+          await assertEvent(tx, 'DefaultMaxSlippageSet', { maxSlippage: slippage })
+        })
+      })
+
+      context('when the slippage is above one', () => {
+        const slippage = fp(1).add(1)
+
+        it('reverts', async function () {
+          await expect(this.task.setDefaultMaxSlippage(slippage)).to.be.revertedWith('TASK_SLIPPAGE_ABOVE_ONE')
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(this.task.setDefaultMaxSlippage(1)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
+    })
+  })
+
+  describe('setCustomMaxSlippage', () => {
+    let token: Contract
+
+    beforeEach('deploy token', async function () {
+      token = await deploy('TokenMock', ['TKN'])
+    })
+
+    context('when the sender is authorized', () => {
+      beforeEach('set sender', async function () {
+        const setCustomMaxSlippageRole = this.task.interface.getSighash('setCustomMaxSlippage')
+        await this.authorizer
+          .connect(this.owner)
+          .authorize(this.owner.address, this.task.address, setCustomMaxSlippageRole, [])
+        this.task = this.task.connect(this.owner)
+      })
+
+      context('when the slippage is not above one', () => {
+        const slippage = fp(1)
+
+        it('sets the slippage', async function () {
+          await this.task.setCustomMaxSlippage(token.address, slippage)
+
+          expect(await this.task.customMaxSlippage(token.address)).to.be.equal(slippage)
+        })
+
+        it('emits an event', async function () {
+          const tx = await this.task.setCustomMaxSlippage(token.address, slippage)
+
+          await assertEvent(tx, 'CustomMaxSlippageSet', { token, maxSlippage: slippage })
+        })
+      })
+
+      context('when the slippage is above one', () => {
+        const slippage = fp(1).add(1)
+
+        it('reverts', async function () {
+          await expect(this.task.setCustomMaxSlippage(token.address, slippage)).to.be.revertedWith(
+            'TASK_SLIPPAGE_ABOVE_ONE'
+          )
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(this.task.setCustomMaxSlippage(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })
