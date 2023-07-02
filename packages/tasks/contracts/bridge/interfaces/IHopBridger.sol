@@ -78,17 +78,17 @@ interface IHopBridger is IBaseBridgeTask {
     /**
      * @dev Tells the max fee percentage defined for a specific token
      */
-    function getCustomMaxFeePct(address token) external view returns (bool exists, uint256 maxFeePct);
+    function getCustomMaxFeePct(address token) external view returns (uint256 maxFeePct);
 
     /**
      * @dev Tells the max slippage defined for a specific token
      */
-    function getCustomMaxSlippage(address token) external view returns (bool exists, uint256 maxSlippage);
+    function getCustomMaxSlippage(address token) external view returns (uint256 maxSlippage);
 
     /**
      * @dev Tells Hop entrypoint set for a token
      */
-    function getTokenHopEntrypoint(address token) external view returns (bool exists, address entrypoint);
+    function getTokenHopEntrypoint(address token) external view returns (address entrypoint);
 
     /**
      * @dev Sets the relayer, only used when bridging from L1 to L2

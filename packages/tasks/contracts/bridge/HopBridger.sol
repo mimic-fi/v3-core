@@ -113,22 +113,22 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     /**
      * @dev Tells the max fee percentage defined for a specific token
      */
-    function getCustomMaxFeePct(address token) public view override returns (bool, uint256) {
-        return _customMaxFeePcts.tryGet(token);
+    function getCustomMaxFeePct(address token) public view override returns (uint256 maxFeePct) {
+        (, maxFeePct) = _customMaxFeePcts.tryGet(token);
     }
 
     /**
      * @dev Tells the max slippage defined for a specific token
      */
-    function getCustomMaxSlippage(address token) public view override returns (bool, uint256) {
-        return _customMaxSlippages.tryGet(token);
+    function getCustomMaxSlippage(address token) public view override returns (uint256 maxSlippage) {
+        (, maxSlippage) = _customMaxSlippages.tryGet(token);
     }
 
     /**
      * @dev Tells Hop entrypoint set for a token
      */
-    function getTokenHopEntrypoint(address token) public view override returns (bool exists, address entrypoint) {
-        return _tokenHopEntrypoints.tryGet(token);
+    function getTokenHopEntrypoint(address token) public view override returns (address entrypoint) {
+        (, entrypoint) = _tokenHopEntrypoints.tryGet(token);
     }
 
     /**

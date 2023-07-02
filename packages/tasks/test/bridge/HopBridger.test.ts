@@ -226,8 +226,7 @@ describe('HopBridger', () => {
         await task.setCustomMaxFeePct(token.address, maxFeePct)
 
         const customMaxFeePct = await task.getCustomMaxFeePct(token.address)
-        expect(customMaxFeePct[0]).to.be.true
-        expect(customMaxFeePct[1]).to.be.equal(maxFeePct)
+        expect(customMaxFeePct).to.be.equal(maxFeePct)
       })
 
       it('emits an event', async function () {
@@ -265,8 +264,7 @@ describe('HopBridger', () => {
           await task.setCustomMaxSlippage(token.address, slippage)
 
           const customMaxSlippage = await task.getCustomMaxSlippage(token.address)
-          expect(customMaxSlippage[0]).to.be.equal(true)
-          expect(customMaxSlippage[1]).to.be.equal(slippage)
+          expect(customMaxSlippage).to.be.equal(slippage)
         })
 
         it('emits an event', async function () {
@@ -313,8 +311,7 @@ describe('HopBridger', () => {
               await task.setTokenHopEntrypoint(token.address, entrypoint.address)
 
               const hopEntrypoint = await task.getTokenHopEntrypoint(token.address)
-              expect(hopEntrypoint[0]).to.be.equal(true)
-              expect(hopEntrypoint[1]).to.be.equal(entrypoint.address)
+              expect(hopEntrypoint).to.be.equal(entrypoint.address)
             })
 
             it('emits an event', async () => {
@@ -349,8 +346,7 @@ describe('HopBridger', () => {
               await task.setTokenHopEntrypoint(token.address, entrypoint)
 
               const hopEntrypoint = await task.getTokenHopEntrypoint(token.address)
-              expect(hopEntrypoint[0]).to.be.equal(false)
-              expect(hopEntrypoint[1]).to.be.equal(entrypoint)
+              expect(hopEntrypoint).to.be.equal(entrypoint)
             })
 
             it('emits an event', async () => {
