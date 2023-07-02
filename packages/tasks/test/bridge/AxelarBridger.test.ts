@@ -39,10 +39,14 @@ describe('AxelarBridger', () => {
       [],
       [
         {
-          connector: connector.address,
-          destinationChain: 0,
-          customDestinationChains: [],
-          taskConfig: buildEmptyTaskConfig(owner, smartVault),
+          baseBridgeConfig: {
+            connector: connector.address,
+            destinationChain: 0,
+            maxSlippage: 0,
+            customDestinationChains: [],
+            customMaxSlippages: [],
+            taskConfig: buildEmptyTaskConfig(owner, smartVault),
+          },
         },
       ]
     )

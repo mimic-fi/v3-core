@@ -28,10 +28,18 @@ contract AxelarBridger is IAxelarBridger, BaseBridgeTask {
     using FixedPoint for uint256;
 
     /**
+     * @dev Axelar bridger task config. Only used in the initializer.
+     * @param baseBridgeConfig Base bridge task config params
+     */
+    struct AxelarBridgerConfig {
+        BaseBridgeConfig baseBridgeConfig;
+    }
+
+    /**
      * @dev Creates a Axelar bridger task
      */
-    function initialize(BaseBridgeConfig memory config) external initializer {
-        _initialize(config);
+    function initialize(AxelarBridgerConfig memory config) external initializer {
+        _initialize(config.baseBridgeConfig);
     }
 
     /**
@@ -41,7 +49,7 @@ contract AxelarBridger is IAxelarBridger, BaseBridgeTask {
         external
         override
         authP(authParams(token, amountIn))
-        baseBridgeTaskCall(token, amountIn)
+        baseBridgeTaskCall(token, amountIn, 0)
     {
         bytes memory connectorData = abi.encodeWithSelector(
             AxelarConnector.execute.selector,
