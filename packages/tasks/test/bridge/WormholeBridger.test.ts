@@ -39,10 +39,14 @@ describe('WormholeBridger', () => {
       [],
       [
         {
-          connector: connector.address,
-          destinationChain: 0,
-          customDestinationChains: [],
-          taskConfig: buildEmptyTaskConfig(owner, smartVault),
+          baseBridgeConfig: {
+            connector: connector.address,
+            destinationChain: 0,
+            maxSlippage: 0,
+            customDestinationChains: [],
+            customMaxSlippages: [],
+            taskConfig: buildEmptyTaskConfig(owner, smartVault),
+          },
         },
       ]
     )
@@ -83,6 +87,7 @@ describe('WormholeBridger', () => {
           const amountIn = fp(100)
           const relayerFee = fp(35)
           const minAmountOut = amountIn.sub(relayerFee)
+          const slippage = fp(0.35)
 
           context('when the destination chain was set', () => {
             const chainId = 1
@@ -109,34 +114,52 @@ describe('WormholeBridger', () => {
                   await token.mint(smartVault.address, amountIn)
                 })
 
-                it('executes the expected connector', async () => {
-                  const tx = await task.call(token.address, amountIn, minAmountOut)
-
-                  const connectorData = connector.interface.encodeFunctionData('execute', [
-                    chainId,
-                    token.address,
-                    amountIn,
-                    minAmountOut,
-                    smartVault.address,
-                  ])
-                  await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
-                    connector,
-                    data: connectorData,
+                context('when the slippage is below the limit', () => {
+                  beforeEach('set max slippage', async () => {
+                    const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
+                    await authorizer
+                      .connect(owner)
+                      .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
+                    await task.connect(owner).setDefaultMaxSlippage(slippage)
                   })
 
-                  await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
-                    chainId,
-                    token,
-                    amountIn,
-                    minAmountOut,
-                    recipient: smartVault,
+                  it('executes the expected connector', async () => {
+                    const tx = await task.call(token.address, amountIn, slippage)
+
+                    const connectorData = connector.interface.encodeFunctionData('execute', [
+                      chainId,
+                      token.address,
+                      amountIn,
+                      minAmountOut,
+                      smartVault.address,
+                    ])
+                    await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
+                      connector,
+                      data: connectorData,
+                    })
+
+                    await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
+                      chainId,
+                      token,
+                      amountIn,
+                      minAmountOut,
+                      recipient: smartVault,
+                    })
+                  })
+
+                  it('emits an Executed event', async () => {
+                    const tx = await task.call(token.address, amountIn, slippage)
+
+                    await assertEvent(tx, 'Executed')
                   })
                 })
 
-                it('emits an Executed event', async () => {
-                  const tx = await task.call(token.address, amountIn, minAmountOut)
-
-                  await assertEvent(tx, 'Executed')
+                context('when the slippage is above the limit', () => {
+                  it('reverts', async () => {
+                    await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith(
+                      'TASK_SLIPPAGE_TOO_HIGH'
+                    )
+                  })
                 })
               })
 
@@ -152,7 +175,7 @@ describe('WormholeBridger', () => {
                 })
 
                 it('reverts', async () => {
-                  await expect(task.call(token.address, amountIn, minAmountOut)).to.be.revertedWith(
+                  await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith(
                     'TASK_TOKEN_THRESHOLD_NOT_MET'
                   )
                 })
@@ -167,16 +190,14 @@ describe('WormholeBridger', () => {
               })
 
               it('reverts', async () => {
-                await expect(task.call(token.address, amountIn, minAmountOut)).to.be.revertedWith(
-                  'TASK_TOKEN_NOT_ALLOWED'
-                )
+                await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
               })
             })
           })
 
           context('when the destination chain was not set', () => {
             it('reverts', async () => {
-              await expect(task.call(token.address, amountIn, minAmountOut)).to.be.revertedWith(
+              await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith(
                 'TASK_DESTINATION_CHAIN_NOT_SET'
               )
             })
