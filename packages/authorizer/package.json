@@ -21,6 +21,7 @@
     "prepare": "yarn build"
   },
   "dependencies": {
+    "@mimic-fi/v3-helpers": "0.0.1",
     "@openzeppelin/contracts": "4.7.0"
   },
   "devDependencies": {

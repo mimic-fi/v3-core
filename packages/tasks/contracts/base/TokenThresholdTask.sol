@@ -93,7 +93,11 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, BaseTask {
      * @dev Sets a new default threshold config
      * @param threshold Threshold config to be set as the default one
      */
-    function setDefaultTokenThreshold(Threshold memory threshold) external override auth {
+    function setDefaultTokenThreshold(Threshold memory threshold)
+        external
+        override
+        authP(authParams(threshold.token, threshold.min, threshold.max))
+    {
         _setDefaultTokenThreshold(threshold);
     }
 
@@ -105,7 +109,7 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, BaseTask {
     function setCustomTokenThreshold(address token, Threshold memory threshold)
         external
         override
-        authP(authParams(token))
+        authP(authParams(token, threshold.token, threshold.min, threshold.max))
     {
         _setCustomTokenThreshold(token, threshold);
     }
