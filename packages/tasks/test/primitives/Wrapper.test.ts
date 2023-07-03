@@ -9,7 +9,7 @@ describe('Wrapper', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, mimic: Mimic, owner: SignerWithAddress
 
-  before('load signers', async () => {
+  before('setup', async () => {
     // eslint-disable-next-line prettier/prettier
     ([, owner] = await getSigners())
     ;({ authorizer, smartVault, mimic } = await deployEnvironment(owner))

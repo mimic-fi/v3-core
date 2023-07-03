@@ -72,6 +72,20 @@ interface IAuthorizer {
     event Unauthorized(address indexed who, address indexed where, bytes4 indexed what);
 
     /**
+     * @dev Tells whether `who` has any permission on `where`
+     * @param who Address asking permission for
+     * @param where Target address asking permission for
+     */
+    function hasPermissions(address who, address where) external view returns (bool);
+
+    /**
+     * @dev Tells the number of permissions `who` has on `where`
+     * @param who Address asking permission for
+     * @param where Target address asking permission for
+     */
+    function getPermissionsLength(address who, address where) external view returns (uint256);
+
+    /**
      * @dev Tells whether `who` is allowed to call `what` on `where` with `how`
      * @param who Address asking permission for
      * @param where Target address asking permission for
