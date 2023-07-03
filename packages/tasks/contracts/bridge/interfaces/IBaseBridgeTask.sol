@@ -62,6 +62,7 @@ interface IBaseBridgeTask is ITask {
 
     /**
      * @dev Tells the destination chain defined for a specific token
+     * @param token Address of the token being queried
      */
     function customDestinationChain(address token) external view returns (uint256);
 
