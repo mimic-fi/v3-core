@@ -15,7 +15,6 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/EnumerableMap.sol';
 
 import './interfaces/IBaseBridgeTask.sol';
@@ -49,7 +48,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @dev Modifier to tag the execution function of a task to trigger before and after hooks automatically
      * @param token Address of the token to be bridged
      * @param amount Amount of tokens to be bridged
-     * @param slippage Maximum slippage allowed
+     * @param slippage Slippage requested
      */
     modifier baseBridgeTaskCall(address token, uint256 amount, uint256 slippage) {
         _beforeBridgeTask(token, amount, slippage);
@@ -58,7 +57,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     }
 
     /**
-     * @dev Custom destination chain config
+     * @dev Custom destination chain config. Only used in the initializer.
      */
     struct CustomDestinationChain {
         address token;
@@ -74,7 +73,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     }
 
     /**
-     * @dev Base bridge task config. Only used in the initializer
+     * @dev Base bridge task config. Only used in the initializer.
      */
     struct BaseBridgeConfig {
         address connector;
@@ -107,8 +106,8 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
 
     /**
      * @dev Tells the destination chain defined for a specific token
-     * @param token Address of the token to get the destination chain for
-     * @return chainId Destination chain to be used
+     * @param token Address of the token querying the custom destination chain for
+     * @return chainId Destination chain set for the given token
      */
     function customDestinationChain(address token) public view override returns (uint256 chainId) {
         (, chainId) = _customDestinationChains.tryGet(token);
@@ -116,6 +115,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
 
     /**
      * @dev Tells the max slippage defined for a specific token
+     * @param token Address of the token querying the custom max slippage for
      */
     function customMaxSlippage(address token) public view override returns (uint256 maxSlippage) {
         (, maxSlippage) = _customMaxSlippages.tryGet(token);
@@ -145,7 +145,6 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @dev Sets the default max slippage
      * @param maxSlippage Default max slippage to be set
      */
-
     function setDefaultMaxSlippage(uint256 maxSlippage) external override authP(authParams(maxSlippage)) {
         _setDefaultMaxSlippage(maxSlippage);
     }
@@ -196,10 +195,10 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
 
     /**
      * @dev Hook to be called before the bridge task call starts. This implementation calls the base task `_beforeTask`
-     * hook and finally adds some trivial token and amount validations.
+     * hook and finally adds some trivial token, amount, and slippage validations.
      * @param token Address of the token to be bridged
      * @param amount Amount of tokens to be bridged
-     * @param slippage Maximum slippage allowed
+     * @param slippage Requested slippage
      */
     function _beforeBridgeTask(address token, uint256 amount, uint256 slippage) internal virtual {
         _beforeTask(token, amount);

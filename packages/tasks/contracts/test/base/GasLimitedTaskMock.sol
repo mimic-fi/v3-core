@@ -16,7 +16,7 @@ contract GasLimitedTaskMock is BaseTask, GasLimitedTask {
         _initialize(config.gasLimitConfig);
     }
 
-    function call() external baseTaskCall(address(0), 0) {
+    function call(address token, uint256 amount) external baseTaskCall(token, amount) {
         // solhint-disable-previous-line no-empty-blocks
     }
 

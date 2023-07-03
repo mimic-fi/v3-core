@@ -4,12 +4,6 @@ import { Contract } from 'ethers'
 
 export function itBehavesLikeBaseBridgeTask(): void {
   describe('setConnector', () => {
-    let connector: Contract
-
-    beforeEach('deploy connector', async function () {
-      connector = await deploy('TokenMock', ['TKN'])
-    })
-
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async function () {
         const setConnectorRole = this.task.interface.getSighash('setConnector')
@@ -17,16 +11,32 @@ export function itBehavesLikeBaseBridgeTask(): void {
         this.task = this.task.connect(this.owner)
       })
 
-      it('sets the connector', async function () {
-        await this.task.setConnector(connector.address)
+      context('when the new connector is not zero', () => {
+        let connector: Contract
 
-        expect(await this.task.connector()).to.be.equal(connector.address)
+        beforeEach('deploy connector', async function () {
+          connector = await deploy('TokenMock', ['TKN'])
+        })
+
+        it('sets the token out', async function () {
+          await this.task.setConnector(connector.address)
+
+          expect(await this.task.connector()).to.be.equal(connector.address)
+        })
+
+        it('emits an event', async function () {
+          const tx = await this.task.setConnector(connector.address)
+
+          await assertEvent(tx, 'ConnectorSet', { connector })
+        })
       })
 
-      it('emits an event', async function () {
-        const tx = await this.task.setConnector(connector.address)
+      context('when the new connector is zero', () => {
+        const connector = ZERO_ADDRESS
 
-        await assertEvent(tx, 'ConnectorSet', { connector })
+        it('reverts', async function () {
+          await expect(this.task.setConnector(connector)).to.be.revertedWith('TASK_CONNECTOR_ZERO')
+        })
       })
     })
 
