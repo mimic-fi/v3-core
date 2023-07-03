@@ -62,6 +62,7 @@ abstract contract BaseConvexTask is IBaseConvexTask, Task {
      * @param newConnector New connector to be set
      */
     function _setConnector(address newConnector) internal {
+        require(newConnector != address(0), 'TASK_CONNECTOR_ZERO');
         connector = newConnector;
         emit ConnectorSet(newConnector);
     }
