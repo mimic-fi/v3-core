@@ -79,27 +79,27 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
         _setDefaultMaxFeePct(config.maxFeePct);
 
         for (uint256 i = 0; i < config.customMaxFeePcts.length; i++) {
-            CustomMaxFeePct memory customMaxFeePct = config.customMaxFeePcts[i];
-            _setCustomMaxFeePct(customMaxFeePct.token, customMaxFeePct.maxFeePct);
+            CustomMaxFeePct memory customConfig = config.customMaxFeePcts[i];
+            _setCustomMaxFeePct(customConfig.token, customConfig.maxFeePct);
         }
 
         for (uint256 i = 0; i < config.tokenHopEntrypoints.length; i++) {
-            TokenHopEntrypoint memory tokenHopEntrypoint = config.tokenHopEntrypoints[i];
-            _setTokenHopEntrypoint(tokenHopEntrypoint.token, tokenHopEntrypoint.entrypoint);
+            TokenHopEntrypoint memory customConfig = config.tokenHopEntrypoints[i];
+            _setTokenHopEntrypoint(customConfig.token, customConfig.entrypoint);
         }
     }
 
     /**
      * @dev Tells the max fee percentage defined for a specific token
      */
-    function getCustomMaxFeePct(address token) public view override returns (uint256 maxFeePct) {
+    function customMaxFeePct(address token) public view override returns (uint256 maxFeePct) {
         (, maxFeePct) = _customMaxFeePcts.tryGet(token);
     }
 
     /**
      * @dev Tells Hop entrypoint set for a token
      */
-    function getTokenHopEntrypoint(address token) public view override returns (address entrypoint) {
+    function tokenHopEntrypoint(address token) public view override returns (address entrypoint) {
         (, entrypoint) = _tokenHopEntrypoints.tryGet(token);
     }
 
@@ -162,8 +162,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
         authP(authParams(token, amountIn, slippage, fee))
         baseBridgeTaskCall(token, amountIn, slippage)
     {
-        _validateHopEntrypoint(token);
-        _validateFee(token, amountIn, fee);
+        require(fee.divUp(amountIn) <= _getApplicableMaxFeePct(token), 'TASK_FEE_TOO_HIGH');
 
         bytes memory connectorData = abi.encodeWithSelector(
             HopConnector.execute.selector,
@@ -182,38 +181,19 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     }
 
     /**
+     * @dev Hook to be called before the bridge task call starts. This implementation calls the base bridge task hooks
+     * and validates there is an entrypoint defined for the given token to be bridged.
+     */
+    function _beforeBridgeTask(address token, uint256 amount, uint256 slippage) internal virtual override {
+        super._beforeBridgeTask(token, amount, slippage);
+        require(_tokenHopEntrypoints.contains(token), 'TASK_MISSING_HOP_ENTRYPOINT');
+    }
+
+    /**
      * @dev Tells the max fee percentage that should be used for a token
      */
     function _getApplicableMaxFeePct(address token) internal view returns (uint256) {
         return _customMaxFeePcts.contains(token) ? _customMaxFeePcts.get(token) : defaultMaxFeePct;
-    }
-
-    /**
-     * @dev Tells if a token has a Hop entrypoint set
-     */
-    function _isHopEntrypointValid(address token) internal view returns (bool) {
-        return _tokenHopEntrypoints.contains(token);
-    }
-
-    /**
-     * @dev Reverts if there is no Hop entrypoint set for a given token
-     */
-    function _validateHopEntrypoint(address token) internal view {
-        require(_isHopEntrypointValid(token), 'TASK_MISSING_HOP_ENTRYPOINT');
-    }
-
-    /**
-     * @dev Tells if the requested fee is valid based on the max fee percentage configured for a token
-     */
-    function _isFeeValid(address token, uint256 amount, uint256 fee) internal view returns (bool) {
-        return fee.divUp(amount) <= _getApplicableMaxFeePct(token);
-    }
-
-    /**
-     * @dev Reverts if the requested fee is above the max fee percentage configured for a token
-     */
-    function _validateFee(address token, uint256 amount, uint256 fee) internal view {
-        require(_isFeeValid(token, amount, fee), 'TASK_FEE_TOO_HIGH');
     }
 
     /**

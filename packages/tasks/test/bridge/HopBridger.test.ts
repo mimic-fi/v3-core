@@ -17,7 +17,7 @@ import { Contract } from 'ethers'
 import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
 import { itBehavesLikeBaseBridgeTask } from './BaseBridgeTask.behavior'
 
-describe('HopBridger', () => {
+describe.only('HopBridger', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, connector: Contract
   let owner: SignerWithAddress, relayer: SignerWithAddress, entrypoint: SignerWithAddress
@@ -185,7 +185,7 @@ describe('HopBridger', () => {
       it('sets the max fee pct', async function () {
         await task.setCustomMaxFeePct(token.address, maxFeePct)
 
-        const customMaxFeePct = await task.getCustomMaxFeePct(token.address)
+        const customMaxFeePct = await task.customMaxFeePct(token.address)
         expect(customMaxFeePct).to.be.equal(maxFeePct)
       })
 
@@ -223,7 +223,7 @@ describe('HopBridger', () => {
             it('sets the Hop entrypoint', async () => {
               await task.setTokenHopEntrypoint(token.address, entrypoint.address)
 
-              const hopEntrypoint = await task.getTokenHopEntrypoint(token.address)
+              const hopEntrypoint = await task.tokenHopEntrypoint(token.address)
               expect(hopEntrypoint).to.be.equal(entrypoint.address)
             })
 
@@ -258,7 +258,7 @@ describe('HopBridger', () => {
             it('unsets the Hop entrypoint', async () => {
               await task.setTokenHopEntrypoint(token.address, entrypoint)
 
-              const hopEntrypoint = await task.getTokenHopEntrypoint(token.address)
+              const hopEntrypoint = await task.tokenHopEntrypoint(token.address)
               expect(hopEntrypoint).to.be.equal(entrypoint)
             })
 
