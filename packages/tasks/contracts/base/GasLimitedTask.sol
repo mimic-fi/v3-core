@@ -119,8 +119,8 @@ abstract contract GasLimitedTask is IGasLimitedTask, BaseTask {
 
         if (txCostLimitPct > 0) {
             require(amount > 0, 'TASK_TX_COST_LIMIT_PCT');
-            uint256 price = _isWrappedOrNative(token) ? FixedPoint.ONE : _getPrice(_wrappedNativeToken(), token);
-            uint256 totalCostInToken = totalCost.mulDown(price);
+            uint256 price = _getPrice(_wrappedNativeToken(), token);
+            uint256 totalCostInToken = totalCost.mulUp(price);
             require(totalCostInToken.divUp(amount) <= txCostLimitPct, 'TASK_TX_COST_LIMIT_PCT');
         }
     }
