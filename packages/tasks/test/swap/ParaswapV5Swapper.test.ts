@@ -235,6 +235,7 @@ describe('ParaswapV5Swapper', () => {
                           minAmountOut,
                           data,
                         ])
+
                         await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
                           connector,
                           data: connectorData,
