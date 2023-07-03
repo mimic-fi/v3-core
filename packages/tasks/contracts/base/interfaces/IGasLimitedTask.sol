@@ -36,6 +36,11 @@ interface IGasLimitedTask is IBaseTask {
     event TxCostLimitSet(uint256 txCostLimit);
 
     /**
+     * @dev Emitted every time the transaction cost limit percentage is set
+     */
+    event TxCostLimitPctSet(uint256 txCostLimitPct);
+
+    /**
      * @dev Tells the gas price limit
      */
     function gasPriceLimit() external view returns (uint256);
@@ -49,6 +54,11 @@ interface IGasLimitedTask is IBaseTask {
      * @dev Tells the transaction cost limit
      */
     function txCostLimit() external view returns (uint256);
+
+    /**
+     * @dev Tells the transaction cost limit percentage
+     */
+    function txCostLimitPct() external view returns (uint256);
 
     /**
      * @dev Sets the gas price limit
@@ -67,4 +77,10 @@ interface IGasLimitedTask is IBaseTask {
      * @param newTxCostLimit New transaction cost limit to be set
      */
     function setTxCostLimit(uint256 newTxCostLimit) external;
+
+    /**
+     * @dev Sets the transaction cost limit percentage
+     * @param newTxCostLimitPct New transaction cost limit percentage to be set
+     */
+    function setTxCostLimitPct(uint256 newTxCostLimitPct) external;
 }

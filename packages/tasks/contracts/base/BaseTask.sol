@@ -188,7 +188,15 @@ contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
     function _getPrice(address base, address quote) internal view returns (uint256) {
         address priceOracle = ISmartVault(smartVault).priceOracle();
         require(priceOracle != address(0), 'TASK_PRICE_ORACLE_NOT_SET');
-        return IPriceOracle(priceOracle).getPrice(base, quote);
+        return IPriceOracle(priceOracle).getPrice(_wrappedIfNative(base), _wrappedIfNative(quote));
+    }
+
+    /**
+     * @dev Tells the wrapped native token address if the given address is the native token
+     * @param token Address of the token to be checked
+     */
+    function _wrappedIfNative(address token) internal view returns (address) {
+        return Denominations.isNativeToken(token) ? _wrappedNativeToken() : token;
     }
 
     /**
