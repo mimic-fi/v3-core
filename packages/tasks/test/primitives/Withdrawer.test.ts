@@ -46,20 +46,34 @@ describe('Withdrawer', () => {
       })
 
       context('when the new address is not zero', async () => {
-        let newRecipient: SignerWithAddress
+        context('when the new address is not the smart vault', async () => {
+          let newRecipient: SignerWithAddress
 
-        beforeEach('set new recipient', async () => {
-          newRecipient = recipient
+          beforeEach('set new recipient', async () => {
+            newRecipient = recipient
+          })
+
+          it('sets the recipient', async () => {
+            await task.setRecipient(newRecipient.address)
+            expect(await task.recipient()).to.be.equal(newRecipient.address)
+          })
+
+          it('emits an event', async () => {
+            const tx = await task.setRecipient(newRecipient.address)
+            await assertEvent(tx, 'RecipientSet', { recipient: newRecipient })
+          })
         })
 
-        it('sets the recipient', async () => {
-          await task.setRecipient(newRecipient.address)
-          expect(await task.recipient()).to.be.equal(newRecipient.address)
-        })
+        context('when the new address is the smart vault', async () => {
+          let newRecipient: string
 
-        it('emits an event', async () => {
-          const tx = await task.setRecipient(newRecipient.address)
-          await assertEvent(tx, 'RecipientSet', { recipient: newRecipient })
+          beforeEach('set new recipient', async () => {
+            newRecipient = smartVault.address
+          })
+
+          it('reverts', async () => {
+            await expect(task.setRecipient(newRecipient)).to.be.revertedWith('TASK_RECIPIENT_SMART_VAULT')
+          })
         })
       })
 

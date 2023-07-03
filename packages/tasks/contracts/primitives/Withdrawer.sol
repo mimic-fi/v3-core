@@ -78,6 +78,7 @@ contract Withdrawer is IWithdrawer, Task {
      */
     function _setRecipient(address newRecipient) internal {
         require(newRecipient != address(0), 'TASK_RECIPIENT_ZERO');
+        require(newRecipient != smartVault, 'TASK_RECIPIENT_SMART_VAULT');
         recipient = newRecipient;
         emit RecipientSet(newRecipient);
     }
