@@ -17,11 +17,28 @@ pragma solidity >=0.8.0;
 import './IBaseSwapTask.sol';
 
 /**
- * @dev 1inch v5 swapper task interface
+ * @dev L2 Hop swapper task interface
  */
-interface IOnceInchV5Swapper is IBaseSwapTask {
+interface IHopL2Swapper is IBaseSwapTask {
     /**
-     * @dev Execution function
+     * @dev Emitted every time an AMM is set for a token
      */
-    function call(address tokenIn, uint256 amountIn, uint256 minAmountOut, bytes memory data) external;
+    event TokenAmmSet(address indexed token, address amm);
+
+    /**
+     * @dev Tells AMM set for a token
+     */
+    function getTokenAmm(address token) external view returns (address amm);
+
+    /**
+     * @dev Sets an AMM for a hToken
+     * @param hToken Address of the hToken to be set
+     * @param amm AMM address to be set for the hToken
+     */
+    function setTokenAmm(address hToken, address amm) external;
+
+    /**
+     * @dev Executes the L2 hop swapper task
+     */
+    function call(address tokenIn, uint256 amountIn, uint256 slippage) external;
 }
