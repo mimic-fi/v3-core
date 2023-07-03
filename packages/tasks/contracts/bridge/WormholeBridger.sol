@@ -28,21 +28,31 @@ contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
     using FixedPoint for uint256;
 
     /**
+     * @dev Wormhole bridger task config. Only used in the initializer.
+     * @param baseBridgeConfig Base bridge task config params
+     */
+    struct WormholeBridgerConfig {
+        BaseBridgeConfig baseBridgeConfig;
+    }
+
+    /**
      * @dev Creates a Wormhole bridger task
      */
-    function initialize(BaseBridgeConfig memory config) external initializer {
-        _initialize(config);
+    function initialize(WormholeBridgerConfig memory config) external initializer {
+        _initialize(config.baseBridgeConfig);
     }
 
     /**
      * @dev Execute Wormhole bridger task
      */
-    function call(address token, uint256 amountIn, uint256 minAmountOut)
+    function call(address token, uint256 amountIn, uint256 slippage)
         external
         override
-        authP(authParams(token, amountIn))
-        baseBridgeTaskCall(token, amountIn)
+        authP(authParams(token, amountIn, slippage))
+        baseBridgeTaskCall(token, amountIn, slippage)
     {
+        uint256 minAmountOut = amountIn.mulUp(FixedPoint.ONE - slippage);
+
         bytes memory connectorData = abi.encodeWithSelector(
             WormholeConnector.execute.selector,
             _getApplicableDestinationChain(token),
