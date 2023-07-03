@@ -15,11 +15,23 @@
 pragma solidity ^0.8.0;
 
 contract ConnextConnectorMock {
-    event LogExecute(uint256 chainId, address token, uint256 amountIn, uint256 minAmountOut, address recipient, uint256 relayerFee);
+    event LogExecute(
+        uint256 chainId,
+        address token,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address recipient,
+        uint256 relayerFee
+    );
 
-    function execute(uint256 chainId, address token, uint256 amountIn, uint256 minAmountOut, address recipient, uint256 relayerFee)
-        external
-    {
+    function execute(
+        uint256 chainId,
+        address token,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address recipient,
+        uint256 relayerFee
+    ) external {
         emit LogExecute(chainId, token, amountIn, minAmountOut, recipient, relayerFee);
     }
 }

@@ -98,7 +98,7 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
         baseBridgeTaskCall(token, amountIn, slippage)
     {
         _validateFee(token, amountIn, relayerFee);
-        
+
         uint256 minAmountOut = amountIn.mulUp(FixedPoint.ONE - slippage);
 
         bytes memory connectorData = abi.encodeWithSelector(
