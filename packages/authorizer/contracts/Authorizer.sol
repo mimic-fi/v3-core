@@ -43,7 +43,7 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
     }
 
     /**
-     * @dev Permission data information
+     * @dev Permission information
      * @param authorized Whether it is authorized or not
      * @param params List of params defined for each permission
      */
@@ -52,8 +52,18 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
         Param[] params;
     }
 
-    // List of permissions indexed by who => where => what
-    mapping (address => mapping (address => mapping (bytes4 => Permission))) private _permissions;
+    /**
+     * @dev Permissions list information
+     * @param count Number of permissions
+     * @param permissions List of permissions indexed by what
+     */
+    struct PermissionsList {
+        uint256 count;
+        mapping (bytes4 => Permission) permissions;
+    }
+
+    // List of permissions indexed by who => where
+    mapping (address => mapping (address => PermissionsList)) private _permissionsLists;
 
     /**
      * @dev Creates a new authorizer contract. Note that initializers are disabled at creation time.
@@ -72,6 +82,24 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
             _authorize(owners[i], address(this), IAuthorizer.authorize.selector, new Param[](0));
             _authorize(owners[i], address(this), IAuthorizer.unauthorize.selector, new Param[](0));
         }
+    }
+
+    /**
+     * @dev Tells whether `who` has any permission on `where`
+     * @param who Address asking permission for
+     * @param where Target address asking permission for
+     */
+    function hasPermissions(address who, address where) external view override returns (bool) {
+        return _permissionsLists[who][where].count > 0;
+    }
+
+    /**
+     * @dev Tells the number of permissions `who` has on `where`
+     * @param who Address asking permission for
+     * @param where Target address asking permission for
+     */
+    function getPermissionsLength(address who, address where) external view override returns (uint256) {
+        return _permissionsLists[who][where].count;
     }
 
     /**
@@ -106,7 +134,7 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
         override
         returns (Param[] memory)
     {
-        return _permissions[who][where][what].params;
+        return _permissionsLists[who][where].permissions[what].params;
     }
 
     /**
@@ -162,7 +190,7 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
      * @param how Params asking permission for
      */
     function _isAuthorized(address who, address where, bytes4 what, uint256[] memory how) internal view returns (bool) {
-        Permission storage permission = _permissions[who][where][what];
+        Permission storage permission = _permissionsLists[who][where].permissions[what];
         return permission.authorized && _evalParams(permission.params, how);
     }
 
@@ -174,7 +202,9 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
      * @param params Optional params to restrict a permission attempt
      */
     function _authorize(address who, address where, bytes4 what, Param[] memory params) internal {
-        Permission storage permission = _permissions[who][where][what];
+        PermissionsList storage list = _permissionsLists[who][where];
+        Permission storage permission = list.permissions[what];
+        if (!permission.authorized) list.count++;
         permission.authorized = true;
         delete permission.params;
         for (uint256 i = 0; i < params.length; i++) permission.params.push(params[i]);
@@ -188,7 +218,10 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
      * @param what Function selector to be revoked
      */
     function _unauthorize(address who, address where, bytes4 what) internal {
-        delete _permissions[who][where][what];
+        PermissionsList storage list = _permissionsLists[who][where];
+        Permission storage permission = list.permissions[what];
+        if (permission.authorized) list.count--;
+        delete list.permissions[what];
         emit Unauthorized(who, where, what);
     }
 
