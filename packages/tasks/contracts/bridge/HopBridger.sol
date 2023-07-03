@@ -27,19 +27,13 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     using EnumerableMap for EnumerableMap.AddressToAddressMap;
 
     // Relayer address
-    address public relayer;
+    address public override relayer;
 
     // Maximum deadline in seconds
-    uint256 public maxDeadline;
+    uint256 public override maxDeadline;
 
     // Default max fee pct
-    uint256 public defaultMaxFeePct;
-
-    // Default maximum slippage in fixed point
-    uint256 public defaultMaxSlippage;
-
-    // Maximum slippage per token address
-    EnumerableMap.AddressToUintMap private _customMaxSlippages;
+    uint256 public override defaultMaxFeePct;
 
     // Max fee percentage per token
     EnumerableMap.AddressToUintMap private _customMaxFeePcts;
@@ -56,14 +50,6 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Custom max slippage config
-     */
-    struct CustomMaxSlippage {
-        address token;
-        uint256 maxSlippage;
-    }
-
-    /**
      * @dev Token Hop entrypoint config
      */
     struct TokenHopEntrypoint {
@@ -77,10 +63,8 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     struct HopBridgerConfig {
         address relayer;
         uint256 maxFeePct;
-        uint256 maxSlippage;
         uint256 maxDeadline;
         CustomMaxFeePct[] customMaxFeePcts;
-        CustomMaxSlippage[] customMaxSlippages;
         TokenHopEntrypoint[] tokenHopEntrypoints;
         BaseBridgeConfig baseBridgeConfig;
     }
@@ -93,11 +77,6 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
         _setRelayer(config.relayer);
         _setMaxDeadline(config.maxDeadline);
         _setDefaultMaxFeePct(config.maxFeePct);
-        _setDefaultMaxSlippage(config.maxSlippage);
-
-        for (uint256 i = 0; i < config.customMaxSlippages.length; i++) {
-            _setCustomMaxSlippage(config.customMaxSlippages[i].token, config.customMaxSlippages[i].maxSlippage);
-        }
 
         for (uint256 i = 0; i < config.customMaxFeePcts.length; i++) {
             CustomMaxFeePct memory customMaxFeePct = config.customMaxFeePcts[i];
@@ -115,13 +94,6 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      */
     function getCustomMaxFeePct(address token) public view override returns (uint256 maxFeePct) {
         (, maxFeePct) = _customMaxFeePcts.tryGet(token);
-    }
-
-    /**
-     * @dev Tells the max slippage defined for a specific token
-     */
-    function getCustomMaxSlippage(address token) public view override returns (uint256 maxSlippage) {
-        (, maxSlippage) = _customMaxSlippages.tryGet(token);
     }
 
     /**
@@ -156,37 +128,16 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Sets the default max slippage
-     * @param maxSlippage New default max slippage to be set
-     */
-    function setDefaultMaxSlippage(uint256 maxSlippage) external override authP(authParams(maxSlippage)) {
-        _setDefaultMaxSlippage(maxSlippage);
-    }
-
-    /**
      * @dev Sets a custom max fee percentage
      * @param token Token address to set a max fee percentage for
      * @param maxFeePct Max fee percentage to be set for a token
      */
     function setCustomMaxFeePct(address token, uint256 maxFeePct)
-    external
-    override
-    authP(authParams(token, maxFeePct))
+        external
+        override
+        authP(authParams(token, maxFeePct))
     {
         _setCustomMaxFeePct(token, maxFeePct);
-    }
-
-    /**
-     * @dev Sets a custom max slippage
-     * @param token Token address to set a max slippage for
-     * @param maxSlippage Max slippage to be set for a token
-     */
-    function setCustomMaxSlippage(address token, uint256 maxSlippage)
-    external
-    override
-    authP(authParams(token, maxSlippage))
-    {
-        _setCustomMaxSlippage(token, maxSlippage);
     }
 
     /**
@@ -195,9 +146,9 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      * @param entrypoint Hop entrypoint address to be set for a token
      */
     function setTokenHopEntrypoint(address token, address entrypoint)
-    external
-    override
-    authP(authParams(token, entrypoint))
+        external
+        override
+        authP(authParams(token, entrypoint))
     {
         _setTokenHopEntrypoint(token, entrypoint);
     }
@@ -209,36 +160,25 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
         external
         override
         authP(authParams(token, amountIn, slippage, fee))
-        baseBridgeTaskCall(token, amountIn) // TODO: add slippage to baseBridgeTaskCall and remove its config from here
+        baseBridgeTaskCall(token, amountIn, slippage)
     {
         _validateHopEntrypoint(token);
-        _validateSlippage(token, slippage);
         _validateFee(token, amountIn, fee);
-
-        uint256 minAmountOut = amountIn.mulUp(FixedPoint.ONE - slippage);
-        address entrypoint = _tokenHopEntrypoints.get(token);
 
         bytes memory connectorData = abi.encodeWithSelector(
             HopConnector.execute.selector,
             _getApplicableDestinationChain(token),
             token,
             amountIn,
-            minAmountOut,
+            amountIn.mulUp(FixedPoint.ONE - slippage), // minAmountOut
             address(smartVault),
-            entrypoint,
+            _tokenHopEntrypoints.get(token),
             block.timestamp + maxDeadline,
             relayer,
             fee
         );
 
         ISmartVault(smartVault).execute(connector, connectorData);
-    }
-
-    /**
-     * @dev Tells the max slippage that should be used for a token
-     */
-    function _getApplicableMaxSlippage(address token) internal view returns (uint256) {
-        return _customMaxSlippages.contains(token) ? _customMaxSlippages.get(token) : defaultMaxSlippage;
     }
 
     /**
@@ -260,20 +200,6 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      */
     function _validateHopEntrypoint(address token) internal view {
         require(_isHopEntrypointValid(token), 'TASK_MISSING_HOP_ENTRYPOINT');
-    }
-
-    /**
-     * @dev Tells if a slippage is valid based on the max slippage configured for a token
-     */
-    function _isSlippageValid(address token, uint256 slippage) internal view returns (bool) {
-        return slippage <= _getApplicableMaxSlippage(token);
-    }
-
-    /**
-     * @dev Reverts if the requested slippage is above the max slippage configured for a token
-     */
-    function _validateSlippage(address token, uint256 slippage) internal view {
-        require(_isSlippageValid(token, slippage), 'TASK_SLIPPAGE_TOO_HIGH');
     }
 
     /**
@@ -308,16 +234,6 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Sets the default max slippage
-     * @param maxSlippage Default max slippage to be set
-     */
-    function _setDefaultMaxSlippage(uint256 maxSlippage) internal {
-        require(maxSlippage <= FixedPoint.ONE, 'TASK_SLIPPAGE_ABOVE_ONE');
-        defaultMaxSlippage = maxSlippage;
-        emit DefaultMaxSlippageSet(maxSlippage);
-    }
-
-    /**
      * @dev Sets the default max fee percentage
      * @param maxFeePct Default max fee percentage to be set
      */
@@ -336,17 +252,6 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
         bool isZero = entrypoint == address(0);
         isZero ? _tokenHopEntrypoints.remove(token) : _tokenHopEntrypoints.set(token, entrypoint);
         emit TokenHopEntrypointSet(token, entrypoint);
-    }
-
-    /**
-     * @dev Sets a custom max slippage for a token
-     * @param token Address of the token to set the custom max slippage for
-     * @param maxSlippage Max slippage to be set for the given token
-     */
-    function _setCustomMaxSlippage(address token, uint256 maxSlippage) internal {
-        require(maxSlippage <= FixedPoint.ONE, 'TASK_SLIPPAGE_ABOVE_ONE');
-        maxSlippage == 0 ? _customMaxSlippages.remove(token) : _customMaxSlippages.set(token, maxSlippage);
-        emit CustomMaxSlippageSet(token, maxSlippage);
     }
 
     /**

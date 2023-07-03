@@ -36,19 +36,9 @@ interface IHopBridger is IBaseBridgeTask {
     event DefaultMaxFeePctSet(uint256 maxFeePct);
 
     /**
-     * @dev Emitted every time the default max slippage is set
-     */
-    event DefaultMaxSlippageSet(uint256 maxSlippage);
-
-    /**
      * @dev Emitted every time a custom max fee percentage is set
      */
     event CustomMaxFeePctSet(address indexed token, uint256 maxFeePct);
-
-    /**
-     * @dev Emitted every time a custom max slippage is set
-     */
-    event CustomMaxSlippageSet(address indexed token, uint256 maxSlippage);
 
     /**
      * @dev Emitted every time a Hop entrypoint is set for a token
@@ -66,11 +56,6 @@ interface IHopBridger is IBaseBridgeTask {
     function maxDeadline() external view returns (uint256);
 
     /**
-     * @dev Tells the default token threshold
-     */
-    function defaultMaxSlippage() external view returns (uint256);
-
-    /**
      * @dev Tells the default max fee pct
      */
     function defaultMaxFeePct() external view returns (uint256);
@@ -79,11 +64,6 @@ interface IHopBridger is IBaseBridgeTask {
      * @dev Tells the max fee percentage defined for a specific token
      */
     function getCustomMaxFeePct(address token) external view returns (uint256 maxFeePct);
-
-    /**
-     * @dev Tells the max slippage defined for a specific token
-     */
-    function getCustomMaxSlippage(address token) external view returns (uint256 maxSlippage);
 
     /**
      * @dev Tells Hop entrypoint set for a token
@@ -109,24 +89,11 @@ interface IHopBridger is IBaseBridgeTask {
     function setDefaultMaxFeePct(uint256 maxFeePct) external;
 
     /**
-     * @dev Sets the default max slippage
-     * @param maxSlippage New default max slippage to be set
-     */
-    function setDefaultMaxSlippage(uint256 maxSlippage) external;
-
-    /**
      * @dev Sets a custom max fee percentage
      * @param token Token address to set a max fee percentage for
      * @param maxFeePct Max fee percentage to be set for a token
      */
     function setCustomMaxFeePct(address token, uint256 maxFeePct) external;
-
-    /**
-     * @dev Sets a custom max slippage
-     * @param token Token address to set a max slippage for
-     * @param maxSlippage Max slippage to be set for a token
-     */
-    function setCustomMaxSlippage(address token, uint256 maxSlippage) external;
 
     /**
      * @dev Sets an entrypoint for a tokens

@@ -43,15 +43,15 @@ describe('HopBridger', () => {
         {
           relayer: relayer.address,
           maxFeePct: fp(0.2),
-          maxSlippage: fp(0.1),
           maxDeadline: MAX_UINT256.div(10),
           customMaxFeePcts: [],
-          customMaxSlippages: [],
           tokenHopEntrypoints: [],
           baseBridgeConfig: {
             connector: connector.address,
             destinationChain: 0,
+            maxSlippage: fp(0.1),
             customDestinationChains: [],
+            customMaxSlippages: [],
             taskConfig: buildEmptyTaskConfig(owner, smartVault),
           },
         },
@@ -167,46 +167,6 @@ describe('HopBridger', () => {
     })
   })
 
-  describe('setDefaultMaxSlippage', () => {
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async function () {
-        const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
-        task = task.connect(owner)
-      })
-
-      context('when the slippage is not above one', () => {
-        const slippage = fp(1)
-
-        it('sets the slippage', async function () {
-          await task.setDefaultMaxSlippage(slippage)
-
-          expect(await task.defaultMaxSlippage()).to.be.equal(slippage)
-        })
-
-        it('emits an event', async function () {
-          const tx = await task.setDefaultMaxSlippage(slippage)
-
-          await assertEvent(tx, 'DefaultMaxSlippageSet', { maxSlippage: slippage })
-        })
-      })
-
-      context('when the slippage is above one', () => {
-        const slippage = fp(1).add(1)
-
-        it('reverts', async function () {
-          await expect(task.setDefaultMaxSlippage(slippage)).to.be.revertedWith('TASK_SLIPPAGE_ABOVE_ONE')
-        })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async function () {
-        await expect(task.setDefaultMaxSlippage(1)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
-      })
-    })
-  })
-
   describe('setCustomMaxFeePct', () => {
     const maxFeePct = fp(0.5)
     let token: Contract
@@ -239,53 +199,6 @@ describe('HopBridger', () => {
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
         await expect(task.setCustomMaxFeePct(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
-      })
-    })
-  })
-
-  describe('setCustomMaxSlippage', () => {
-    let token: Contract
-
-    beforeEach('deploy token', async function () {
-      token = await deploy('TokenMock', ['TKN'])
-    })
-
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async function () {
-        const setCustomMaxSlippageRole = task.interface.getSighash('setCustomMaxSlippage')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setCustomMaxSlippageRole, [])
-        task = task.connect(owner)
-      })
-
-      context('when the slippage is not above one', () => {
-        const slippage = fp(1)
-
-        it('sets the slippage', async function () {
-          await task.setCustomMaxSlippage(token.address, slippage)
-
-          const customMaxSlippage = await task.getCustomMaxSlippage(token.address)
-          expect(customMaxSlippage).to.be.equal(slippage)
-        })
-
-        it('emits an event', async function () {
-          const tx = await task.setCustomMaxSlippage(token.address, slippage)
-
-          await assertEvent(tx, 'CustomMaxSlippageSet', { token, maxSlippage: slippage })
-        })
-      })
-
-      context('when the slippage is above one', () => {
-        const slippage = fp(1).add(1)
-
-        it('reverts', async function () {
-          await expect(task.setCustomMaxSlippage(token.address, slippage)).to.be.revertedWith('TASK_SLIPPAGE_ABOVE_ONE')
-        })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async function () {
-        await expect(task.setCustomMaxSlippage(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })
