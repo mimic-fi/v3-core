@@ -14,11 +14,11 @@
 
 pragma solidity >=0.8.0;
 
-import './base/interfaces/IBaseTask.sol';
-import './base/interfaces/IGasLimitedTask.sol';
-import './base/interfaces/ITimeLockedTask.sol';
-import './base/interfaces/ITokenIndexedTask.sol';
-import './base/interfaces/ITokenThresholdTask.sol';
+import './base/IBaseTask.sol';
+import './base/IGasLimitedTask.sol';
+import './base/ITimeLockedTask.sol';
+import './base/ITokenIndexedTask.sol';
+import './base/ITokenThresholdTask.sol';
 
 /**
  * @dev Task interface

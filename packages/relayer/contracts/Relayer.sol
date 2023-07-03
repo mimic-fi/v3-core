@@ -18,7 +18,7 @@ import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
 
 import '@mimic-fi/v3-smart-vault/contracts/interfaces/ISmartVault.sol';
-import '@mimic-fi/v3-tasks/contracts/ITask.sol';
+import '@mimic-fi/v3-tasks/contracts/interfaces/ITask.sol';
 
 import './interfaces/IRelayer.sol';
 

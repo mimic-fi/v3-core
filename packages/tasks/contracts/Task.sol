@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.0;
 
-import './ITask.sol';
+import './interfaces/ITask.sol';
 import './base/BaseTask.sol';
 import './base/GasLimitedTask.sol';
 import './base/TimeLockedTask.sol';

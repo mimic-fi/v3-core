@@ -17,8 +17,8 @@ pragma solidity ^0.8.0;
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/EnumerableMap.sol';
 
-import './interfaces/IBaseBridgeTask.sol';
 import '../Task.sol';
+import '../interfaces/bridge/IBaseBridgeTask.sol';
 
 /**
  * @title Base bridge task

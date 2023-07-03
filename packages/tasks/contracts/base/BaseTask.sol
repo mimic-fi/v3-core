@@ -24,7 +24,7 @@ import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 import '@mimic-fi/v3-price-oracle/contracts/interfaces/IPriceOracle.sol';
 import '@mimic-fi/v3-smart-vault/contracts/interfaces/ISmartVault.sol';
 
-import './interfaces/IBaseTask.sol';
+import '../interfaces/base/IBaseTask.sol';
 
 /**
  * @title BaseTask

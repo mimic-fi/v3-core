@@ -14,7 +14,7 @@
 
 pragma solidity >=0.8.0;
 
-import '../../ITask.sol';
+import '../ITask.sol';
 
 /**
  * @dev Base swap task interface

@@ -20,7 +20,7 @@ import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-connectors/contracts/swap/paraswap-v5/ParaswapV5Connector.sol';
 
 import './BaseSwapTask.sol';
-import './interfaces/IParaswapV5Swapper.sol';
+import '../interfaces/swap/IParaswapV5Swapper.sol';
 
 /**
  * @title Paraswap V5 swapper task

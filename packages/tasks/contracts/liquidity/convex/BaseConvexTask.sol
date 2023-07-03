@@ -15,7 +15,7 @@
 pragma solidity ^0.8.0;
 
 import '../../Task.sol';
-import './interfaces/IBaseConvexTask.sol';
+import '../../interfaces/liquidity/convex/IBaseConvexTask.sol';
 
 /**
  * @title Base convex task

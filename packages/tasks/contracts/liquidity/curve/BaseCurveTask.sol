@@ -18,7 +18,7 @@ import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/EnumerableMap.sol';
 
 import '../../Task.sol';
-import './interfaces/IBaseCurveTask.sol';
+import '../../interfaces/liquidity/curve/IBaseCurveTask.sol';
 
 /**
  * @title Base curve task

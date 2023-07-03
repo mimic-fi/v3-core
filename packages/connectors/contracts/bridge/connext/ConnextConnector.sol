@@ -57,6 +57,7 @@ contract ConnextConnector {
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
      * @param amountIn Amount of tokens to be bridged
+     * @param minAmountOut Min amount of tokens to receive on the destination chain after relayer fees and slippage
      * @param recipient Address that will receive the tokens on the destination chain
      * @param relayerFee Fee to be paid to the relayer
      */
@@ -75,12 +76,14 @@ contract ConnextConnector {
 
         uint32 domain = _getChainDomain(chainId);
         uint256 amountInAfterFees = amountIn - relayerFee;
-        // We validated `minAmountOut` is lower than or equal to `amountInAfterFees`, then we can compute slippage in BPS (e.g. 30 = 0.3%)
+
+        // We validated `minAmountOut` is lower than or equal to `amountInAfterFees`
+        // then we can compute slippage in BPS (e.g. 30 = 0.3%)
         uint256 slippage = 100 - ((minAmountOut * 100) / amountInAfterFees);
 
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
-
         ERC20Helpers.approve(token, address(connext), amountIn);
+
         connext.xcall(
             domain,
             recipient,

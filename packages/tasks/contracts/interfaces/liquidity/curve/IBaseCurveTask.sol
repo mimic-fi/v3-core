@@ -17,28 +17,18 @@ pragma solidity >=0.8.0;
 import '../../ITask.sol';
 
 /**
- * @dev Base bridge task interface
+ * @dev Base Curve task interface
  */
-interface IBaseBridgeTask is ITask {
+interface IBaseCurveTask is ITask {
     /**
      * @dev Emitted every time the connector is set
      */
     event ConnectorSet(address indexed connector);
 
     /**
-     * @dev Emitted every time the default destination chain is set
-     */
-    event DefaultDestinationChainSet(uint256 indexed defaultDestinationChain);
-
-    /**
      * @dev Emitted every time the default max slippage is set
      */
     event DefaultMaxSlippageSet(uint256 maxSlippage);
-
-    /**
-     * @dev Emitted every time a custom destination chain is set for a token
-     */
-    event CustomDestinationChainSet(address indexed token, uint256 indexed defaultDestinationChain);
 
     /**
      * @dev Emitted every time a custom max slippage is set
@@ -51,20 +41,9 @@ interface IBaseBridgeTask is ITask {
     function connector() external view returns (address);
 
     /**
-     * @dev Tells the default destination chain
-     */
-    function defaultDestinationChain() external view returns (uint256);
-
-    /**
-     * @dev Tells the default max slippage
+     * @dev Tells the default token threshold
      */
     function defaultMaxSlippage() external view returns (uint256);
-
-    /**
-     * @dev Tells the destination chain defined for a specific token
-     * @param token Address of the token being queried
-     */
-    function customDestinationChain(address token) external view returns (uint256);
 
     /**
      * @dev Tells the max slippage defined for a specific token
@@ -79,23 +58,10 @@ interface IBaseBridgeTask is ITask {
     function setConnector(address newConnector) external;
 
     /**
-     * @dev Sets the default destination chain
-     * @param destinationChain Default destination chain to be set
-     */
-    function setDefaultDestinationChain(uint256 destinationChain) external;
-
-    /**
      * @dev Sets the default max slippage
      * @param maxSlippage Default max slippage to be set
      */
     function setDefaultMaxSlippage(uint256 maxSlippage) external;
-
-    /**
-     * @dev Sets a custom destination chain for a token
-     * @param token Address of the token to set a custom destination chain for
-     * @param destinationChain Destination chain to be set
-     */
-    function setCustomDestinationChain(address token, uint256 destinationChain) external;
 
     /**
      * @dev Sets a custom max slippage

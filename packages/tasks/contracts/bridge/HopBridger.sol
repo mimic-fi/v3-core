@@ -19,7 +19,7 @@ import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/EnumerableMap.sol';
 
 import './BaseBridgeTask.sol';
-import './interfaces/IHopBridger.sol';
+import '../interfaces/bridge/IHopBridger.sol';
 
 contract HopBridger is IHopBridger, BaseBridgeTask {
     using FixedPoint for uint256;

@@ -17,7 +17,7 @@ pragma solidity ^0.8.3;
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 
 import './BaseTask.sol';
-import './interfaces/ITokenIndexedTask.sol';
+import '../interfaces/base/ITokenIndexedTask.sol';
 
 /**
  * @dev Token indexed task. It defines a token acceptance list to tell which are the tokens supported by the

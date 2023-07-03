@@ -18,7 +18,7 @@ import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-connectors/contracts/swap/1inch-v5/OneInchV5Connector.sol';
 
 import './BaseSwapTask.sol';
-import './interfaces/IOneInchV5Swapper.sol';
+import '../interfaces/swap/IOneInchV5Swapper.sol';
 
 contract OneInchV5Swapper is IOnceInchV5Swapper, BaseSwapTask {
     using FixedPoint for uint256;

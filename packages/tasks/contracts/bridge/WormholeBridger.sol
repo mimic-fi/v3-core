@@ -18,7 +18,7 @@ import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-connectors/contracts/bridge/wormhole/WormholeConnector.sol';
 
 import './BaseBridgeTask.sol';
-import './interfaces/IWormholeBridger.sol';
+import '../interfaces/bridge/IWormholeBridger.sol';
 
 /**
  * @title Wormhole bridger task

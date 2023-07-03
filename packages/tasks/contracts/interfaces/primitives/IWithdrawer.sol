@@ -14,25 +14,30 @@
 
 pragma solidity >=0.8.0;
 
-import '../../../ITask.sol';
+import '../ITask.sol';
 
 /**
- * @dev Base Convex task interface
+ * @dev Withdrawer task interface
  */
-interface IBaseConvexTask is ITask {
+interface IWithdrawer is ITask {
     /**
-     * @dev Emitted every time the connector is set
+     * @dev Emitted every time the recipient is set
      */
-    event ConnectorSet(address indexed connector);
+    event RecipientSet(address indexed recipient);
 
     /**
-     * @dev Tells the connector tied to the task
+     * @dev Tells the address of the allowed recipient
      */
-    function connector() external view returns (address);
+    function recipient() external view returns (address);
 
     /**
-     * @dev Sets a new connector
-     * @param newConnector Address of the connector to be set
+     * @dev Sets the recipient address
+     * @param recipient Address of the new recipient to be set
      */
-    function setConnector(address newConnector) external;
+    function setRecipient(address recipient) external;
+
+    /**
+     * @dev Executes the withdrawer task
+     */
+    function call(address token, uint256 amount) external;
 }
