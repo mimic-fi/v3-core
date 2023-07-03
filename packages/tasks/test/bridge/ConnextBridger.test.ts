@@ -39,10 +39,16 @@ describe('ConnextBridger', () => {
       [],
       [
         {
-          connector: connector.address,
-          destinationChain: 0,
-          customDestinationChains: [],
-          taskConfig: buildEmptyTaskConfig(owner, smartVault),
+          defaultRelayerFee: 0,
+          customRelayerFees: [],
+          baseConfig: {
+            connector: connector.address,
+            destinationChain: 0,
+            maxSlippage: 0,
+            customDestinationChains: [],
+            customMaxSlippages: [],
+            taskConfig: buildEmptyTaskConfig(owner, smartVault),
+          },
         },
       ]
     )
@@ -56,6 +62,72 @@ describe('ConnextBridger', () => {
     })
 
     itBehavesLikeBaseBridgeTask()
+  })
+
+  describe('setDefaultRelayerFee', () => {
+    const relayerFee = fp(5)
+
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async function () {
+        const setDefaultRelayerFeeRole = task.interface.getSighash('setDefaultRelayerFee')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultRelayerFeeRole, [])
+        task = task.connect(owner)
+      })
+
+      it('sets the default relayer fee', async function () {
+        await task.setDefaultRelayerFee(relayerFee)
+
+        expect(await task.defaultRelayerFee()).to.be.equal(relayerFee)
+      })
+
+      it('emits an event', async function () {
+        const tx = await task.setDefaultRelayerFee(relayerFee)
+
+        await assertEvent(tx, 'DefaultRelayerFeeSet', { relayerFee })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(task.setDefaultRelayerFee(1)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
+    })
+  })
+
+  describe('setCustomRelayerFee', () => {
+    const relayerFee = fp(5)
+    let token: Contract
+
+    beforeEach('deploy token', async function () {
+      token = await deploy('TokenMock', ['TKN'])
+    })
+
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async function () {
+        const setCustomRelayerFeeRole = task.interface.getSighash('setCustomRelayerFee')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setCustomRelayerFeeRole, [])
+        task = task.connect(owner)
+      })
+
+      it('sets the relayer fee', async function () {
+        await task.setCustomRelayerFee(token.address, relayerFee)
+
+        const customRelayerFee = await task.customRelayerFee(token.address)
+        expect(customRelayerFee).to.be.equal(relayerFee)
+      })
+
+      it('emits an event', async function () {
+        const tx = await task.setCustomRelayerFee(token.address, relayerFee)
+
+        await assertEvent(tx, 'CustomRelayerFeeSet', { token, relayerFee })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(task.setCustomRelayerFee(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
+    })
   })
 
   describe('call', () => {
@@ -110,36 +182,72 @@ describe('ConnextBridger', () => {
                   await token.mint(smartVault.address, amountIn)
                 })
 
-                it('executes the expected connector', async () => {
-                  const tx = await task.call(token.address, amountIn, slippage, relayerFee)
-
-                  const connectorData = connector.interface.encodeFunctionData('execute', [
-                    chainId,
-                    token.address,
-                    amountIn,
-                    minAmountOut,
-                    smartVault.address,
-                    relayerFee,
-                  ])
-                  await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
-                    connector,
-                    data: connectorData,
+                context('when the slippage is below the limit', () => {
+                  beforeEach('set max slippage', async () => {
+                    const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
+                    await authorizer
+                      .connect(owner)
+                      .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
+                    await task.connect(owner).setDefaultMaxSlippage(slippage)
                   })
 
-                  await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
-                    chainId,
-                    token,
-                    amountIn,
-                    minAmountOut,
-                    recipient: smartVault,
-                    relayerFee,
+                  context('when the relayer fee is below the limit', () => {
+                    beforeEach('set relayer fee', async () => {
+                      const setDefaultRelayerFeeRole = task.interface.getSighash('setDefaultRelayerFee')
+                      await authorizer
+                        .connect(owner)
+                        .authorize(owner.address, task.address, setDefaultRelayerFeeRole, [])
+                      await task.connect(owner).setDefaultRelayerFee(relayerFee)
+                    })
+
+                    it('executes the expected connector', async () => {
+                      const tx = await task.call(token.address, amountIn, slippage, relayerFee)
+
+                      const connectorData = connector.interface.encodeFunctionData('execute', [
+                        chainId,
+                        token.address,
+                        amountIn,
+                        minAmountOut,
+                        smartVault.address,
+                        relayerFee,
+                      ])
+                      await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
+                        connector,
+                        data: connectorData,
+                      })
+
+                      await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
+                        chainId,
+                        token,
+                        amountIn,
+                        minAmountOut,
+                        recipient: smartVault,
+                        relayerFee,
+                      })
+                    })
+
+                    it('emits an Executed event', async () => {
+                      const tx = await task.call(token.address, amountIn, slippage, relayerFee)
+
+                      await assertEvent(tx, 'Executed')
+                    })
+                  })
+
+                  context('when the relayer fee is too high', () => {
+                    it('reverts', async () => {
+                      await expect(task.call(token.address, amountIn, 0, relayerFee)).to.be.revertedWith(
+                        'TASK_FEE_TOO_HIGH'
+                      )
+                    })
                   })
                 })
 
-                it('emits an Executed event', async () => {
-                  const tx = await task.call(token.address, amountIn, slippage, relayerFee)
-
-                  await assertEvent(tx, 'Executed')
+                context('when the slippage is above the limit', () => {
+                  it('reverts', async () => {
+                    await expect(task.call(token.address, amountIn, slippage, 0)).to.be.revertedWith(
+                      'TASK_SLIPPAGE_TOO_HIGH'
+                    )
+                  })
                 })
               })
 

@@ -21,6 +21,36 @@ import './IBaseBridgeTask.sol';
  */
 interface IConnextBridger is IBaseBridgeTask {
     /**
+     * @dev Emitted every time the default relayer fee is set
+     */
+    event DefaultRelayerFeeSet(uint256 relayerFee);
+
+    /**
+     * @dev Emitted every time a custom relayer fee is set
+     */
+    event CustomRelayerFeeSet(address indexed token, uint256 relayerFee);
+
+    /**
+     * @dev Tells the default relayer fee
+     */
+    function defaultRelayerFee() external view returns (uint256);
+
+    /**
+     * @dev Tells the relayer fee defined for a specific token
+     */
+    function customRelayerFee(address token) external view returns (uint256);
+    
+    /**
+     * @dev Sets the default relayer fee
+     */
+    function setDefaultRelayerFee(uint256 relayerFee) external;
+
+    /**
+     * @dev Sets a custom relayer fee for a specific token
+     */
+    function setCustomRelayerFee(address token, uint256 relayerFee) external;
+
+    /**
      * @dev Execute Connext bridger task
      */
     function call(address token, uint256 amountIn, uint256 slippage, uint256 relayerFee) external;
