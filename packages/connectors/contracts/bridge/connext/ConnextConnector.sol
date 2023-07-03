@@ -74,9 +74,9 @@ contract ConnextConnector {
         require(minAmountOut <= amountIn - relayerFee, 'CONNEXT_MIN_AMOUNT_OUT_TOO_BIG');
 
         uint32 domain = _getChainDomain(chainId);
-        // We validated `minAmountOut` is lower than or equal to `amountIn`, then we can compute slippage in BPS (e.g. 30 = 0.3%)
-        uint256 slippage = 100 - ((minAmountOut * 100) / amountIn);
         uint256 amountInAfterFees = amountIn - relayerFee;
+        // We validated `minAmountOut` is lower than or equal to `amountInAfterFees`, then we can compute slippage in BPS (e.g. 30 = 0.3%)
+        uint256 slippage = 100 - ((minAmountOut * 100) / amountInAfterFees);
 
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
 

@@ -21,10 +21,11 @@ export function itBehavesLikeConnextConnector(
     const slippage = 0.5
     const relayerFee = amountIn.div(10)
 
-    let minAmountOut: BigNumber
+    let minAmountOut: BigNumber, amountInAfterFees: BigNumber
 
     beforeEach('set min amount out', async () => {
-      minAmountOut = amountIn.sub(amountIn.mul(fp(slippage)).div(fp(1)))
+      amountInAfterFees = amountIn.sub(relayerFee)
+      minAmountOut = amountInAfterFees.mul(fp(1).sub(fp(slippage))).div(fp(1))
     })
 
     function bridgesProperly(destinationChainId: number) {
