@@ -102,6 +102,11 @@ interface ISmartVault is IAuthorized {
     function isConnectorCheckIgnored(address connector) external view returns (bool);
 
     /**
+     * @dev Tells whether someone has any permission over the smart vault
+     */
+    function hasPermissions(address who) external view returns (bool);
+
+    /**
      * @dev Pauses a smart vault
      */
     function pause() external;
