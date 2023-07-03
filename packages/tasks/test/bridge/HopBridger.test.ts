@@ -17,7 +17,7 @@ import { Contract } from 'ethers'
 import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
 import { itBehavesLikeBaseBridgeTask } from './BaseBridgeTask.behavior'
 
-describe.only('HopBridger', () => {
+describe('HopBridger', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, connector: Contract
   let owner: SignerWithAddress, relayer: SignerWithAddress, entrypoint: SignerWithAddress
