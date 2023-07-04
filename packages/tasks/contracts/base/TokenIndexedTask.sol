@@ -82,7 +82,11 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, BaseTask {
      * @dev Sets the tokens acceptance type of the task
      * @param newTokensAcceptanceType New token acceptance type to be set
      */
-    function setTokensAcceptanceType(TokensAcceptanceType newTokensAcceptanceType) external override auth {
+    function setTokensAcceptanceType(TokensAcceptanceType newTokensAcceptanceType)
+        external
+        override
+        authP(authParams(uint8(newTokensAcceptanceType)))
+    {
         _setTokensAcceptanceType(newTokensAcceptanceType);
     }
 
