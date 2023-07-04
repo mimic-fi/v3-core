@@ -18,11 +18,11 @@
     "prepare": "yarn build"
   },
   "dependencies": {
+    "@mimic-fi/v3-helpers": "0.0.1",
     "@openzeppelin/contracts": "4.7.0",
     "solmate": "^6.7.0"
   },
   "devDependencies": {
-    "@mimic-fi/v3-helpers": "^0.0.1",
     "@nomiclabs/hardhat-ethers": "~2.2.1",
     "@nomiclabs/hardhat-waffle": "^2.0.3",
     "@types/chai": "^4.3.5",
