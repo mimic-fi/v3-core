@@ -17,7 +17,6 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
-import '@mimic-fi/v3-helpers/contracts/math/UncheckedMath.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/Arrays.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
@@ -29,8 +28,6 @@ import './IUniswapV2Router02.sol';
  * @dev Interfaces with Uniswap V2 to swap tokens
  */
 contract UniswapV2Connector {
-    using UncheckedMath for uint256;
-
     // Reference to UniswapV2 router
     IUniswapV2Router02 public immutable uniswapV2Router;
 
@@ -109,9 +106,8 @@ contract UniswapV2Connector {
     ) internal returns (uint256[] memory) {
         address factory = uniswapV2Router.factory();
         address[] memory tokens = Arrays.from(tokenIn, hopTokens, tokenOut);
-        // No need for checked math since we are using it to compute indexes manually, always within boundaries
-        for (uint256 i = 0; i < tokens.length.uncheckedSub(1); i = i.uncheckedAdd(1)) {
-            _validatePool(factory, tokens[i], tokens[i.uncheckedAdd(1)]);
+        for (uint256 i = 0; i < tokens.length - 1; i++) {
+            _validatePool(factory, tokens[i], tokens[i + 1]);
         }
         return uniswapV2Router.swapExactTokensForTokens(amountIn, minAmountOut, tokens, address(this), block.timestamp);
     }
