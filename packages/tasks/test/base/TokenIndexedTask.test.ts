@@ -36,10 +36,10 @@ describe('TokenIndexedTask', () => {
             owner: owner.address,
             smartVault: smartVault.address,
             groupId: 0,
+            tokensSource: smartVault.address,
           },
           tokenIndexConfig: {
             tokens: [],
-            sources: [],
             acceptanceType: TYPE.DENY_LIST,
           },
         },
@@ -180,64 +180,6 @@ describe('TokenIndexedTask', () => {
     context('when the sender is not allowed', () => {
       it('reverts', async () => {
         await expect(task.setTokensAcceptanceList([], [])).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
-      })
-    })
-  })
-
-  describe('setTokensIndexSources', () => {
-    let source: string
-
-    beforeEach('set source', async () => {
-      source = smartVault.address
-    })
-
-    context('when the sender is authorized', async () => {
-      beforeEach('set sender', async () => {
-        const setTokensIndexSourcesRole = task.interface.getSighash('setTokensIndexSources')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setTokensIndexSourcesRole, [])
-        task = task.connect(owner)
-      })
-
-      context('when the source was not allowed', async () => {
-        it('can be allowed', async () => {
-          const tx = await task.setTokensIndexSources([source], [true])
-
-          expect(await task.tokensIndexSources()).to.include(source)
-          await assertEvent(tx, 'TokenIndexSourceSet', { source, added: true })
-        })
-
-        it('can be disallowed', async () => {
-          const tx = await task.setTokensIndexSources([source], [false])
-
-          expect(await task.tokensIndexSources()).not.to.include(source)
-          await assertEvent(tx, 'TokenIndexSourceSet', { source, added: false })
-        })
-      })
-
-      context('when the source was allowed', async () => {
-        beforeEach('allow source', async () => {
-          await task.setTokensIndexSources([source], [true])
-        })
-
-        it('can be allowed', async () => {
-          const tx = await task.setTokensIndexSources([source], [true])
-
-          expect(await task.tokensIndexSources()).to.include(source)
-          await assertEvent(tx, 'TokenIndexSourceSet', { source, added: true })
-        })
-
-        it('can be disallowed', async () => {
-          const tx = await task.setTokensIndexSources([source], [false])
-
-          expect(await task.tokensIndexSources()).not.to.include(source)
-          await assertEvent(tx, 'TokenIndexSourceSet', { source, added: false })
-        })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(task.setTokensIndexSources([], [])).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })

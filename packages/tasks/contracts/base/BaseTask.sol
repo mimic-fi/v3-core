@@ -31,14 +31,17 @@ import '../interfaces/base/IBaseTask.sol';
  * @dev Base task implementation with a Smart Vault reference and using the Authorizer
  */
 abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
+    // Smart Vault reference
+    address public override smartVault;
+
     // Whether the task is paused or not
     bool public override isPaused;
 
     // Group ID of the task
     uint8 public override groupId;
 
-    // Smart Vault reference
-    address public override smartVault;
+    // Source from where the token amounts to execute each task must be calculated
+    address public override tokensSource;
 
     /**
      * @dev Modifier to tag the execution function of an task to trigger before and after hooks automatically
@@ -53,10 +56,12 @@ abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable 
      * @dev Base task config. Only used in the initializer.
      * @param smartVault Address of the smart vault this task will reference, it cannot be changed once set
      * @param groupId Id of the group to which this task must refer to, use zero to avoid grouping
+     * @param tokensSource Address of the tokens source to be set
      */
     struct BaseConfig {
-        uint8 groupId;
         address smartVault;
+        uint8 groupId;
+        address tokensSource;
     }
 
     /**
@@ -74,6 +79,7 @@ abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable 
         __ReentrancyGuard_init();
         _initialize(ISmartVault(config.smartVault).authorizer());
         _setGroupId(config.groupId);
+        _setTokensSource(config.tokensSource);
         smartVault = config.smartVault;
     }
 
@@ -89,7 +95,7 @@ abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable 
      * @param token Address of the token being queried
      */
     function getTaskAmount(address token) external view virtual override returns (uint256) {
-        return getSmartVaultBalance(token);
+        return ERC20Helpers.balanceOf(token, tokensSource);
     }
 
     /**
@@ -146,6 +152,14 @@ abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable 
     }
 
     /**
+     * @dev Sets the tokens source of the task
+     * @param source Address of the new tokens source to be set
+     */
+    function setTokensSource(address source) external override authP(authParams(source)) {
+        _setTokensSource(source);
+    }
+
+    /**
      * @dev Transfers task's assets to the Smart Vault
      * @param token Address of the token to be transferred
      * @param amount Amount of tokens to be transferred
@@ -178,6 +192,16 @@ abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable 
     function _setGroupId(uint8 newGroupId) internal {
         groupId = newGroupId;
         emit GroupIdSet(newGroupId);
+    }
+
+    /**
+     * @dev Sets the tokens source of the task
+     * @param source Address of the new tokens source to be set
+     */
+    function _setTokensSource(address source) internal {
+        require(source != address(0), 'TASK_TOKENS_SOURCE_ZERO');
+        tokensSource = source;
+        emit TokensSourceSet(source);
     }
 
     /**

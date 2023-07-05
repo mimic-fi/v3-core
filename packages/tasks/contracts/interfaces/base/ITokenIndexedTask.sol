@@ -39,11 +39,6 @@ interface ITokenIndexedTask is IBaseTask {
     event TokensAcceptanceListSet(address indexed token, bool added);
 
     /**
-     * @dev Emitted every time a source is added or removed from the list
-     */
-    event TokenIndexSourceSet(address indexed source, bool added);
-
-    /**
      * @dev Tells the acceptance type of the config
      */
     function tokensAcceptanceType() external view returns (TokensAcceptanceType);
@@ -52,11 +47,6 @@ interface ITokenIndexedTask is IBaseTask {
      * @dev Tells if a token is included in the acceptance config
      */
     function isTokenAllowed(address token) external view returns (bool);
-
-    /**
-     * @dev Tells the list of tokens sources accepted by the config
-     */
-    function tokensIndexSources() external view returns (address[] memory);
 
     /**
      * @dev Sets the tokens acceptance type of the task
@@ -70,11 +60,4 @@ interface ITokenIndexedTask is IBaseTask {
      * @param added Whether each of the given tokens should be added or removed from the list
      */
     function setTokensAcceptanceList(address[] memory tokens, bool[] memory added) external;
-
-    /**
-     * @dev Updates the list of sources of the tokens index config
-     * @param sources List of sources to be updated from the list
-     * @param added Whether each of the given sources should be added or removed from the list
-     */
-    function setTokensIndexSources(address[] memory sources, bool[] memory added) external;
 }

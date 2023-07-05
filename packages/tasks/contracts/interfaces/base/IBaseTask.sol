@@ -47,9 +47,9 @@ interface IBaseTask is IAuthorized {
     event GroupIdSet(uint8 indexed groupId);
 
     /**
-     * @dev Tells the group ID of the task
+     * @dev Emitted every time the tokens source is set
      */
-    function groupId() external view returns (uint8);
+    event TokensSourceSet(address indexed source);
 
     /**
      * @dev Tells the address of the Smart Vault tied to it, it cannot be changed
@@ -60,6 +60,16 @@ interface IBaseTask is IAuthorized {
      * @dev Tells the task is paused or not
      */
     function isPaused() external view returns (bool);
+
+    /**
+     * @dev Tells the group ID of the task
+     */
+    function groupId() external view returns (uint8);
+
+    /**
+     * @dev Tells the address from where the token amounts to execute this task are calculated
+     */
+    function tokensSource() external view returns (address);
 
     /**
      * @dev Tells the amount a task should use for a token
@@ -100,6 +110,12 @@ interface IBaseTask is IAuthorized {
      * @param groupId ID of the group to be set for the task
      */
     function setGroupId(uint8 groupId) external;
+
+    /**
+     * @dev Sets the tokens source of the task
+     * @param source Address of the new tokens source to be set
+     */
+    function setTokensSource(address source) external;
 
     /**
      * @dev Transfers task's assets to the Smart Vault

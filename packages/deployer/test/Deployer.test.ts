@@ -407,7 +407,6 @@ describe('Deployer', () => {
   describe('deployTask', () => {
     let task: Contract, smartVault: Contract, initializeData: string
 
-    const GROUP_ID = 10
     const AUTHORIZER = '0x0000000000000000000000000000000000000001'
 
     const namespace = 'project'
@@ -435,7 +434,7 @@ describe('Deployer', () => {
     beforeEach('create task implementation', async () => {
       task = await deploy('TaskMock', [])
       initializeData = task.interface.encodeFunctionData('initialize', [
-        { groupId: GROUP_ID, smartVault: smartVault.address },
+        { groupId: 0, smartVault: smartVault.address, tokensSource: smartVault.address },
       ])
     })
 
@@ -462,9 +461,9 @@ describe('Deployer', () => {
             const tx = await deployer.deployTask(namespace, name, { impl: task.address, initializeData })
 
             const instance = await instanceAt('TaskMock', await deployer.getAddress(tx.from, namespace, name))
-            await expect(instance.initialize({ groupId: GROUP_ID, smartVault: smartVault.address })).to.be.revertedWith(
-              'Initializable: contract is already initialized'
-            )
+            await expect(
+              instance.initialize({ groupId: 0, smartVault: smartVault.address, tokensSource: smartVault.address })
+            ).to.be.revertedWith('Initializable: contract is already initialized')
 
             expect(await instance.authorizer()).to.be.equal(AUTHORIZER)
             expect(await instance.smartVault()).to.be.equal(smartVault.address)

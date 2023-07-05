@@ -1,4 +1,13 @@
-import { assertEvent, deploy, deployProxy, fp, getSigners, NATIVE_TOKEN_ADDRESS } from '@mimic-fi/v3-helpers'
+import {
+  assertEvent,
+  deploy,
+  deployProxy,
+  fp,
+  getSigners,
+  NATIVE_TOKEN_ADDRESS,
+  ONES_ADDRESS,
+  ZERO_ADDRESS,
+} from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
@@ -16,40 +25,18 @@ describe('BaseTask', () => {
   })
 
   beforeEach('deploy task', async () => {
-    task = await deployProxy('BaseTaskMock', [], [{ groupId: 0, smartVault: smartVault.address }])
+    task = await deployProxy(
+      'BaseTaskMock',
+      [],
+      [{ groupId: 0, tokensSource: smartVault.address, smartVault: smartVault.address }]
+    )
   })
 
   describe('initialization', async () => {
     it('cannot be initialized twice', async () => {
-      await expect(task.initialize({ groupId: 0, smartVault: smartVault.address })).to.be.revertedWith(
-        'Initializable: contract is already initialized'
-      )
-    })
-  })
-
-  describe('setGroupId', () => {
-    const groupId = 1
-
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async () => {
-        const setGroupIdRole = task.interface.getSighash('setGroupId')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setGroupIdRole, [])
-        task = task.connect(owner)
-      })
-
-      it('can be set', async () => {
-        const tx = await task.setGroupId(groupId)
-
-        expect(await task.groupId()).to.be.equal(groupId)
-
-        await assertEvent(tx, 'GroupIdSet', { groupId })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(task.setGroupId(groupId)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
-      })
+      await expect(
+        task.initialize({ groupId: 0, tokensSource: smartVault.address, smartVault: smartVault.address })
+      ).to.be.revertedWith('Initializable: contract is already initialized')
     })
   })
 
@@ -190,6 +177,67 @@ describe('BaseTask', () => {
     context('when the sender does not have permissions', async () => {
       it('reverts', async () => {
         await expect(task.transferToSmartVault(NATIVE_TOKEN_ADDRESS, balance)).to.be.revertedWith('SENDER_NOT_ALLOWED')
+      })
+    })
+  })
+
+  describe('setGroupId', () => {
+    const groupId = 1
+
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async () => {
+        const setGroupIdRole = task.interface.getSighash('setGroupId')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setGroupIdRole, [])
+        task = task.connect(owner)
+      })
+
+      it('can be set', async () => {
+        const tx = await task.setGroupId(groupId)
+
+        expect(await task.groupId()).to.be.equal(groupId)
+
+        await assertEvent(tx, 'GroupIdSet', { groupId })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async () => {
+        await expect(task.setGroupId(groupId)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
+    })
+  })
+
+  describe('setTokensSource', () => {
+    context('when the sender is authorized', async () => {
+      beforeEach('set sender', async () => {
+        const setTokensSourceRole = task.interface.getSighash('setTokensSource')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setTokensSourceRole, [])
+        task = task.connect(owner)
+      })
+
+      context('when the source is not zero', async () => {
+        const source = ONES_ADDRESS
+
+        it('can be set', async () => {
+          const tx = await task.setTokensSource(source)
+
+          expect(await task.tokensSource()).to.include(source)
+          await assertEvent(tx, 'TokensSourceSet', { source })
+        })
+      })
+
+      context('when the source is zero', async () => {
+        const source = ZERO_ADDRESS
+
+        it('reverts', async () => {
+          await expect(task.setTokensSource(source)).to.be.revertedWith('TASK_TOKENS_SOURCE_ZERO')
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async () => {
+        await expect(task.setTokensSource(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })

@@ -32,19 +32,14 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, BaseTask {
     // Enumerable set of tokens included in the acceptance list
     EnumerableSet.AddressSet private _tokens;
 
-    // Enumerable set of sources where tokens balances should be checked. Only used for deny lists.
-    EnumerableSet.AddressSet private _sources;
-
     /**
      * @dev Token index config. Only used in the initializer.
      * @param acceptanceType Token acceptance type to be set
      * @param tokens List of token addresses to be set for the acceptance list
-     * @param sources List of sources where tokens balances should be checked. Only used for deny lists.
      */
     struct TokenIndexConfig {
         TokensAcceptanceType acceptanceType;
         address[] tokens;
-        address[] sources;
     }
 
     /**
@@ -56,10 +51,6 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, BaseTask {
         for (uint256 i = 0; i < config.tokens.length; i++) {
             _setTokenAcceptanceList(config.tokens[i], true);
         }
-
-        for (uint256 i = 0; i < config.sources.length; i++) {
-            _setTokenAcceptanceList(config.sources[i], true);
-        }
     }
 
     /**
@@ -69,13 +60,6 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, BaseTask {
     function isTokenAllowed(address token) public view override returns (bool) {
         return
             tokensAcceptanceType == TokensAcceptanceType.AllowList ? _tokens.contains(token) : !_tokens.contains(token);
-    }
-
-    /**
-     * @dev Tells the list of sources included in an acceptance config
-     */
-    function tokensIndexSources() external view override returns (address[] memory) {
-        return _sources.values();
     }
 
     /**
@@ -99,18 +83,6 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, BaseTask {
         require(tokens.length == added.length, 'TASK_ACCEPTANCE_BAD_LENGTH');
         for (uint256 i = 0; i < tokens.length; i++) {
             _setTokenAcceptanceList(tokens[i], added[i]);
-        }
-    }
-
-    /**
-     * @dev Updates the list of sources of the tokens index config
-     * @param sources List of sources to be updated from the list
-     * @param added Whether each of the given sources should be added or removed from the list
-     */
-    function setTokensIndexSources(address[] memory sources, bool[] memory added) external override auth {
-        require(sources.length == added.length, 'TASK_SOURCES_BAD_LENGTH');
-        for (uint256 i = 0; i < sources.length; i++) {
-            _setTokenIndexSource(sources[i], added[i]);
         }
     }
 
@@ -139,16 +111,5 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, BaseTask {
         require(token != address(0), 'TASK_ACCEPTANCE_TOKEN_ZERO');
         added ? _tokens.add(token) : _tokens.remove(token);
         emit TokensAcceptanceListSet(token, added);
-    }
-
-    /**
-     * @dev Updates a source from the tokens index config
-     * @param source Source to be updated from the list
-     * @param added Whether the source should be added or removed from the list
-     */
-    function _setTokenIndexSource(address source, bool added) internal {
-        require(source != address(0), 'TASK_SOURCE_ADDRESS_ZERO');
-        added ? _sources.add(source) : _sources.remove(source);
-        emit TokenIndexSourceSet(source, added);
     }
 }

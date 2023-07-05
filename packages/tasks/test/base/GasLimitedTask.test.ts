@@ -33,6 +33,7 @@ describe('GasLimitedTask', () => {
             owner: owner.address,
             smartVault: smartVault.address,
             groupId: 0,
+            tokensSource: smartVault.address,
           },
           gasLimitConfig: {
             txCostLimit: 0,
