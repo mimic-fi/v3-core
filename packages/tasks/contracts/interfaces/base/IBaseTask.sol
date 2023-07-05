@@ -58,6 +58,12 @@ interface IBaseTask is IAuthorized {
     function isPaused() external view returns (bool);
 
     /**
+     * @dev Tells the amount a task should use for a token
+     * @param token Address of the token being queried
+     */
+    function getTaskAmount(address token) external view returns (uint256);
+
+    /**
      * @dev Tells the balance of the task for a given token
      * @param token Address of the token querying the balance of
      */

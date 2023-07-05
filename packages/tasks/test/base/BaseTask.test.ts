@@ -155,6 +155,9 @@ describe('BaseTask', () => {
 
           const currentSmartVaultBalance = await task.getSmartVaultBalance(token)
           expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.add(balance))
+
+          const taskAmount = await task.getTaskAmount(token)
+          expect(taskAmount).to.be.equal(currentSmartVaultBalance)
         })
       })
 
@@ -177,6 +180,9 @@ describe('BaseTask', () => {
 
           const currentSmartVaultBalance = await task.getSmartVaultBalance(token.address)
           expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.add(balance))
+
+          const taskAmount = await task.getTaskAmount(token.address)
+          expect(taskAmount).to.be.equal(currentSmartVaultBalance)
         })
       })
     })
