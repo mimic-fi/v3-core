@@ -29,6 +29,9 @@ import '../interfaces/swap/IParaswapV5Swapper.sol';
 contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
     using FixedPoint for uint256;
 
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('PARASWAP_V5_SWAPPER');
+
     // Address of the Paraswap quote signer
     address public override quoteSigner;
 

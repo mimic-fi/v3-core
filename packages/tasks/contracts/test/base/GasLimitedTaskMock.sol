@@ -6,6 +6,8 @@ import '../../base/BaseTask.sol';
 import '../../base/GasLimitedTask.sol';
 
 contract GasLimitedTaskMock is BaseTask, GasLimitedTask {
+    bytes32 public constant override EXECUTION_TYPE = keccak256('GAS_LIMITED_TASK');
+
     struct Config {
         BaseConfig baseConfig;
         GasLimitConfig gasLimitConfig;

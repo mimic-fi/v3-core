@@ -27,6 +27,9 @@ import '../interfaces/bridge/IWormholeBridger.sol';
 contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
     using FixedPoint for uint256;
 
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('WORMHOLE_BRIDGER');
+
     /**
      * @dev Wormhole bridger task config. Only used in the initializer.
      * @param baseBridgeConfig Base bridge task config params

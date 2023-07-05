@@ -65,7 +65,7 @@ describe('ParaswapV5Swapper', () => {
       this.authorizer = authorizer
     })
 
-    itBehavesLikeBaseSwapTask()
+    itBehavesLikeBaseSwapTask('PARASWAP_V5_SWAPPER')
   })
 
   describe('setQuoteSigner', () => {

@@ -46,7 +46,7 @@ describe('ConvexClaimer', () => {
       this.authorizer = authorizer
     })
 
-    itBehavesLikeBaseConvexTask()
+    itBehavesLikeBaseConvexTask('CONVEX_CLAIMER')
   })
 
   describe('call', () => {

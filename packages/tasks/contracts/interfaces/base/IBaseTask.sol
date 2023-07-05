@@ -22,6 +22,10 @@ import '@mimic-fi/v3-smart-vault/contracts/interfaces/ISmartVault.sol';
  * @dev Base task interface
  */
 interface IBaseTask is IAuthorized {
+    // Execution type serves for relayers in order to distinguish how each task must be executed
+    // solhint-disable-next-line func-name-mixedcase
+    function EXECUTION_TYPE() external view returns (bytes32);
+
     /**
      * @dev Emitted every time an task is executed
      */

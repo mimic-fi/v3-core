@@ -56,7 +56,7 @@ describe('Curve2CrvExiter', () => {
       this.authorizer = authorizer
     })
 
-    itBehavesLikeBaseCurveTask()
+    itBehavesLikeBaseCurveTask('CURVE_2CRV_EXITER')
   })
 
   describe('call', () => {

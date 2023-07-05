@@ -25,6 +25,9 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
     using FixedPoint for uint256;
     using EnumerableMap for EnumerableMap.AddressToAddressMap;
 
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('HOP_L2_SWAPPER');
+
     // List of AMMs per token
     EnumerableMap.AddressToAddressMap private _tokenAmms;
 

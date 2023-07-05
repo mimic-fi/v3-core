@@ -6,6 +6,8 @@ import '../../base/BaseTask.sol';
 import '../../base/TokenThresholdTask.sol';
 
 contract TokenThresholdTaskMock is BaseTask, TokenThresholdTask {
+    bytes32 public constant override EXECUTION_TYPE = keccak256('TOKEN_THRESHOLD_TASK');
+
     struct Config {
         BaseConfig baseConfig;
         TokenThresholdConfig tokenThresholdConfig;

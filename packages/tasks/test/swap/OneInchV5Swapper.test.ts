@@ -58,7 +58,7 @@ describe('OneInchV5Swapper', () => {
       this.authorizer = authorizer
     })
 
-    itBehavesLikeBaseSwapTask()
+    itBehavesLikeBaseSwapTask('1INCH_V5_SWAPPER')
   })
 
   describe('call', () => {

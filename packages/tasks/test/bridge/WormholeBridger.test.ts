@@ -59,7 +59,7 @@ describe('WormholeBridger', () => {
       this.authorizer = authorizer
     })
 
-    itBehavesLikeBaseBridgeTask()
+    itBehavesLikeBaseBridgeTask('WORMHOLE_BRIDGER')
   })
 
   describe('call', () => {

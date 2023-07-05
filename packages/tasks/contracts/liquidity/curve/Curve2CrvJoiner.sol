@@ -23,6 +23,9 @@ import '../../interfaces/liquidity/curve/ICurve2CrvJoiner.sol';
  * @title Curve 2CRV joiner task
  */
 contract Curve2CrvJoiner is ICurve2CrvJoiner, BaseCurveTask {
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('CURVE_2CRV_JOINER');
+
     /**
      * @dev Curve 2CRV joiner task config. Only used in the initializer.
      */

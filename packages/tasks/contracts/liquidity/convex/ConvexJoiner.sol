@@ -23,6 +23,9 @@ import '../../interfaces/liquidity/convex/IConvexJoiner.sol';
  * @title Convex joiner task
  */
 contract ConvexJoiner is IConvexJoiner, BaseConvexTask {
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('CONVEX_JOINER');
+
     /**
      * @dev Convex joiner task config. Only used in the initializer.
      */

@@ -23,6 +23,9 @@ import '../../interfaces/liquidity/curve/ICurve2CrvExiter.sol';
  * @title Curve 2CRV exiter task
  */
 contract Curve2CrvExiter is ICurve2CrvExiter, BaseCurveTask {
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('CURVE_2CRV_EXITER');
+
     /**
      * @dev Curve 2CRV exiter task config. Only used in the initializer.
      */

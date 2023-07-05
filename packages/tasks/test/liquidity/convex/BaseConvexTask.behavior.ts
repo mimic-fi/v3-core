@@ -1,8 +1,16 @@
 import { assertEvent, deploy, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
+import { ethers } from 'hardhat'
 
-export function itBehavesLikeBaseConvexTask(): void {
+export function itBehavesLikeBaseConvexTask(executionType: string): void {
+  describe('execution type', () => {
+    it('defines it correctly', async function () {
+      const expectedType = ethers.utils.solidityKeccak256(['string'], [executionType])
+      expect(await this.task.EXECUTION_TYPE()).to.be.equal(expectedType)
+    })
+  })
+
   describe('setConnector', () => {
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async function () {

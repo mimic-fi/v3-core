@@ -23,6 +23,9 @@ import '../interfaces/swap/IOneInchV5Swapper.sol';
 contract OneInchV5Swapper is IOnceInchV5Swapper, BaseSwapTask {
     using FixedPoint for uint256;
 
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('1INCH_V5_SWAPPER');
+
     /**
      * @dev 1inch v5 swapper task config. Only used in the initializer.
      * @param baseSwapConfig Base swap task config params
