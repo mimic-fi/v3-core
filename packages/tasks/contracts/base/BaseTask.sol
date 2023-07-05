@@ -14,9 +14,6 @@
 
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol';
-
 import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
@@ -30,7 +27,7 @@ import '../interfaces/base/IBaseTask.sol';
  * @title BaseTask
  * @dev Base task implementation with a Smart Vault reference and using the Authorizer
  */
-abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
+abstract contract BaseTask is IBaseTask, Authorized {
     // Smart Vault reference
     address public override smartVault;
 
@@ -76,7 +73,6 @@ abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable 
      * @param config Base task config
      */
     function _initialize(BaseConfig memory config) internal onlyInitializing {
-        __ReentrancyGuard_init();
         _initialize(ISmartVault(config.smartVault).authorizer());
         _setGroupId(config.groupId);
         _setTokensSource(config.tokensSource);
@@ -126,10 +122,10 @@ abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable 
     }
 
     /**
-     * @dev Hook to be called before the task call starts. This implementation only adds a non-reentrant and
-     * not-paused guard. It should be overwritten to add any extra logic that must run before the task is executed.
+     * @dev Hook to be called before the task call starts. This implementation only adds a not-paused guard.
+     * It should be overwritten to add any extra logic that must run before the task is executed.
      */
-    function _beforeTask(address, uint256) internal virtual nonReentrant {
+    function _beforeTask(address, uint256) internal virtual {
         require(!isPaused, 'TASK_PAUSED');
     }
 
