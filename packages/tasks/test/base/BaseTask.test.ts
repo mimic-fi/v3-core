@@ -40,6 +40,42 @@ describe('BaseTask', () => {
     })
   })
 
+  describe('getTaskAmount', () => {
+    const source = ONES_ADDRESS
+    const balance = fp(0.1)
+
+    beforeEach('set source', async () => {
+      const setTokensSourceRole = task.interface.getSighash('setTokensSource')
+      await authorizer.connect(owner).authorize(owner.address, task.address, setTokensSourceRole, [])
+      await task.connect(owner).setTokensSource(source)
+    })
+
+    context('when querying ETH', () => {
+      const token = NATIVE_TOKEN_ADDRESS
+
+      beforeEach('fund source', async () => {
+        await owner.sendTransaction({ to: source, value: balance })
+      })
+
+      it('tells the source balance', async () => {
+        expect(await task.getTaskAmount(token)).to.be.equal(balance)
+      })
+    })
+
+    context('when the token is an ERC20', () => {
+      let token: Contract
+
+      beforeEach('fund source', async () => {
+        token = await deploy('TokenMock', ['USDC'])
+        await token.mint(source, balance)
+      })
+
+      it('tells the source balance', async () => {
+        expect(await task.getTaskAmount(token.address)).to.be.equal(balance)
+      })
+    })
+  })
+
   describe('pause', () => {
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async () => {
@@ -110,73 +146,6 @@ describe('BaseTask', () => {
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
         await expect(task.unpause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
-      })
-    })
-  })
-
-  describe('transferToSmartVault', () => {
-    const balance = fp(1)
-
-    context('when the sender has permissions', async () => {
-      beforeEach('authorize sender', async () => {
-        const transferToSmartVaultRole = task.interface.getSighash('transferToSmartVault')
-        await authorizer.connect(owner).authorize(owner.address, task.address, transferToSmartVaultRole, [])
-        task = task.connect(owner)
-      })
-
-      context('when the token is ETH', () => {
-        const token = NATIVE_TOKEN_ADDRESS
-
-        beforeEach('fund task', async () => {
-          await owner.sendTransaction({ to: task.address, value: balance })
-        })
-
-        it('transfers it to smart vault', async () => {
-          const previousTaskBalance = await task.getTaskBalance(token)
-          const previousSmartVaultBalance = await task.getSmartVaultBalance(token)
-
-          await task.transferToSmartVault(token, balance)
-
-          const currentTaskBalance = await task.getTaskBalance(token)
-          expect(currentTaskBalance).to.be.equal(previousTaskBalance.sub(balance))
-
-          const currentSmartVaultBalance = await task.getSmartVaultBalance(token)
-          expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.add(balance))
-
-          const taskAmount = await task.getTaskAmount(token)
-          expect(taskAmount).to.be.equal(currentSmartVaultBalance)
-        })
-      })
-
-      context('when the token is an ERC20', () => {
-        let token: Contract
-
-        beforeEach('fund task', async () => {
-          token = await deploy('TokenMock', ['USDC'])
-          await token.mint(task.address, balance)
-        })
-
-        it('transfers it to smart vault', async () => {
-          const previousTaskBalance = await task.getTaskBalance(token.address)
-          const previousSmartVaultBalance = await task.getSmartVaultBalance(token.address)
-
-          await task.transferToSmartVault(token.address, balance)
-
-          const currentTaskBalance = await task.getTaskBalance(token.address)
-          expect(currentTaskBalance).to.be.equal(previousTaskBalance.sub(balance))
-
-          const currentSmartVaultBalance = await task.getSmartVaultBalance(token.address)
-          expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.add(balance))
-
-          const taskAmount = await task.getTaskAmount(token.address)
-          expect(taskAmount).to.be.equal(currentSmartVaultBalance)
-        })
-      })
-    })
-
-    context('when the sender does not have permissions', async () => {
-      it('reverts', async () => {
-        await expect(task.transferToSmartVault(NATIVE_TOKEN_ADDRESS, balance)).to.be.revertedWith('SENDER_NOT_ALLOWED')
       })
     })
   })

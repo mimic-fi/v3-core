@@ -14,9 +14,7 @@
 
 pragma solidity >=0.8.0;
 
-import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorizer.sol';
 import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorized.sol';
-import '@mimic-fi/v3-smart-vault/contracts/interfaces/ISmartVault.sol';
 
 /**
  * @dev Base task interface
@@ -78,24 +76,6 @@ interface IBaseTask is IAuthorized {
     function getTaskAmount(address token) external view returns (uint256);
 
     /**
-     * @dev Tells the balance of the task for a given token
-     * @param token Address of the token querying the balance of
-     */
-    function getTaskBalance(address token) external view returns (uint256);
-
-    /**
-     * @dev Tells the balance of the Smart Vault for a given token
-     * @param token Address of the token querying the balance of
-     */
-    function getSmartVaultBalance(address token) external view returns (uint256);
-
-    /**
-     * @dev Tells the total balance for a given token
-     * @param token Address of the token querying the balance of
-     */
-    function getTotalBalance(address token) external view returns (uint256);
-
-    /**
      * @dev Pauses an task
      */
     function pause() external;
@@ -116,11 +96,4 @@ interface IBaseTask is IAuthorized {
      * @param source Address of the new tokens source to be set
      */
     function setTokensSource(address source) external;
-
-    /**
-     * @dev Transfers task's assets to the Smart Vault
-     * @param token Address of the token to be transferred
-     * @param amount Amount of tokens to be transferred
-     */
-    function transferToSmartVault(address token, uint256 amount) external;
 }
