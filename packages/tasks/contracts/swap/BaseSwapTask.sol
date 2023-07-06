@@ -19,7 +19,7 @@ import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/EnumerableMap.sol';
 
 import '../Task.sol';
-import './interfaces/IBaseSwapTask.sol';
+import '../interfaces/swap/IBaseSwapTask.sol';
 
 /**
  * @title Base swap task

@@ -19,7 +19,7 @@ import '@mimic-fi/v3-connectors/contracts/swap/hop/IHopL2Amm.sol';
 import '@mimic-fi/v3-connectors/contracts/swap/hop/HopSwapConnector.sol';
 
 import './BaseSwapTask.sol';
-import './interfaces/IHopL2Swapper.sol';
+import '../interfaces/swap/IHopL2Swapper.sol';
 
 contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
     using FixedPoint for uint256;

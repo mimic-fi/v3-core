@@ -19,7 +19,7 @@ import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 
 import './BaseTask.sol';
-import './interfaces/ITokenThresholdTask.sol';
+import '../interfaces/base/ITokenThresholdTask.sol';
 
 /**
  * @dev Token threshold task. It mainly works with token threshold configs that can be used to tell if
@@ -93,7 +93,11 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, BaseTask {
      * @dev Sets a new default threshold config
      * @param threshold Threshold config to be set as the default one
      */
-    function setDefaultTokenThreshold(Threshold memory threshold) external override auth {
+    function setDefaultTokenThreshold(Threshold memory threshold)
+        external
+        override
+        authP(authParams(threshold.token, threshold.min, threshold.max))
+    {
         _setDefaultTokenThreshold(threshold);
     }
 
@@ -105,7 +109,7 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, BaseTask {
     function setCustomTokenThreshold(address token, Threshold memory threshold)
         external
         override
-        authP(authParams(token))
+        authP(authParams(token, threshold.token, threshold.min, threshold.max))
     {
         _setCustomTokenThreshold(token, threshold);
     }

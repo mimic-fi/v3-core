@@ -17,7 +17,7 @@ pragma solidity ^0.8.17;
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 
 import './BaseTask.sol';
-import './interfaces/IGasLimitedTask.sol';
+import '../interfaces/base/IGasLimitedTask.sol';
 
 /**
  * @dev Gas config for tasks. It allows setting different gas-related configs, specially useful to control relayed txs.

@@ -18,7 +18,7 @@ import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-connectors/contracts/bridge/connext/ConnextConnector.sol';
 
 import './BaseBridgeTask.sol';
-import './interfaces/IConnextBridger.sol';
+import '../interfaces/bridge/IConnextBridger.sol';
 
 /**
  * @title Connext bridger task
@@ -100,7 +100,6 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
         _validateFee(token, amountIn, relayerFee);
 
         uint256 minAmountOut = amountIn.mulUp(FixedPoint.ONE - slippage);
-
         bytes memory connectorData = abi.encodeWithSelector(
             ConnextConnector.execute.selector,
             _getApplicableDestinationChain(token),

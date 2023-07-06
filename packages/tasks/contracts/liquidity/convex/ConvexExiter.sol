@@ -17,7 +17,7 @@ pragma solidity ^0.8.0;
 import '@mimic-fi/v3-connectors/contracts/liquidity/convex/ConvexConnector.sol';
 
 import './BaseConvexTask.sol';
-import './interfaces/IConvexExiter.sol';
+import '../../interfaces/liquidity/convex/IConvexExiter.sol';
 
 /**
  * @title Convex exiter task

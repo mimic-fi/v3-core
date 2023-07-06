@@ -17,8 +17,8 @@ pragma solidity ^0.8.0;
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/EnumerableMap.sol';
 
-import './interfaces/IBaseBridgeTask.sol';
 import '../Task.sol';
+import '../interfaces/bridge/IBaseBridgeTask.sol';
 
 /**
  * @title Base bridge task
@@ -27,7 +27,6 @@ import '../Task.sol';
 abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     using FixedPoint for uint256;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
-    using EnumerableMap for EnumerableMap.AddressToAddressMap;
 
     // Connector address
     address public override connector;
@@ -35,7 +34,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     // Default destination chain
     uint256 public override defaultDestinationChain;
 
-    // Default maximym slippage in fixed point
+    // Default maximum slippage in fixed point
     uint256 public override defaultMaxSlippage;
 
     // Destination chain per token address

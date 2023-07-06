@@ -18,7 +18,7 @@ import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-connectors/contracts/bridge/axelar/AxelarConnector.sol';
 
 import './BaseBridgeTask.sol';
-import './interfaces/IAxelarBridger.sol';
+import '../interfaces/bridge/IAxelarBridger.sol';
 
 /**
  * @title Axelar bridger task

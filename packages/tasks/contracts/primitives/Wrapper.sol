@@ -15,7 +15,7 @@
 pragma solidity ^0.8.0;
 
 import '../Task.sol';
-import './interfaces/IWrapper.sol';
+import '../interfaces/primitives/IWrapper.sol';
 
 /**
  * @title Wrapper task

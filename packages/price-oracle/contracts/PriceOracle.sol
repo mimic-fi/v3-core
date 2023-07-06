@@ -24,7 +24,6 @@ import '@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 
 import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-helpers/contracts/math/UncheckedMath.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 
 import './interfaces/IPriceOracle.sol';
@@ -41,7 +40,6 @@ import './interfaces/IPriceOracle.sol';
  */
 contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
     using FixedPoint for uint256;
-    using UncheckedMath for uint256;
     using BytesHelpers for bytes;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -135,10 +133,10 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         uint256 quoteDecimals = IERC20Metadata(quote).decimals();
 
         // No need for checked math as an uint8 + FP_DECIMALS (constant) will always fit in an uint256
-        require(baseDecimals <= quoteDecimals.uncheckedAdd(FP_DECIMALS), 'BASE_DECIMALS_TOO_BIG');
+        require(baseDecimals <= quoteDecimals + FP_DECIMALS, 'BASE_DECIMALS_TOO_BIG');
 
         // No need for checked math as we are checking it manually beforehand
-        uint256 resultDecimals = quoteDecimals.uncheckedAdd(FP_DECIMALS).uncheckedSub(baseDecimals);
+        uint256 resultDecimals = quoteDecimals + FP_DECIMALS - baseDecimals;
         (uint256 price, uint256 decimals) = _getPrice(base, quote);
         return _scalePrice(price, decimals, resultDecimals);
     }
@@ -236,7 +234,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         // Prices are requested for different purposes, we are rounding down always to follow a single strategy
         price = FixedPoint.ONE.divDown(inversePrice);
         // No need for checked math as we are checking it manually beforehand
-        decimals = INVERSE_FEED_MAX_DECIMALS.uncheckedSub(inverseFeedDecimals);
+        decimals = INVERSE_FEED_MAX_DECIMALS - inverseFeedDecimals;
     }
 
     /**
@@ -261,7 +259,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         // Prices are requested for different purposes, we are rounding down always to follow a single strategy
         price = basePrice.divDown(quotePrice);
         // No need for checked math as we are checking it manually beforehand
-        decimals = baseFeedDecimals.uncheckedAdd(FP_DECIMALS).uncheckedSub(quoteFeedDecimals);
+        decimals = baseFeedDecimals + FP_DECIMALS - quoteFeedDecimals;
     }
 
     /**
@@ -273,8 +271,8 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
     function _scalePrice(uint256 price, uint256 priceDecimals, uint256 resultDecimals) internal pure returns (uint256) {
         return
             resultDecimals >= priceDecimals
-                ? (price * 10**(resultDecimals.uncheckedSub(priceDecimals)))
-                : (price / 10**(priceDecimals.uncheckedSub(resultDecimals)));
+                ? (price * 10**(resultDecimals - priceDecimals))
+                : (price / 10**(priceDecimals - resultDecimals));
     }
 
     /**

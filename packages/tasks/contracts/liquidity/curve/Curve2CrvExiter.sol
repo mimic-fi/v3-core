@@ -17,7 +17,7 @@ pragma solidity ^0.8.0;
 import '@mimic-fi/v3-connectors/contracts/liquidity/curve/Curve2CrvConnector.sol';
 
 import './BaseCurveTask.sol';
-import './interfaces/ICurve2CrvExiter.sol';
+import '../../interfaces/liquidity/curve/ICurve2CrvExiter.sol';
 
 /**
  * @title Curve 2CRV exiter task

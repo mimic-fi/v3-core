@@ -16,7 +16,6 @@ pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
-import '@mimic-fi/v3-helpers/contracts/math/UncheckedMath.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/Arrays.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
@@ -31,7 +30,6 @@ import './IUniswapV3PeripheryImmutableState.sol';
  */
 contract UniswapV3Connector {
     using BytesHelpers for bytes;
-    using UncheckedMath for uint256;
 
     // Reference to UniswapV3 router
     IUniswapV3SwapRouter public immutable uniswapV3Router;
@@ -132,8 +130,8 @@ contract UniswapV3Connector {
         uint24[] memory fees = Arrays.from(fee, hopFees);
 
         // No need for checked math since we are using it to compute indexes manually, always within boundaries
-        for (uint256 i = 0; i < fees.length; i = i.uncheckedAdd(1)) {
-            _validatePool(factory, tokens[i], tokens[i.uncheckedAdd(1)], fees[i]);
+        for (uint256 i = 0; i < fees.length; i++) {
+            _validatePool(factory, tokens[i], tokens[i + 1], fees[i]);
         }
 
         IUniswapV3SwapRouter.ExactInputParams memory input;
@@ -172,7 +170,7 @@ contract UniswapV3Connector {
      */
     function _encodePoolPath(address[] memory tokens, uint24[] memory fees) internal pure returns (bytes memory path) {
         path = new bytes(0);
-        for (uint256 i = 0; i < fees.length; i = i.uncheckedAdd(1)) path = path.concat(tokens[i]).concat(fees[i]);
+        for (uint256 i = 0; i < fees.length; i++) path = path.concat(tokens[i]).concat(fees[i]);
         path = path.concat(tokens[fees.length]);
     }
 }
