@@ -1,4 +1,4 @@
-import { assertEvent, deploy, fp, ZERO_ADDRESS, ZERO_BYTES32 } from '@mimic-fi/v3-helpers'
+import { assertEvent, deploy, fp, ONES_ADDRESS, ZERO_ADDRESS, ZERO_BYTES32 } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
@@ -109,6 +109,44 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
         await expect(this.task.setConnector(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
+    })
+  })
+
+  describe('setRecipient', () => {
+    context('when the sender is authorized', () => {
+      beforeEach('set sender', async function () {
+        const setRecipientRole = this.task.interface.getSighash('setRecipient')
+        await this.authorizer.connect(this.owner).authorize(this.owner.address, this.task.address, setRecipientRole, [])
+        this.task = this.task.connect(this.owner)
+      })
+
+      context('when the recipient is not zero', () => {
+        const recipient = ONES_ADDRESS
+
+        it('sets the recipient', async function () {
+          await this.task.setRecipient(recipient)
+          expect(await this.task.recipient()).to.be.equal(recipient)
+        })
+
+        it('emits an event', async function () {
+          const tx = await this.task.setRecipient(recipient)
+          await assertEvent(tx, 'RecipientSet', { recipient })
+        })
+      })
+
+      context('when the recipient is zero', () => {
+        const recipient = ZERO_ADDRESS
+
+        it('reverts', async function () {
+          await expect(this.task.setRecipient(recipient)).to.be.revertedWith('TASK_RECIPIENT_ZERO')
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(this.task.setRecipient(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })

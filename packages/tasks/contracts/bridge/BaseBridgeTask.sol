@@ -31,6 +31,9 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     // Connector address
     address public override connector;
 
+    // Connector address
+    address public override recipient;
+
     // Default destination chain
     uint256 public override defaultDestinationChain;
 
@@ -76,6 +79,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      */
     struct BaseBridgeConfig {
         address connector;
+        address recipient;
         uint256 destinationChain;
         uint256 maxSlippage;
         CustomDestinationChain[] customDestinationChains;
@@ -90,6 +94,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     function _initialize(BaseBridgeConfig memory config) internal onlyInitializing {
         _initialize(config.taskConfig);
         _setConnector(config.connector);
+        _setRecipient(config.recipient);
         _setDefaultDestinationChain(config.destinationChain);
         _setDefaultMaxSlippage(config.maxSlippage);
 
@@ -126,6 +131,14 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      */
     function setConnector(address newConnector) external override authP(authParams(newConnector)) {
         _setConnector(newConnector);
+    }
+
+    /**
+     * @dev Sets the recipient address. Sender must be authorized.
+     * @param newRecipient Address of the new recipient to be set
+     */
+    function setRecipient(address newRecipient) external override authP(authParams(newRecipient)) {
+        _setRecipient(newRecipient);
     }
 
     /**
@@ -235,6 +248,16 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
         require(newConnector != address(0), 'TASK_CONNECTOR_ZERO');
         connector = newConnector;
         emit ConnectorSet(newConnector);
+    }
+
+    /**
+     * @dev Sets the recipient address
+     * @param newRecipient Address of the new recipient to be set
+     */
+    function _setRecipient(address newRecipient) internal {
+        require(newRecipient != address(0), 'TASK_RECIPIENT_ZERO');
+        recipient = newRecipient;
+        emit RecipientSet(newRecipient);
     }
 
     /**

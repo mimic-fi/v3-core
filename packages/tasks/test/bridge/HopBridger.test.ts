@@ -48,6 +48,7 @@ describe('HopBridger', () => {
           tokenHopEntrypoints: [],
           baseBridgeConfig: {
             connector: connector.address,
+            recipient: smartVault.address,
             destinationChain: 0,
             maxSlippage: fp(0.1),
             customDestinationChains: [],

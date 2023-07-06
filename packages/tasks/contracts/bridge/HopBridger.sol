@@ -173,7 +173,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
             token,
             amountIn,
             amountIn.mulUp(FixedPoint.ONE - slippage), // minAmountOut
-            address(smartVault),
+            recipient,
             _tokenHopEntrypoints.get(token),
             block.timestamp + maxDeadline,
             relayer,

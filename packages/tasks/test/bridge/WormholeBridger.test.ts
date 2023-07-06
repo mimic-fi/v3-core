@@ -41,6 +41,7 @@ describe('WormholeBridger', () => {
         {
           baseBridgeConfig: {
             connector: connector.address,
+            recipient: smartVault.address,
             destinationChain: 0,
             maxSlippage: 0,
             customDestinationChains: [],

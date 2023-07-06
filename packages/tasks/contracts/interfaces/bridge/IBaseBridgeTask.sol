@@ -26,6 +26,11 @@ interface IBaseBridgeTask is ITask {
     event ConnectorSet(address indexed connector);
 
     /**
+     * @dev Emitted every time the recipient is set
+     */
+    event RecipientSet(address indexed recipient);
+
+    /**
      * @dev Emitted every time the default destination chain is set
      */
     event DefaultDestinationChainSet(uint256 indexed defaultDestinationChain);
@@ -49,6 +54,11 @@ interface IBaseBridgeTask is ITask {
      * @dev Tells the connector tied to the task
      */
     function connector() external view returns (address);
+
+    /**
+     * @dev Tells the address of the allowed recipient
+     */
+    function recipient() external view returns (address);
 
     /**
      * @dev Tells the default destination chain
@@ -77,6 +87,12 @@ interface IBaseBridgeTask is ITask {
      * @param newConnector Address of the connector to be set
      */
     function setConnector(address newConnector) external;
+
+    /**
+     * @dev Sets the recipient address
+     * @param recipient Address of the new recipient to be set
+     */
+    function setRecipient(address recipient) external;
 
     /**
      * @dev Sets the default destination chain

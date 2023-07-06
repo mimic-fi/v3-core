@@ -59,7 +59,7 @@ contract AxelarBridger is IAxelarBridger, BaseBridgeTask {
             _getApplicableDestinationChain(token),
             token,
             amountIn,
-            address(smartVault)
+            recipient
         );
 
         ISmartVault(smartVault).execute(connector, connectorData);
