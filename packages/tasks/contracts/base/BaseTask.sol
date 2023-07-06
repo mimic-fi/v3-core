@@ -89,7 +89,10 @@ abstract contract BaseTask is IBaseTask, Authorized {
      * @param token Address of the token being queried
      */
     function getTaskAmount(address token) external view virtual override returns (uint256) {
-        return ERC20Helpers.balanceOf(token, tokensSource);
+        return
+            previousBalanceConnectorId != bytes32(0)
+                ? ISmartVault(smartVault).getBalanceConnector(previousBalanceConnectorId, token)
+                : ERC20Helpers.balanceOf(token, tokensSource);
     }
 
     /**

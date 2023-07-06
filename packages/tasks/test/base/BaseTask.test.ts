@@ -8,6 +8,7 @@ import {
   getSigners,
   NATIVE_TOKEN_ADDRESS,
   ONES_ADDRESS,
+  ONES_BYTES32,
   ZERO_ADDRESS,
   ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
@@ -65,28 +66,72 @@ describe('BaseTask', () => {
       await task.connect(owner).setTokensSource(source)
     })
 
-    context('when querying ETH', () => {
-      const token = NATIVE_TOKEN_ADDRESS
+    context('when the task has no previous balance connector set', () => {
+      context('when querying ETH', () => {
+        const token = NATIVE_TOKEN_ADDRESS
 
-      beforeEach('fund source', async () => {
-        await owner.sendTransaction({ to: source, value: balance })
+        beforeEach('fund source', async () => {
+          await owner.sendTransaction({ to: source, value: balance })
+        })
+
+        it('tells the source balance', async () => {
+          expect(await task.getTaskAmount(token)).to.be.equal(balance)
+        })
       })
 
-      it('tells the source balance', async () => {
-        expect(await task.getTaskAmount(token)).to.be.equal(balance)
+      context('when the token is an ERC20', () => {
+        let token: Contract
+
+        beforeEach('fund source', async () => {
+          token = await deploy('TokenMock', ['USDC'])
+          await token.mint(source, balance)
+        })
+
+        it('tells the source balance', async () => {
+          expect(await task.getTaskAmount(token.address)).to.be.equal(balance)
+        })
       })
     })
 
-    context('when the token is an ERC20', () => {
-      let token: Contract
+    context('when the task has a previous balance connector set', () => {
+      const connector = ONES_BYTES32
 
-      beforeEach('fund source', async () => {
-        token = await deploy('TokenMock', ['USDC'])
-        await token.mint(source, balance)
+      beforeEach('set previous balance connector', async () => {
+        const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+        await task.connect(owner).setBalanceConnectors(connector, ZERO_BYTES32)
       })
 
-      it('tells the source balance', async () => {
-        expect(await task.getTaskAmount(token.address)).to.be.equal(balance)
+      context('when querying ETH', () => {
+        const token = NATIVE_TOKEN_ADDRESS
+
+        beforeEach('set connector balance', async () => {
+          const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+          await authorizer.connect(owner).authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
+          await smartVault.connect(owner).updateBalanceConnector(connector, token, balance, true)
+        })
+
+        it('tells the connector balance', async () => {
+          expect(await task.getTaskAmount(token)).to.be.equal(balance)
+        })
+      })
+
+      context('when the token is an ERC20', () => {
+        let token: Contract
+
+        beforeEach('fund source', async () => {
+          token = await deploy('TokenMock', ['USDC'])
+        })
+
+        beforeEach('set connector balance', async () => {
+          const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+          await authorizer.connect(owner).authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
+          await smartVault.connect(owner).updateBalanceConnector(connector, token.address, balance, true)
+        })
+
+        it('tells the connector balance', async () => {
+          expect(await task.getTaskAmount(token.address)).to.be.equal(balance)
+        })
       })
     })
   })
