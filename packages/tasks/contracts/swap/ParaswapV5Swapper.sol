@@ -17,6 +17,7 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
+import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-connectors/contracts/swap/paraswap-v5/ParaswapV5Connector.sol';
 
 import './BaseSwapTask.sol';
@@ -28,6 +29,7 @@ import '../interfaces/swap/IParaswapV5Swapper.sol';
  */
 contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
     using FixedPoint for uint256;
+    using BytesHelpers for bytes;
 
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('PARASWAP_V5_SWAPPER');
@@ -88,7 +90,8 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
             data
         );
 
-        ISmartVault(smartVault).execute(connector, connectorData);
+        bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
+        _increaseBalanceConnector(tokenOut, result.toUint256());
     }
 
     /**

@@ -23,5 +23,5 @@ interface IConvexJoiner is IBaseConvexTask {
     /**
      * @dev Executes the Convex joiner task
      */
-    function call(address pool, uint256 amount) external;
+    function call(address token, uint256 amount) external;
 }

@@ -66,6 +66,7 @@ contract Collector is ICollector, Task {
         baseTaskCall(token, amount)
     {
         ISmartVault(smartVault).collect(token, source, amount);
+        _increaseBalanceConnector(token, amount);
     }
 
     /**
@@ -75,6 +76,16 @@ contract Collector is ICollector, Task {
         super._beforeTask(token, amount);
         require(token != address(0), 'TASK_TOKEN_ZERO');
         require(amount > 0, 'TASK_AMOUNT_ZERO');
+    }
+
+    /**
+     * @dev Sets the balance connectors. Previous balance connector must be unset.
+     * @param previous Balance connector id of the previous task in the workflow
+     * @param next Balance connector id of the next task in the workflow
+     */
+    function _setBalanceConnectors(bytes32 previous, bytes32 next) internal virtual override {
+        require(previous == bytes32(0), 'TASK_PREVIOUS_CONNECTOR_NOT_ZERO');
+        super._setBalanceConnectors(previous, next);
     }
 
     /**

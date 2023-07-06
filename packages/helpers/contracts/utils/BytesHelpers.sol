@@ -34,6 +34,13 @@ library BytesHelpers {
     }
 
     /**
+     * @dev Decodes a bytes array into an uint256
+     */
+    function toUint256(bytes memory self) internal pure returns (uint256) {
+        return toUint256(self, 0);
+    }
+
+    /**
      * @dev Reads an uint256 from a bytes array starting at a given position
      */
     function toUint256(bytes memory self, uint256 start) internal pure returns (uint256 result) {

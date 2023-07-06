@@ -7,6 +7,7 @@ import {
   getSigners,
   NATIVE_TOKEN_ADDRESS,
   ZERO_ADDRESS,
+  ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
@@ -42,6 +43,62 @@ describe('Collector', () => {
     it('defines it correctly', async () => {
       const expectedType = ethers.utils.solidityKeccak256(['string'], ['COLLECTOR'])
       expect(await task.EXECUTION_TYPE()).to.be.equal(expectedType)
+    })
+  })
+
+  describe('setBalanceConnectors', () => {
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async () => {
+        const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+        task = task.connect(owner)
+      })
+
+      const itCanBeSet = (previous: string, next: string) => {
+        it('can be set', async () => {
+          const tx = await task.setBalanceConnectors(previous, next)
+
+          expect(await task.previousBalanceConnectorId()).to.be.equal(previous)
+          expect(await task.nextBalanceConnectorId()).to.be.equal(next)
+
+          await assertEvent(tx, 'BalanceConnectorsSet', { previous, next })
+        })
+      }
+
+      context('when setting to non-zero', () => {
+        const next = '0x0000000000000000000000000000000000000000000000000000000000000001'
+
+        context('when setting previous to zero', () => {
+          const previous = ZERO_BYTES32
+
+          itCanBeSet(previous, next)
+        })
+
+        context('when setting previous to non-zero', () => {
+          const previous = '0x0000000000000000000000000000000000000000000000000000000000000002'
+
+          it('reverts', async () => {
+            await expect(task.setBalanceConnectors(previous, next)).to.be.revertedWith(
+              'TASK_PREVIOUS_CONNECTOR_NOT_ZERO'
+            )
+          })
+        })
+      })
+
+      context('when setting to zero', () => {
+        const previous = ZERO_BYTES32
+        const next = ZERO_BYTES32
+
+        itCanBeSet(previous, next)
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async () => {
+        await expect(task.setBalanceConnectors(ZERO_BYTES32, ZERO_BYTES32)).to.be.revertedWith(
+          'AUTH_SENDER_NOT_ALLOWED'
+        )
+      })
     })
   })
 
@@ -151,6 +208,25 @@ describe('Collector', () => {
             const tx = await task.call(token.address, amount)
 
             await assertEvent(tx, 'Executed')
+          })
+
+          it('updates the balance connectors properly', async () => {
+            const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
+            const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+            await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+            await task.connect(owner).setBalanceConnectors(ZERO_BYTES32, nextConnectorId)
+
+            const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+            await authorizer.connect(owner).authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+
+            const tx = await task.call(token.address, amount)
+
+            await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+              id: nextConnectorId,
+              token,
+              amount,
+              added: true,
+            })
           })
         })
 

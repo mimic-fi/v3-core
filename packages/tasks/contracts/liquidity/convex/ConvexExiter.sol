@@ -14,6 +14,7 @@
 
 pragma solidity ^0.8.0;
 
+import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-connectors/contracts/liquidity/convex/ConvexConnector.sol';
 
 import './BaseConvexTask.sol';
@@ -23,6 +24,8 @@ import '../../interfaces/liquidity/convex/IConvexExiter.sol';
  * @title Convex exiter task
  */
 contract ConvexExiter is IConvexExiter, BaseConvexTask {
+    using BytesHelpers for bytes;
+
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('CONVEX_EXITER');
 
@@ -52,7 +55,8 @@ contract ConvexExiter is IConvexExiter, BaseConvexTask {
         baseTaskCall(token, amount)
     {
         bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.exit.selector, token, amount);
-        ISmartVault(smartVault).execute(connector, connectorData);
+        bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
+        _increaseBalanceConnector(ConvexConnector(connector).getCurvePool(token), result.toUint256());
     }
 
     /**

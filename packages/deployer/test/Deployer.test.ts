@@ -1,4 +1,4 @@
-import { assertEvent, deploy, getSigners, instanceAt } from '@mimic-fi/v3-helpers'
+import { assertEvent, deploy, getSigners, instanceAt, ZERO_BYTES32 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
@@ -434,7 +434,12 @@ describe('Deployer', () => {
     beforeEach('create task implementation', async () => {
       task = await deploy('TaskMock', [])
       initializeData = task.interface.encodeFunctionData('initialize', [
-        { groupId: 0, smartVault: smartVault.address, tokensSource: smartVault.address },
+        {
+          smartVault: smartVault.address,
+          tokensSource: smartVault.address,
+          previousBalanceConnectorId: ZERO_BYTES32,
+          nextBalanceConnectorId: ZERO_BYTES32,
+        },
       ])
     })
 
@@ -462,7 +467,12 @@ describe('Deployer', () => {
 
             const instance = await instanceAt('TaskMock', await deployer.getAddress(tx.from, namespace, name))
             await expect(
-              instance.initialize({ groupId: 0, smartVault: smartVault.address, tokensSource: smartVault.address })
+              instance.initialize({
+                smartVault: smartVault.address,
+                tokensSource: smartVault.address,
+                previousBalanceConnectorId: ZERO_BYTES32,
+                nextBalanceConnectorId: ZERO_BYTES32,
+              })
             ).to.be.revertedWith('Initializable: contract is already initialized')
 
             expect(await instance.authorizer()).to.be.equal(AUTHORIZER)

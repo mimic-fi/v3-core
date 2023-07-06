@@ -85,4 +85,14 @@ contract Withdrawer is IWithdrawer, Task {
         recipient = newRecipient;
         emit RecipientSet(newRecipient);
     }
+
+    /**
+     * @dev Sets the balance connectors. Next balance connector must be unset.
+     * @param previous Balance connector id of the previous task in the workflow
+     * @param next Balance connector id of the next task in the workflow
+     */
+    function _setBalanceConnectors(bytes32 previous, bytes32 next) internal virtual override {
+        require(next == bytes32(0), 'TASK_NEXT_CONNECTOR_NOT_ZERO');
+        super._setBalanceConnectors(previous, next);
+    }
 }

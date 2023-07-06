@@ -14,6 +14,7 @@
 
 pragma solidity ^0.8.0;
 
+import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/EnumerableMap.sol';
 import '@mimic-fi/v3-connectors/contracts/swap/hop/IHopL2Amm.sol';
 import '@mimic-fi/v3-connectors/contracts/swap/hop/HopSwapConnector.sol';
@@ -23,6 +24,7 @@ import '../interfaces/swap/IHopL2Swapper.sol';
 
 contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
     using FixedPoint for uint256;
+    using BytesHelpers for bytes;
     using EnumerableMap for EnumerableMap.AddressToAddressMap;
 
     // Execution type for relayers
@@ -96,7 +98,8 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
             dexAddress
         );
 
-        ISmartVault(smartVault).execute(connector, connectorData);
+        bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
+        _increaseBalanceConnector(tokenOut, result.toUint256());
     }
 
     /**

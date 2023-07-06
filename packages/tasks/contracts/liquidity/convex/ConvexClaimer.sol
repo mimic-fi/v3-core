@@ -52,7 +52,11 @@ contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
         baseTaskCall(token, amount) // Cannot know how much it will claim
     {
         bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.claim.selector, token);
-        ISmartVault(smartVault).execute(connector, connectorData);
+        bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
+        (address[] memory tokens, uint256[] memory amounts) = abi.decode(result, (address[], uint256[]));
+
+        require(tokens.length == amounts.length, 'CLAIMER_INVALID_RESULT_LEN');
+        for (uint256 i = 0; i < tokens.length; i++) _increaseBalanceConnector(tokens[i], amounts[i]);
     }
 
     /**

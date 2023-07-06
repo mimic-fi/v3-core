@@ -10,4 +10,8 @@ contract BaseTaskMock is BaseTask {
     function initialize(BaseConfig memory config) external initializer {
         _initialize(config);
     }
+
+    function call(address token, uint256 amount) external baseTaskCall(token, amount) {
+        // solhint-disable-previous-line no-empty-blocks
+    }
 }

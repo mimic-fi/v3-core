@@ -14,6 +14,8 @@
 
 pragma solidity ^0.8.0;
 
+import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
+
 import '../Task.sol';
 import '../interfaces/primitives/IWrapper.sol';
 
@@ -42,13 +44,14 @@ contract Wrapper is IWrapper, Task {
     /**
      * @dev Executes the wrapper task
      */
-    function call(uint256 amount)
+    function call(address token, uint256 amount)
         external
         override
-        authP(authParams(amount))
-        baseTaskCall(_wrappedNativeToken(), amount)
+        authP(authParams(token, amount))
+        baseTaskCall(token, amount)
     {
         ISmartVault(smartVault).wrap(amount);
+        _increaseBalanceConnector(_wrappedNativeToken(), amount);
     }
 
     /**
@@ -56,7 +59,7 @@ contract Wrapper is IWrapper, Task {
      */
     function _beforeTask(address token, uint256 amount) internal virtual override {
         super._beforeTask(token, amount);
-        require(token == _wrappedNativeToken(), 'TASK_NOT_NATIVE_TOKEN');
+        require(token == Denominations.NATIVE_TOKEN, 'TASK_TOKEN_NOT_NATIVE');
         require(amount > 0, 'TASK_AMOUNT_ZERO');
     }
 }

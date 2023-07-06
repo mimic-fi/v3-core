@@ -19,7 +19,9 @@ contract ParaswapV5ConnectorMock {
 
     function execute(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, bytes memory data)
         external
+        returns (uint256)
     {
         emit LogExecute(tokenIn, tokenOut, amountIn, minAmountOut, data);
+        return minAmountOut;
     }
 }

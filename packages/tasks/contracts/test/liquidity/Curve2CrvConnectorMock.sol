@@ -19,11 +19,13 @@ contract Curve2CrvConnectorMock {
 
     event LogExit(address pool, uint256 amountIn, address tokenOut, uint256 slippage);
 
-    function join(address pool, address tokenIn, uint256 amountIn, uint256 slippage) external {
+    function join(address pool, address tokenIn, uint256 amountIn, uint256 slippage) external returns (uint256) {
         emit LogJoin(pool, tokenIn, amountIn, slippage);
+        return amountIn;
     }
 
-    function exit(address pool, uint256 amountIn, address tokenOut, uint256 slippage) external {
+    function exit(address pool, uint256 amountIn, address tokenOut, uint256 slippage) external returns (uint256) {
         emit LogExit(pool, amountIn, tokenOut, slippage);
+        return amountIn;
     }
 }

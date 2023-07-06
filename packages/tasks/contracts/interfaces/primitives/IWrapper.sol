@@ -23,5 +23,5 @@ interface IWrapper is ITask {
     /**
      * @dev Executes the wrapper task
      */
-    function call(uint256 amount) external;
+    function call(address token, uint256 amount) external;
 }
