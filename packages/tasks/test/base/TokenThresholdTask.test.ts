@@ -29,7 +29,6 @@ describe('TokenThresholdTask', () => {
           baseConfig: {
             owner: owner.address,
             smartVault: smartVault.address,
-            groupId: 0,
             tokensSource: smartVault.address,
           },
           tokenThresholdConfig: {

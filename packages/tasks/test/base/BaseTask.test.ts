@@ -25,17 +25,13 @@ describe('BaseTask', () => {
   })
 
   beforeEach('deploy task', async () => {
-    task = await deployProxy(
-      'BaseTaskMock',
-      [],
-      [{ groupId: 0, tokensSource: smartVault.address, smartVault: smartVault.address }]
-    )
+    task = await deployProxy('BaseTaskMock', [], [{ tokensSource: smartVault.address, smartVault: smartVault.address }])
   })
 
   describe('initialization', async () => {
     it('cannot be initialized twice', async () => {
       await expect(
-        task.initialize({ groupId: 0, tokensSource: smartVault.address, smartVault: smartVault.address })
+        task.initialize({ tokensSource: smartVault.address, smartVault: smartVault.address })
       ).to.be.revertedWith('Initializable: contract is already initialized')
     })
   })
@@ -146,32 +142,6 @@ describe('BaseTask', () => {
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
         await expect(task.unpause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
-      })
-    })
-  })
-
-  describe('setGroupId', () => {
-    const groupId = 1
-
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async () => {
-        const setGroupIdRole = task.interface.getSighash('setGroupId')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setGroupIdRole, [])
-        task = task.connect(owner)
-      })
-
-      it('can be set', async () => {
-        const tx = await task.setGroupId(groupId)
-
-        expect(await task.groupId()).to.be.equal(groupId)
-
-        await assertEvent(tx, 'GroupIdSet', { groupId })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(task.setGroupId(groupId)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })
