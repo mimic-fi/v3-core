@@ -41,6 +41,11 @@ interface ISmartVault is IAuthorized {
     event ConnectorCheckOverridden(address indexed connector, bool ignored);
 
     /**
+     * @dev Emitted every time a balance connector is updated
+     */
+    event BalanceConnectorUpdated(bytes32 indexed id, address indexed token, uint256 amount, bool added);
+
+    /**
      * @dev Emitted every time `execute` is called
      */
     event Executed(address indexed connector, bytes data, bytes result);
@@ -102,6 +107,13 @@ interface ISmartVault is IAuthorized {
     function isConnectorCheckIgnored(address connector) external view returns (bool);
 
     /**
+     * @dev Tells the balance to a balance connector for a token
+     * @param id Balance connector identifier
+     * @param token Address of the token querying the balance connector for
+     */
+    function getBalanceConnector(bytes32 id, address token) external view returns (uint256);
+
+    /**
      * @dev Tells whether someone has any permission over the smart vault
      */
     function hasPermissions(address who) external view returns (bool);
@@ -128,6 +140,15 @@ interface ISmartVault is IAuthorized {
      * @param ignored Whether the connector check should be ignored
      */
     function overrideConnectorCheck(address connector, bool ignored) external;
+
+    /**
+     * @dev Updates a balance connector. Sender must be authorized. Smart vault must not be paused.
+     * @param id Balance connector identifier to be updated
+     * @param token Address of the token to update the balance connector for
+     * @param amount Amount to be updated to the balance connector
+     * @param add Whether the balance connector should be increased or decreased
+     */
+    function updateBalanceConnector(bytes32 id, address token, uint256 amount, bool add) external;
 
     /**
      * @dev Executes a connector inside of the Smart Vault context
