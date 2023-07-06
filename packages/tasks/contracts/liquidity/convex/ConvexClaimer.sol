@@ -42,14 +42,24 @@ contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
 
     /**
      * @dev Executes the Convex claimer task
+     * @param token Address of the Convex pool token to claim rewards for
+     * @param amount Must be zero, it is not possible to claim a specific number of tokens
      */
-    function call(address pool)
+    function call(address token, uint256 amount)
         external
         override
-        authP(authParams(pool))
-        baseTaskCall(pool, 0) // Cannot know how much it will claim
+        authP(authParams(token))
+        baseTaskCall(token, amount) // Cannot know how much it will claim
     {
-        bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.claim.selector, pool);
+        bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.claim.selector, token);
         ISmartVault(smartVault).execute(connector, connectorData);
+    }
+
+    /**
+     * @dev Hook to be called before the Convex task call starts. Adds a validation to make sure the amount is zero.
+     */
+    function _beforeTask(address token, uint256 amount) internal virtual override {
+        super._beforeTask(token, amount);
+        require(amount == 0, 'TASK_AMOUNT_NOT_ZERO');
     }
 }

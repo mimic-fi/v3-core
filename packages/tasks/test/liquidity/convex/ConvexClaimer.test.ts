@@ -63,39 +63,51 @@ describe('ConvexClaimer', () => {
         task = task.connect(owner)
       })
 
-      context('when the pool is not zero', () => {
-        let pool: Contract
+      context('when the token is not zero', () => {
+        let token: Contract
 
-        beforeEach('deploy pool', async () => {
-          pool = await deploy('TokenMock', ['TKN'])
+        beforeEach('deploy token', async () => {
+          token = await deploy('TokenMock', ['TKN'])
         })
 
-        it('executes the expected connector', async () => {
-          const tx = await task.call(pool.address)
+        context('when the amount is zero', () => {
+          const amount = 0
 
-          const connectorData = connector.interface.encodeFunctionData('claim', [pool.address])
-          await assertIndirectEvent(tx, smartVault.interface, 'Executed', { connector, data: connectorData })
-          await assertIndirectEvent(tx, connector.interface, 'LogClaim', { pool })
+          it('executes the expected connector', async () => {
+            const tx = await task.call(token.address, amount)
+
+            const connectorData = connector.interface.encodeFunctionData('claim', [token.address])
+            await assertIndirectEvent(tx, smartVault.interface, 'Executed', { connector, data: connectorData })
+            await assertIndirectEvent(tx, connector.interface, 'LogClaim', { cvxPool: token })
+          })
+
+          it('emits an Executed event', async () => {
+            const tx = await task.call(token.address, amount)
+            await assertEvent(tx, 'Executed')
+          })
         })
 
-        it('emits an Executed event', async () => {
-          const tx = await task.call(pool.address)
-          await assertEvent(tx, 'Executed')
+        context('when the amount is not zero', () => {
+          const amount = 1
+
+          it('reverts', async () => {
+            await expect(task.call(token.address, amount)).to.be.revertedWith('TASK_AMOUNT_NOT_ZERO')
+          })
         })
       })
 
-      context('when the pool is zero', () => {
-        const pool = ZERO_ADDRESS
+      context('when the token is zero', () => {
+        const token = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(pool)).to.be.revertedWith('TASK_TOKEN_ZERO')
+          await expect(task.call(token, 0)).to.be.revertedWith('TASK_TOKEN_ZERO')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })

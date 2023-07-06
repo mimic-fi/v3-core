@@ -42,22 +42,24 @@ contract ConvexExiter is IConvexExiter, BaseConvexTask {
 
     /**
      * @dev Executes the Convex exiter task
+     * @param token Address of the Convex pool token to be exited with
+     * @param amount Amount of Convex pool tokens to be exited with
      */
-    function call(address pool, uint256 amount)
+    function call(address token, uint256 amount)
         external
         override
-        authP(authParams(pool, amount))
-        baseTaskCall(pool, amount)
+        authP(authParams(token, amount))
+        baseTaskCall(token, amount)
     {
-        bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.exit.selector, pool, amount);
+        bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.exit.selector, token, amount);
         ISmartVault(smartVault).execute(connector, connectorData);
     }
 
     /**
      * @dev Hook to be called before the Convex task call starts. Adds simple validations to avoid zeroed amounts.
      */
-    function _beforeTask(address pool, uint256 amount) internal virtual override {
-        super._beforeTask(pool, amount);
+    function _beforeTask(address token, uint256 amount) internal virtual override {
+        super._beforeTask(token, amount);
         require(amount > 0, 'TASK_AMOUNT_ZERO');
     }
 }

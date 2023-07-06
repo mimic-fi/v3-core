@@ -23,5 +23,5 @@ interface IConvexClaimer is IBaseConvexTask {
     /**
      * @dev Executes the Convex claimer task
      */
-    function call(address pool) external;
+    function call(address token, uint256 amount) external;
 }

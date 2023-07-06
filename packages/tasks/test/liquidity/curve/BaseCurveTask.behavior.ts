@@ -55,6 +55,81 @@ export function itBehavesLikeBaseCurveTask(executionType: string): void {
     })
   })
 
+  describe('setDefaultTokenOut', () => {
+    let token: Contract
+
+    beforeEach('deploy token', async function () {
+      token = await deploy('TokenMock', ['TKN'])
+    })
+
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async function () {
+        const setDefaultTokenOutRole = this.task.interface.getSighash('setDefaultTokenOut')
+        await this.authorizer
+          .connect(this.owner)
+          .authorize(this.owner.address, this.task.address, setDefaultTokenOutRole, [])
+        this.task = this.task.connect(this.owner)
+      })
+
+      it('sets the token out', async function () {
+        await this.task.setDefaultTokenOut(token.address)
+
+        expect(await this.task.defaultTokenOut()).to.be.equal(token.address)
+      })
+
+      it('emits an event', async function () {
+        const tx = await this.task.setDefaultTokenOut(token.address)
+
+        await assertEvent(tx, 'DefaultTokenOutSet', { tokenOut: token })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(this.task.setDefaultTokenOut(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
+    })
+  })
+
+  describe('setCustomTokenOut', () => {
+    let token: Contract, tokenOut: Contract
+
+    beforeEach('deploy token', async function () {
+      token = await deploy('TokenMock', ['IN'])
+      tokenOut = await deploy('TokenMock', ['OUT'])
+    })
+
+    context('when the sender is authorized', () => {
+      beforeEach('set sender', async function () {
+        const setCustomTokenOutRole = this.task.interface.getSighash('setCustomTokenOut')
+        await this.authorizer
+          .connect(this.owner)
+          .authorize(this.owner.address, this.task.address, setCustomTokenOutRole, [])
+        this.task = this.task.connect(this.owner)
+      })
+
+      it('sets the token out', async function () {
+        await this.task.setCustomTokenOut(token.address, tokenOut.address)
+
+        expect(await this.task.customTokenOut(token.address)).to.be.equal(tokenOut.address)
+      })
+
+      it('emits an event', async function () {
+        const tx = await this.task.setCustomTokenOut(token.address, tokenOut.address)
+
+        await assertEvent(tx, 'CustomTokenOutSet', { token, tokenOut })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(this.task.setCustomTokenOut(token.address, tokenOut.address)).to.be.revertedWith(
+          'AUTH_SENDER_NOT_ALLOWED'
+        )
+      })
+    })
+  })
+
   describe('setDefaultMaxSlippage', () => {
     context('when the sender is authorized', () => {
       beforeEach('set sender', async function () {

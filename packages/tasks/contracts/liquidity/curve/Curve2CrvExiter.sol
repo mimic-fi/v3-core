@@ -29,19 +29,21 @@ contract Curve2CrvExiter is ICurve2CrvExiter, BaseCurveTask {
     /**
      * @dev Curve 2CRV exiter task config. Only used in the initializer.
      */
-    struct Curve2CrvConfig {
+    struct Curve2CrvExiterConfig {
         BaseCurveConfig baseCurveConfig;
     }
 
     /**
      * @dev Initializes a Curve 2CRV exiter task
      */
-    function initialize(Curve2CrvConfig memory config) external initializer {
+    function initialize(Curve2CrvExiterConfig memory config) external initializer {
         _initialize(config.baseCurveConfig);
     }
 
     /**
      * @dev Executes the Curve 2CRV exiter task
+     * @param token Address of the Curve pool token to exit
+     * @param amount Amount of Curve pool tokens to exit
      */
     function call(address token, uint256 amount, uint256 slippage)
         external
@@ -49,7 +51,15 @@ contract Curve2CrvExiter is ICurve2CrvExiter, BaseCurveTask {
         authP(authParams(token, amount, slippage))
         baseCurveTaskCall(token, amount, slippage)
     {
-        bytes memory connectorData = abi.encodeWithSelector(Curve2CrvConnector.exit.selector, amount, token, slippage);
+        address tokenOut = _getApplicableTokenOut(token);
+        bytes memory connectorData = abi.encodeWithSelector(
+            Curve2CrvConnector.exit.selector,
+            token,
+            amount,
+            tokenOut,
+            slippage
+        );
+
         ISmartVault(smartVault).execute(connector, connectorData);
     }
 }

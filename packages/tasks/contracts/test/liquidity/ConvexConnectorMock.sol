@@ -15,21 +15,21 @@
 pragma solidity ^0.8.0;
 
 contract ConvexConnectorMock {
-    event LogClaim(address pool);
+    event LogClaim(address cvxPool);
 
-    event LogJoin(address pool, uint256 amount);
+    event LogJoin(address curvePool, uint256 amount);
 
-    event LogExit(address pool, uint256 amount);
+    event LogExit(address cvxPool, uint256 amount);
 
-    function claim(address pool) external {
-        emit LogClaim(pool);
+    function claim(address cvxPool) external {
+        emit LogClaim(cvxPool);
     }
 
-    function join(address pool, uint256 amount) external {
-        emit LogJoin(pool, amount);
+    function join(address curvePool, uint256 amount) external {
+        emit LogJoin(curvePool, amount);
     }
 
-    function exit(address pool, uint256 amount) external {
-        emit LogExit(pool, amount);
+    function exit(address cvxPool, uint256 amount) external {
+        emit LogExit(cvxPool, amount);
     }
 }
