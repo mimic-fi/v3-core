@@ -85,6 +85,14 @@ contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
     }
 
     /**
+     * @dev Tells the amount a task should use for a token
+     * @param token Address of the token being queried
+     */
+    function getTaskAmount(address token) external view virtual override returns (uint256) {
+        return getSmartVaultBalance(token);
+    }
+
+    /**
      * @dev Tells the balance of the task for a given token
      * @param token Address of the token querying the balance of
      * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to query the native token balance
