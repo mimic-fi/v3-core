@@ -61,7 +61,7 @@ describe('ConnextBridger', () => {
       this.authorizer = authorizer
     })
 
-    itBehavesLikeBaseBridgeTask()
+    itBehavesLikeBaseBridgeTask('CONNEXT_BRIDGER')
   })
 
   describe('setDefaultRelayerFee', () => {

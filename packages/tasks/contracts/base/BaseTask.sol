@@ -30,7 +30,7 @@ import '../interfaces/base/IBaseTask.sol';
  * @title BaseTask
  * @dev Base task implementation with a Smart Vault reference and using the Authorizer
  */
-contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
+abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
     // Whether the task is paused or not
     bool public override isPaused;
 

@@ -27,6 +27,9 @@ import '../interfaces/bridge/IAxelarBridger.sol';
 contract AxelarBridger is IAxelarBridger, BaseBridgeTask {
     using FixedPoint for uint256;
 
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('AXELAR_BRIDGER');
+
     /**
      * @dev Axelar bridger task config. Only used in the initializer.
      * @param baseBridgeConfig Base bridge task config params

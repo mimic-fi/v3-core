@@ -11,6 +11,7 @@ import {
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
+import { ethers } from 'hardhat'
 
 import { buildEmptyTaskConfig, deployEnvironment, Mimic } from '../../src/setup'
 
@@ -35,6 +36,13 @@ describe('Withdrawer', () => {
         },
       ]
     )
+  })
+
+  describe('execution type', () => {
+    it('defines it correctly', async () => {
+      const expectedType = ethers.utils.solidityKeccak256(['string'], ['WITHDRAWER'])
+      expect(await task.EXECUTION_TYPE()).to.be.equal(expectedType)
+    })
   })
 
   describe('setRecipient', () => {

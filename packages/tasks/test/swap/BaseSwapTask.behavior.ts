@@ -1,8 +1,16 @@
 import { assertEvent, deploy, fp, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
+import { ethers } from 'hardhat'
 
-export function itBehavesLikeBaseSwapTask(): void {
+export function itBehavesLikeBaseSwapTask(executionType: string): void {
+  describe('execution type', () => {
+    it('defines it correctly', async function () {
+      const expectedType = ethers.utils.solidityKeccak256(['string'], [executionType])
+      expect(await this.task.EXECUTION_TYPE()).to.be.equal(expectedType)
+    })
+  })
+
   describe('setConnector', () => {
     let connector: Contract
 

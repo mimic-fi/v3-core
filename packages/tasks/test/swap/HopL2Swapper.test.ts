@@ -59,7 +59,7 @@ describe('HopL2Swapper', () => {
       this.authorizer = authorizer
     })
 
-    itBehavesLikeBaseSwapTask()
+    itBehavesLikeBaseSwapTask('HOP_L2_SWAPPER')
   })
 
   describe('setTokenAmm', () => {

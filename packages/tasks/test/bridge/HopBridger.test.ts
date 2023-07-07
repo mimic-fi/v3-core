@@ -66,7 +66,7 @@ describe('HopBridger', () => {
       this.authorizer = authorizer
     })
 
-    itBehavesLikeBaseBridgeTask()
+    itBehavesLikeBaseBridgeTask('HOP_BRIDGER')
   })
 
   describe('setRelayer', () => {

@@ -26,6 +26,9 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
     using EnumerableMap for EnumerableMap.AddressToAddressMap;
 
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('HOP_BRIDGER');
+
     // Relayer address
     address public override relayer;
 

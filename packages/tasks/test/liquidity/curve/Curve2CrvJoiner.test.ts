@@ -56,7 +56,7 @@ describe('Curve2CrvJoiner', () => {
       this.authorizer = authorizer
     })
 
-    itBehavesLikeBaseCurveTask()
+    itBehavesLikeBaseCurveTask('CURVE_2CRV_JOINER')
   })
 
   describe('call', () => {

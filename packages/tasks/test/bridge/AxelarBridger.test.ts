@@ -59,7 +59,7 @@ describe('AxelarBridger', () => {
       this.authorizer = authorizer
     })
 
-    itBehavesLikeBaseBridgeTask()
+    itBehavesLikeBaseBridgeTask('AXELAR_BRIDGER')
   })
 
   describe('call', () => {

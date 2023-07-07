@@ -23,6 +23,9 @@ import '../../interfaces/liquidity/convex/IConvexExiter.sol';
  * @title Convex exiter task
  */
 contract ConvexExiter is IConvexExiter, BaseConvexTask {
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('CONVEX_EXITER');
+
     /**
      * @dev Convex exiter task config. Only used in the initializer.
      */

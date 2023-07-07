@@ -22,6 +22,9 @@ import '../interfaces/primitives/IWithdrawer.sol';
  * @dev Task that offers a recipient address where funds can be withdrawn
  */
 contract Withdrawer is IWithdrawer, Task {
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('WITHDRAWER');
+
     // Address where tokens will be transferred to
     address public override recipient;
 

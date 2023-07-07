@@ -23,6 +23,9 @@ import '../../interfaces/liquidity/convex/IConvexClaimer.sol';
  * @title Convex claimer task
  */
 contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('CONVEX_CLAIMER');
+
     /**
      * @dev Convex claimer task config. Only used in the initializer.
      */

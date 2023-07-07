@@ -28,6 +28,9 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     using FixedPoint for uint256;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
 
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('CONNEXT_BRIDGER');
+
     // Default relayer fee
     uint256 public override defaultRelayerFee;
 
