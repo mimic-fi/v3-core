@@ -22,13 +22,9 @@ describe('Curve2CrvConnector - USDC', function () {
   })
 
   before('deploy connector', async () => {
-    connector = await deploy('Curve2CrvConnector', [POOL])
+    connector = await deploy('Curve2CrvConnector')
     usdc = await instanceAt('IERC20', USDC)
     pool = await instanceAt('I2CrvPool', POOL)
-  })
-
-  it('deploys the connector correctly', async () => {
-    expect(await connector.pool()).to.be.equal(POOL)
   })
 
   it('joins curve', async () => {
@@ -37,7 +33,7 @@ describe('Curve2CrvConnector - USDC', function () {
     const previousUsdcBalance = await usdc.balanceOf(connector.address)
     const previousPoolBalance = await pool.balanceOf(connector.address)
 
-    await connector.join(USDC, JOIN_AMOUNT, SLIPPAGE)
+    await connector.join(POOL, USDC, JOIN_AMOUNT, SLIPPAGE)
 
     const currentUsdcBalance = await usdc.balanceOf(connector.address)
     expect(currentUsdcBalance).to.be.equal(previousUsdcBalance.sub(JOIN_AMOUNT))
@@ -53,7 +49,7 @@ describe('Curve2CrvConnector - USDC', function () {
     const previousPoolBalance = await pool.balanceOf(connector.address)
 
     const amountIn = previousPoolBalance.div(2)
-    await connector.exit(amountIn, USDC, SLIPPAGE)
+    await connector.exit(POOL, amountIn, USDC, SLIPPAGE)
 
     const currentPoolBalance = await pool.balanceOf(connector.address)
     expect(currentPoolBalance).to.be.equal(previousPoolBalance.sub(amountIn))
