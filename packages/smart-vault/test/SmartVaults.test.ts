@@ -7,8 +7,8 @@ import {
   getSigner,
   getSigners,
   instanceAt,
-  NATIVE_TOKEN_ADDRESS,
-  ZERO_ADDRESS,
+  NATIVE_TOKEN_ADDRESS, ONES_BYTES32,
+  ZERO_ADDRESS, ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
@@ -272,6 +272,107 @@ describe('SmartVault', () => {
         await expect(smartVault.overrideConnectorCheck(connector.address, true)).to.be.revertedWith(
           'AUTH_SENDER_NOT_ALLOWED'
         )
+      })
+    })
+  })
+
+  describe('updateBalanceConnector', () => {
+    const amount = fp(0.5)
+
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async () => {
+        const updateBalanceConnectorRole = await smartVault.interface.getSighash('updateBalanceConnector')
+        await authorizer.connect(owner).authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
+        smartVault = smartVault.connect(owner)
+      })
+
+      context('when the connector ID is not zero', () => {
+        const connector = ONES_BYTES32
+
+        context('when the token is not zero', () => {
+          let token: Contract
+
+          beforeEach('deploy token', async () => {
+            token = await deploy('TokenMock', ['TKN'])
+          })
+
+          context('when increasing the connector balance', () => {
+            const add = true
+
+            it('increases the expected connector', async () => {
+              const previousBalance = await smartVault.getBalanceConnector(connector, token.address)
+
+              await smartVault.updateBalanceConnector(connector, token.address, amount, add)
+
+              const midBalance = await smartVault.getBalanceConnector(connector, token.address)
+              expect(midBalance).to.be.equal(previousBalance.add(amount))
+
+              await smartVault.updateBalanceConnector(connector, token.address, amount, add)
+
+              const currentBalance = await smartVault.getBalanceConnector(connector, token.address)
+              expect(currentBalance).to.be.equal(midBalance.add(amount))
+            })
+
+            it('emits an event', async () => {
+              const tx = await smartVault.updateBalanceConnector(connector, token.address, amount, add)
+
+              await assertEvent(tx, 'BalanceConnectorUpdated', { id: connector, token, amount, added: add })
+            })
+          })
+
+          context('when decreasing the connector balance', () => {
+            const add = false
+
+            context('when there is enough balance in the connector', () => {
+              beforeEach('increase connector', async () => {
+                await smartVault.updateBalanceConnector(connector, token.address, amount.mul(2), true)
+              })
+
+              it('decreases the expected connector', async () => {
+                const previousBalance = await smartVault.getBalanceConnector(connector, token.address)
+
+                await smartVault.updateBalanceConnector(connector, token.address, amount, add)
+
+                const currentBalance = await smartVault.getBalanceConnector(connector, token.address)
+                expect(currentBalance).to.be.equal(previousBalance.sub(amount))
+              })
+
+              it('emits an event', async () => {
+                const tx = await smartVault.updateBalanceConnector(connector, token.address, amount, add)
+
+                await assertEvent(tx, 'BalanceConnectorUpdated', { id: connector, token, amount, added: add })
+              })
+            })
+
+            context('when there is not enough balance in the connector', () => {
+              it('reverts', async () => {
+                await expect(smartVault.updateBalanceConnector(connector, token.address, amount, add)).to.be.revertedWith('SMART_VAULT_CONNECTOR_NO_BALANCE')
+              })
+            })
+          })
+        })
+
+        context('when the token is zero', () => {
+          const token = ZERO_ADDRESS
+
+          it('reverts', async () => {
+            await expect(smartVault.updateBalanceConnector(connector, token, amount, true)).to.be.revertedWith('SMART_VAULT_CONNECTOR_TOKEN_ZERO')
+          })
+        })
+      })
+
+      context('when the connector ID is zero', () => {
+        const connector = ZERO_BYTES32
+
+        it('reverts', async () => {
+          await expect(smartVault.updateBalanceConnector(connector, ZERO_ADDRESS, amount, true)).to.be.revertedWith('SMART_VAULT_CONNECTOR_ID_ZERO')
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async () => {
+        await expect(smartVault.updateBalanceConnector(ZERO_BYTES32, ZERO_ADDRESS, amount, true)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })

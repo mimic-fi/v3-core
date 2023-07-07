@@ -56,6 +56,9 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     // Tells whether a connector check is ignored or not
     mapping (address => bool) public override isConnectorCheckIgnored;
 
+    // Balance connectors are used to define separate tasks workflows, indexed from id and token address
+    mapping (bytes32 => mapping (address => uint256)) public override getBalanceConnector;
+
     /**
      * @dev Modifier to tag smart vault functions in order to check if it is paused
      */
@@ -141,12 +144,32 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      */
     function overrideConnectorCheck(address connector, bool ignored)
         external
+        override
         nonReentrant
         notPaused
         authP(authParams(connector, ignored))
     {
         isConnectorCheckIgnored[connector] = ignored;
         emit ConnectorCheckOverridden(connector, ignored);
+    }
+
+    /**
+     * @dev Updates a balance connector. Sender must be authorized. Smart vault must not be paused.
+     * @param id Balance connector identifier to be updated
+     * @param token Address of the token to update the balance connector for
+     * @param amount Amount to be updated to the balance connector
+     * @param add Whether the balance connector should be increased or decreased
+     */
+    function updateBalanceConnector(bytes32 id, address token, uint256 amount, bool add)
+        external
+        override
+        nonReentrant
+        notPaused
+        authP(authParams(id, token, amount, add))
+    {
+        require(id != bytes32(0), 'SMART_VAULT_CONNECTOR_ID_ZERO');
+        require(token != address(0), 'SMART_VAULT_CONNECTOR_TOKEN_ZERO');
+        (add ? _increaseBalanceConnector : _decreaseBalanceConnector)(id, token, amount);
     }
 
     /**
@@ -269,6 +292,30 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     function _setPriceOracle(address newPriceOracle) internal {
         priceOracle = newPriceOracle;
         emit PriceOracleSet(newPriceOracle);
+    }
+
+    /**
+     * @dev Increases a balance connector
+     * @param id Balance connector id to be increased
+     * @param token Address of the token to increase the balance connector for
+     * @param amount Amount to be added to the connector
+     */
+    function _increaseBalanceConnector(bytes32 id, address token, uint256 amount) internal {
+        getBalanceConnector[id][token] += amount;
+        emit BalanceConnectorUpdated(id, token, amount, true);
+    }
+
+    /**
+     * @dev Decreases a balance connector
+     * @param id Balance connector id
+     * @param token Address of the token to decrease the balance connector for
+     * @param amount Amount to be added to the connector
+     */
+    function _decreaseBalanceConnector(bytes32 id, address token, uint256 amount) internal {
+        uint256 value = getBalanceConnector[id][token];
+        require(value >= amount, 'SMART_VAULT_CONNECTOR_NO_BALANCE');
+        getBalanceConnector[id][token] = value - amount;
+        emit BalanceConnectorUpdated(id, token, amount, false);
     }
 
     /**
