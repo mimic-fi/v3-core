@@ -15,15 +15,15 @@
 pragma solidity ^0.8.0;
 
 contract Curve2CrvConnectorMock {
-    event LogJoin(address tokenIn, uint256 amountIn, uint256 slippage);
+    event LogJoin(address pool, address tokenIn, uint256 amountIn, uint256 slippage);
 
-    event LogExit(uint256 amountIn, address tokenOut, uint256 slippage);
+    event LogExit(address pool, uint256 amountIn, address tokenOut, uint256 slippage);
 
-    function join(address tokenIn, uint256 amountIn, uint256 slippage) external {
-        emit LogJoin(tokenIn, amountIn, slippage);
+    function join(address pool, address tokenIn, uint256 amountIn, uint256 slippage) external {
+        emit LogJoin(pool, tokenIn, amountIn, slippage);
     }
 
-    function exit(uint256 amountIn, address tokenOut, uint256 slippage) external {
-        emit LogExit(amountIn, tokenOut, slippage);
+    function exit(address pool, uint256 amountIn, address tokenOut, uint256 slippage) external {
+        emit LogExit(pool, amountIn, tokenOut, slippage);
     }
 }

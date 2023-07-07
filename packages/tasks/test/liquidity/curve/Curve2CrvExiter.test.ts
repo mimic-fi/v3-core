@@ -40,7 +40,9 @@ describe('Curve2CrvExiter', () => {
         {
           baseCurveConfig: {
             connector: connector.address,
+            tokenOut: ZERO_ADDRESS,
             maxSlippage: 0,
+            customTokensOut: [],
             customMaxSlippages: [],
             taskConfig: buildEmptyTaskConfig(owner, smartVault),
           },
@@ -77,7 +79,7 @@ describe('Curve2CrvExiter', () => {
         let token: Contract
 
         beforeEach('set token threshold', async () => {
-          token = await deploy('TokenMock', ['TKN'])
+          token = await deploy('TokenMock', ['2CRV'])
         })
 
         context('when the amount is not zero', () => {
@@ -87,63 +89,87 @@ describe('Curve2CrvExiter', () => {
             await token.mint(smartVault.address, amount)
           })
 
-          context('when the threshold has passed', () => {
-            const threshold = amount
+          context('when there is a token out set', () => {
+            let tokenOut: Contract
 
-            beforeEach('set token threshold', async () => {
-              const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
-              await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-              await task.connect(owner).setDefaultTokenThreshold({ token: token.address, min: threshold, max: 0 })
+            beforeEach('set token out', async () => {
+              tokenOut = await deploy('TokenMock', ['USDC'])
+              const setDefaultTokenOutRole = task.interface.getSighash('setDefaultTokenOut')
+              await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenOutRole, [])
+              await task.connect(owner).setDefaultTokenOut(tokenOut.address)
             })
 
-            context('when the slippage is below the limit', () => {
-              const slippage = fp(0.01)
+            context('when the threshold has passed', () => {
+              const threshold = amount
 
-              beforeEach('set max slippage', async () => {
-                const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
-                await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
-                await task.connect(owner).setDefaultMaxSlippage(slippage)
+              beforeEach('set token threshold', async () => {
+                const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
+                await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
+                await task.connect(owner).setDefaultTokenThreshold({ token: token.address, min: threshold, max: 0 })
               })
 
-              it('executes the expected connector', async () => {
-                const tx = await task.call(token.address, amount, slippage)
+              context('when the slippage is below the limit', () => {
+                const slippage = fp(0.01)
 
-                const connectorData = connector.interface.encodeFunctionData('exit', [amount, token.address, slippage])
-                await assertIndirectEvent(tx, smartVault.interface, 'Executed', { connector, data: connectorData })
+                beforeEach('set max slippage', async () => {
+                  const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
+                  await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
+                  await task.connect(owner).setDefaultMaxSlippage(slippage)
+                })
 
-                await assertIndirectEvent(tx, connector.interface, 'LogExit', {
-                  amountIn: amount,
-                  tokenOut: token,
-                  slippage,
+                it('executes the expected connector', async () => {
+                  const tx = await task.call(token.address, amount, slippage)
+
+                  const connectorData = connector.interface.encodeFunctionData('exit', [
+                    token.address,
+                    amount,
+                    tokenOut.address,
+                    slippage,
+                  ])
+
+                  await assertIndirectEvent(tx, smartVault.interface, 'Executed', { connector, data: connectorData })
+
+                  await assertIndirectEvent(tx, connector.interface, 'LogExit', {
+                    pool: token,
+                    amountIn: amount,
+                    tokenOut,
+                    slippage,
+                  })
+                })
+
+                it('emits an Executed event', async () => {
+                  const tx = await task.call(token.address, amount, slippage)
+                  await assertEvent(tx, 'Executed')
                 })
               })
 
-              it('emits an Executed event', async () => {
-                const tx = await task.call(token.address, amount, slippage)
-                await assertEvent(tx, 'Executed')
+              context('when the slippage is above the limit', () => {
+                const slippage = fp(0.01)
+
+                it('reverts', async () => {
+                  await expect(task.call(token.address, amount, slippage)).to.be.revertedWith('TASK_SLIPPAGE_TOO_HIGH')
+                })
               })
             })
 
-            context('when the slippage is above the limit', () => {
-              const slippage = fp(0.01)
+            context('when the threshold has not passed', () => {
+              const threshold = amount.add(1)
+
+              beforeEach('set token threshold', async () => {
+                const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
+                await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
+                await task.connect(owner).setDefaultTokenThreshold({ token: token.address, min: threshold, max: 0 })
+              })
 
               it('reverts', async () => {
-                await expect(task.call(token.address, amount, slippage)).to.be.revertedWith('TASK_SLIPPAGE_TOO_HIGH')
+                await expect(task.call(token.address, amount, 0)).to.be.revertedWith('TASK_TOKEN_THRESHOLD_NOT_MET')
               })
             })
           })
 
-          context('when the threshold has not passed', () => {
-            const threshold = amount.add(1)
-
-            beforeEach('set token threshold', async () => {
-              const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
-              await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-              await task.connect(owner).setDefaultTokenThreshold({ token: token.address, min: threshold, max: 0 })
-            })
-
+          context('when there is no token out set', () => {
             it('reverts', async () => {
-              await expect(task.call(token.address, amount, 0)).to.be.revertedWith('TASK_TOKEN_THRESHOLD_NOT_MET')
+              await expect(task.call(token.address, amount, 0)).to.be.revertedWith('TASK_TOKEN_OUT_NOT_SET')
             })
           })
         })

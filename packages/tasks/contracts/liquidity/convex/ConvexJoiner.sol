@@ -42,22 +42,24 @@ contract ConvexJoiner is IConvexJoiner, BaseConvexTask {
 
     /**
      * @dev Executes the Convex joiner task
+     * @param token Address of the Curve pool token to be joined with
+     * @param amount Amount of Curve pool tokens to be joined with
      */
-    function call(address pool, uint256 amount)
+    function call(address token, uint256 amount)
         external
         override
-        authP(authParams(pool, amount))
-        baseTaskCall(pool, amount)
+        authP(authParams(token, amount))
+        baseTaskCall(token, amount)
     {
-        bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.join.selector, pool, amount);
+        bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.join.selector, token, amount);
         ISmartVault(smartVault).execute(connector, connectorData);
     }
 
     /**
      * @dev Hook to be called before the Convex task call starts. Adds simple validations to avoid zeroed amounts.
      */
-    function _beforeTask(address pool, uint256 amount) internal virtual override {
-        super._beforeTask(pool, amount);
+    function _beforeTask(address token, uint256 amount) internal virtual override {
+        super._beforeTask(token, amount);
         require(amount > 0, 'TASK_AMOUNT_ZERO');
     }
 }

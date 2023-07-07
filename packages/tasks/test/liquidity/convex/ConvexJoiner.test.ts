@@ -73,18 +73,18 @@ describe('ConvexJoiner', () => {
         task = task.connect(owner)
       })
 
-      context('when the pool is not zero', () => {
-        let pool: Contract
+      context('when the token is not zero', () => {
+        let token: Contract
 
-        beforeEach('deploy pool', async () => {
-          pool = await deploy('TokenMock', ['TKN'])
+        beforeEach('deploy token', async () => {
+          token = await deploy('TokenMock', ['2CRV'])
         })
 
         context('when the amount is not zero', () => {
           const amount = fp(10)
 
           beforeEach('fund smart vault', async () => {
-            await pool.mint(smartVault.address, amount)
+            await token.mint(smartVault.address, amount)
           })
 
           context('when the threshold has passed', () => {
@@ -93,19 +93,19 @@ describe('ConvexJoiner', () => {
             beforeEach('set token threshold', async () => {
               const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
               await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-              await task.connect(owner).setDefaultTokenThreshold({ token: pool.address, min: threshold, max: 0 })
+              await task.connect(owner).setDefaultTokenThreshold({ token: token.address, min: threshold, max: 0 })
             })
 
             it('executes the expected connector', async () => {
-              const tx = await task.call(pool.address, amount)
+              const tx = await task.call(token.address, amount)
 
-              const connectorData = connector.interface.encodeFunctionData('join', [pool.address, amount])
+              const connectorData = connector.interface.encodeFunctionData('join', [token.address, amount])
               await assertIndirectEvent(tx, smartVault.interface, 'Executed', { connector, data: connectorData })
-              await assertIndirectEvent(tx, connector.interface, 'LogJoin', { pool, amount })
+              await assertIndirectEvent(tx, connector.interface, 'LogJoin', { curvePool: token, amount })
             })
 
             it('emits an Executed event', async () => {
-              const tx = await task.call(pool.address, amount)
+              const tx = await task.call(token.address, amount)
               await assertEvent(tx, 'Executed')
             })
           })
@@ -116,11 +116,11 @@ describe('ConvexJoiner', () => {
             beforeEach('set token threshold', async () => {
               const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
               await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-              await task.connect(owner).setDefaultTokenThreshold({ token: pool.address, min: threshold, max: 0 })
+              await task.connect(owner).setDefaultTokenThreshold({ token: token.address, min: threshold, max: 0 })
             })
 
             it('reverts', async () => {
-              await expect(task.call(pool.address, amount)).to.be.revertedWith('TASK_TOKEN_THRESHOLD_NOT_MET')
+              await expect(task.call(token.address, amount)).to.be.revertedWith('TASK_TOKEN_THRESHOLD_NOT_MET')
             })
           })
         })
@@ -129,8 +129,16 @@ describe('ConvexJoiner', () => {
           const amount = 0
 
           it('reverts', async () => {
-            await expect(task.call(pool.address, amount)).to.be.revertedWith('TASK_AMOUNT_ZERO')
+            await expect(task.call(token.address, amount)).to.be.revertedWith('TASK_AMOUNT_ZERO')
           })
+        })
+      })
+
+      context('when the token is zero', () => {
+        const token = ZERO_ADDRESS
+
+        it('reverts', async () => {
+          await expect(task.call(token, 0)).to.be.revertedWith('TASK_TOKEN_ZERO')
         })
       })
     })

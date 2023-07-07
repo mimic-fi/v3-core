@@ -26,9 +26,19 @@ interface IBaseCurveTask is ITask {
     event ConnectorSet(address indexed connector);
 
     /**
+     * @dev Emitted every time the default token out is set
+     */
+    event DefaultTokenOutSet(address indexed tokenOut);
+
+    /**
      * @dev Emitted every time the default max slippage is set
      */
     event DefaultMaxSlippageSet(uint256 maxSlippage);
+
+    /**
+     * @dev Emitted every time a custom token out is set
+     */
+    event CustomTokenOutSet(address indexed token, address tokenOut);
 
     /**
      * @dev Emitted every time a custom max slippage is set
@@ -41,9 +51,20 @@ interface IBaseCurveTask is ITask {
     function connector() external view returns (address);
 
     /**
+     * @dev Tells the default token out
+     */
+    function defaultTokenOut() external view returns (address);
+
+    /**
      * @dev Tells the default token threshold
      */
     function defaultMaxSlippage() external view returns (uint256);
+
+    /**
+     * @dev Tells the token out defined for a specific token
+     * @param token Address of the token being queried
+     */
+    function customTokenOut(address token) external view returns (address);
 
     /**
      * @dev Tells the max slippage defined for a specific token
@@ -58,10 +79,23 @@ interface IBaseCurveTask is ITask {
     function setConnector(address newConnector) external;
 
     /**
+     * @dev Sets the default token out
+     * @param tokenOut Address of the default token out to be set
+     */
+    function setDefaultTokenOut(address tokenOut) external;
+
+    /**
      * @dev Sets the default max slippage
      * @param maxSlippage Default max slippage to be set
      */
     function setDefaultMaxSlippage(uint256 maxSlippage) external;
+
+    /**
+     * @dev Sets a custom token out
+     * @param token Address of the token to set a custom token out for
+     * @param tokenOut Address of the token out to be set
+     */
+    function setCustomTokenOut(address token, address tokenOut) external;
 
     /**
      * @dev Sets a custom max slippage

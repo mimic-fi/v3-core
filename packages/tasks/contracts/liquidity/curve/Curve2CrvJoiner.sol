@@ -29,19 +29,21 @@ contract Curve2CrvJoiner is ICurve2CrvJoiner, BaseCurveTask {
     /**
      * @dev Curve 2CRV joiner task config. Only used in the initializer.
      */
-    struct Curve2CrvConfig {
+    struct Curve2CrvJoinerConfig {
         BaseCurveConfig baseCurveConfig;
     }
 
     /**
      * @dev Initializes a Curve 2CRV joiner task
      */
-    function initialize(Curve2CrvConfig memory config) external initializer {
+    function initialize(Curve2CrvJoinerConfig memory config) external initializer {
         _initialize(config.baseCurveConfig);
     }
 
     /**
      * @dev Executes the Curve 2CRV joiner task
+     * @param token Address of the token to join the Curve pool with
+     * @param amount Amount of tokens to join the Curve pool with
      */
     function call(address token, uint256 amount, uint256 slippage)
         external
@@ -49,7 +51,15 @@ contract Curve2CrvJoiner is ICurve2CrvJoiner, BaseCurveTask {
         authP(authParams(token, amount, slippage))
         baseCurveTaskCall(token, amount, slippage)
     {
-        bytes memory connectorData = abi.encodeWithSelector(Curve2CrvConnector.join.selector, token, amount, slippage);
+        address tokenOut = _getApplicableTokenOut(token);
+        bytes memory connectorData = abi.encodeWithSelector(
+            Curve2CrvConnector.join.selector,
+            tokenOut,
+            token,
+            amount,
+            slippage
+        );
+
         ISmartVault(smartVault).execute(connector, connectorData);
     }
 }

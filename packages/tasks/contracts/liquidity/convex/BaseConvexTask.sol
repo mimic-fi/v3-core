@@ -50,11 +50,11 @@ abstract contract BaseConvexTask is IBaseConvexTask, Task {
     }
 
     /**
-     * @dev Hook to be called before the Convex task call starts. Adds simple validations to avoid a zeroed pool.
+     * @dev Hook to be called before the Convex task call starts. Adds simple validations to avoid a zeroed token.
      */
-    function _beforeTask(address pool, uint256 amount) internal virtual override {
-        super._beforeTask(pool, amount);
-        require(pool != address(0), 'TASK_TOKEN_ZERO');
+    function _beforeTask(address token, uint256 amount) internal virtual override {
+        super._beforeTask(token, amount);
+        require(token != address(0), 'TASK_TOKEN_ZERO');
     }
 
     /**
