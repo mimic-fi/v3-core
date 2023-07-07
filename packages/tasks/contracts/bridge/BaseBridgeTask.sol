@@ -27,7 +27,6 @@ import '../interfaces/bridge/IBaseBridgeTask.sol';
 abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     using FixedPoint for uint256;
     using EnumerableMap for EnumerableMap.AddressToUintMap;
-    using EnumerableMap for EnumerableMap.AddressToAddressMap;
 
     // Connector address
     address public override connector;
@@ -35,7 +34,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     // Default destination chain
     uint256 public override defaultDestinationChain;
 
-    // Default maximym slippage in fixed point
+    // Default maximum slippage in fixed point
     uint256 public override defaultMaxSlippage;
 
     // Destination chain per token address
