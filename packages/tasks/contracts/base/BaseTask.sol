@@ -84,45 +84,11 @@ abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable 
     }
 
     /**
-     * @dev It allows receiving native token transfers
-     */
-    receive() external payable {
-        // solhint-disable-previous-line no-empty-blocks
-    }
-
-    /**
      * @dev Tells the amount a task should use for a token
      * @param token Address of the token being queried
      */
     function getTaskAmount(address token) external view virtual override returns (uint256) {
         return ERC20Helpers.balanceOf(token, tokensSource);
-    }
-
-    /**
-     * @dev Tells the balance of the task for a given token
-     * @param token Address of the token querying the balance of
-     * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to query the native token balance
-     */
-    function getTaskBalance(address token) public view override returns (uint256) {
-        return ERC20Helpers.balanceOf(token, address(this));
-    }
-
-    /**
-     * @dev Tells the balance of the Smart Vault for a given token
-     * @param token Address of the token querying the balance of
-     * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to query the native token balance
-     */
-    function getSmartVaultBalance(address token) public view override returns (uint256) {
-        return ERC20Helpers.balanceOf(token, smartVault);
-    }
-
-    /**
-     * @dev Tells the total balance for a given token
-     * @param token Address of the token querying the balance of
-     * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to query the native token balance
-     */
-    function getTotalBalance(address token) public view override returns (uint256) {
-        return getTaskBalance(token) + getSmartVaultBalance(token);
     }
 
     /**
@@ -160,16 +126,6 @@ abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable 
     }
 
     /**
-     * @dev Transfers task's assets to the Smart Vault
-     * @param token Address of the token to be transferred
-     * @param amount Amount of tokens to be transferred
-     * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to transfer the native token balance
-     */
-    function transferToSmartVault(address token, uint256 amount) external override authP(authParams(token, amount)) {
-        _transferToSmartVault(token, amount);
-    }
-
-    /**
      * @dev Hook to be called before the task call starts. This implementation only adds a non-reentrant and
      * not-paused guard. It should be overwritten to add any extra logic that must run before the task is executed.
      */
@@ -202,16 +158,6 @@ abstract contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable 
         require(source != address(0), 'TASK_TOKENS_SOURCE_ZERO');
         tokensSource = source;
         emit TokensSourceSet(source);
-    }
-
-    /**
-     * @dev Transfers task's assets to the Smart Vault
-     * @param token Address of the token to be transferred
-     * @param amount Amount of tokens to be transferred
-     * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to transfer the native token balance
-     */
-    function _transferToSmartVault(address token, uint256 amount) internal {
-        ERC20Helpers.transfer(token, smartVault, amount);
     }
 
     /**
