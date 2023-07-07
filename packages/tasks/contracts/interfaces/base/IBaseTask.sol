@@ -40,11 +40,6 @@ interface IBaseTask is IAuthorized {
     event Unpaused();
 
     /**
-     * @dev Emitted every time the group ID is set
-     */
-    event GroupIdSet(uint8 indexed groupId);
-
-    /**
      * @dev Emitted every time the tokens source is set
      */
     event TokensSourceSet(address indexed source);
@@ -58,11 +53,6 @@ interface IBaseTask is IAuthorized {
      * @dev Tells the task is paused or not
      */
     function isPaused() external view returns (bool);
-
-    /**
-     * @dev Tells the group ID of the task
-     */
-    function groupId() external view returns (uint8);
 
     /**
      * @dev Tells the address from where the token amounts to execute this task are calculated
@@ -84,12 +74,6 @@ interface IBaseTask is IAuthorized {
      * @dev Unpauses an task
      */
     function unpause() external;
-
-    /**
-     * @dev Sets a group ID for the task. Sender must be authorized
-     * @param groupId ID of the group to be set for the task
-     */
-    function setGroupId(uint8 groupId) external;
 
     /**
      * @dev Sets the tokens source of the task

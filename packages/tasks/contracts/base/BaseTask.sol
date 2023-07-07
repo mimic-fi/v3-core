@@ -34,9 +34,6 @@ abstract contract BaseTask is IBaseTask, Authorized {
     // Whether the task is paused or not
     bool public override isPaused;
 
-    // Group ID of the task
-    uint8 public override groupId;
-
     // Source from where the token amounts to execute each task must be calculated
     address public override tokensSource;
 
@@ -52,12 +49,10 @@ abstract contract BaseTask is IBaseTask, Authorized {
     /**
      * @dev Base task config. Only used in the initializer.
      * @param smartVault Address of the smart vault this task will reference, it cannot be changed once set
-     * @param groupId Id of the group to which this task must refer to, use zero to avoid grouping
      * @param tokensSource Address of the tokens source to be set
      */
     struct BaseConfig {
         address smartVault;
-        uint8 groupId;
         address tokensSource;
     }
 
@@ -74,7 +69,6 @@ abstract contract BaseTask is IBaseTask, Authorized {
      */
     function _initialize(BaseConfig memory config) internal onlyInitializing {
         _initialize(ISmartVault(config.smartVault).authorizer());
-        _setGroupId(config.groupId);
         _setTokensSource(config.tokensSource);
         smartVault = config.smartVault;
     }
@@ -106,14 +100,6 @@ abstract contract BaseTask is IBaseTask, Authorized {
     }
 
     /**
-     * @dev Sets a group ID for the task. Sender must be authorized
-     * @param newGroupId ID of the group to be set for the task
-     */
-    function setGroupId(uint8 newGroupId) external override authP(authParams(uint256(newGroupId))) {
-        _setGroupId(newGroupId);
-    }
-
-    /**
      * @dev Sets the tokens source of the task
      * @param source Address of the new tokens source to be set
      */
@@ -135,15 +121,6 @@ abstract contract BaseTask is IBaseTask, Authorized {
      */
     function _afterTask(address, uint256) internal virtual {
         emit Executed();
-    }
-
-    /**
-     * @dev Sets a group ID for the task
-     * @param newGroupId ID of the group to be set for the task
-     */
-    function _setGroupId(uint8 newGroupId) internal {
-        groupId = newGroupId;
-        emit GroupIdSet(newGroupId);
     }
 
     /**

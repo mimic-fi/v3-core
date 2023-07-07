@@ -61,7 +61,6 @@ export type TaskConfig = {
   baseConfig: {
     owner: string
     smartVault: string
-    groupId: BigNumberish
     tokensSource: string
   }
   gasLimitConfig: {
@@ -93,7 +92,6 @@ export function buildEmptyTaskConfig(owner: SignerWithAddress, smartVault: Contr
     baseConfig: {
       owner: owner.address,
       smartVault: smartVault.address,
-      groupId: 0,
       tokensSource: smartVault.address,
     },
     gasLimitConfig: {
