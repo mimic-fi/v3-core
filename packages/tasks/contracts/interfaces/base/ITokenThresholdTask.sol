@@ -32,12 +32,12 @@ interface ITokenThresholdTask is IBaseTask {
     /**
      * @dev Emitted every time a default threshold is set
      */
-    event DefaultTokenThresholdSet(Threshold threshold);
+    event DefaultTokenThresholdSet(address token, uint256 min, uint256 max);
 
     /**
      * @dev Emitted every time a token threshold is set
      */
-    event CustomTokenThresholdSet(address indexed token, Threshold threshold);
+    event CustomTokenThresholdSet(address indexed token, address thresholdToken, uint256 min, uint256 max);
 
     /**
      * @dev Tells the default token threshold
@@ -48,18 +48,23 @@ interface ITokenThresholdTask is IBaseTask {
      * @dev Tells the custom threshold defined for a specific token
      * @param token Address of the token being queried
      */
-    function customTokenThreshold(address token) external view returns (Threshold memory threshold);
+    function customTokenThreshold(address token) external view returns (Threshold memory);
 
     /**
      * @dev Sets a new default threshold config
-     * @param threshold Threshold config to be set as the default one
+     * @param thresholdToken New threshold token to be set
+     * @param thresholdMin New threshold minimum to be set
+     * @param thresholdMax New threshold maximum to be set
      */
-    function setDefaultTokenThreshold(Threshold memory threshold) external;
+    function setDefaultTokenThreshold(address thresholdToken, uint256 thresholdMin, uint256 thresholdMax) external;
 
     /**
      * @dev Sets a custom token threshold
      * @param token Address of the token to set a custom threshold
-     * @param threshold Custom threshold to be set for the given token
+     * @param thresholdToken New custom threshold token to be set
+     * @param thresholdMin New custom threshold minimum to be set
+     * @param thresholdMax New custom threshold maximum to be set
      */
-    function setCustomTokenThreshold(address token, Threshold memory threshold) external;
+    function setCustomTokenThreshold(address token, address thresholdToken, uint256 thresholdMin, uint256 thresholdMax)
+        external;
 }

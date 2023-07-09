@@ -110,11 +110,7 @@ describe('OneInchV5Swapper', () => {
               beforeEach('set threshold', async () => {
                 const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
                 await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-                await task.connect(owner).setDefaultTokenThreshold({
-                  token: tokenOut.address,
-                  min: thresholdAmount,
-                  max: 0,
-                })
+                await task.connect(owner).setDefaultTokenThreshold(tokenOut.address, thresholdAmount, 0)
               })
 
               context('when the smart vault balance passes the threshold', () => {

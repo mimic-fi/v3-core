@@ -100,7 +100,7 @@ describe('ConvexExiter', () => {
             beforeEach('set token threshold', async () => {
               const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
               await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-              await task.connect(owner).setDefaultTokenThreshold({ token: token.address, min: threshold, max: 0 })
+              await task.connect(owner).setDefaultTokenThreshold(token.address, threshold, 0)
             })
 
             it('executes the expected connector', async () => {
@@ -144,7 +144,7 @@ describe('ConvexExiter', () => {
             beforeEach('set token threshold', async () => {
               const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
               await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-              await task.connect(owner).setDefaultTokenThreshold({ token: token.address, min: threshold, max: 0 })
+              await task.connect(owner).setDefaultTokenThreshold(token.address, threshold, 0)
             })
 
             it('reverts', async () => {
