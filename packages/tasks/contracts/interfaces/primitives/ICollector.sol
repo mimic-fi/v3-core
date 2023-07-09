@@ -21,20 +21,15 @@ import '../ITask.sol';
  */
 interface ICollector is ITask {
     /**
-     * @dev Emitted every time the source is set
+     * @dev Emitted every time the tokens source is set
      */
-    event SourceSet(address indexed source);
+    event TokensSourceSet(address indexed tokensSource);
 
     /**
-     * @dev Tells the address of the allowed source
+     * @dev Sets the tokens source address
+     * @param tokensSource Address of the tokens source to be set
      */
-    function source() external view returns (address);
-
-    /**
-     * @dev Sets the source address
-     * @param newSource Address of the new source to be set
-     */
-    function setSource(address newSource) external;
+    function setTokensSource(address tokensSource) external;
 
     /**
      * @dev Executes the withdrawer task

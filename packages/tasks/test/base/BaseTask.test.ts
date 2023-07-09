@@ -7,9 +7,7 @@ import {
   fp,
   getSigners,
   NATIVE_TOKEN_ADDRESS,
-  ONES_ADDRESS,
   ONES_BYTES32,
-  ZERO_ADDRESS,
   ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
@@ -35,7 +33,6 @@ describe('BaseTask', () => {
       [
         {
           smartVault: smartVault.address,
-          tokensSource: smartVault.address,
           previousBalanceConnectorId: ZERO_BYTES32,
           nextBalanceConnectorId: ZERO_BYTES32,
         },
@@ -48,7 +45,6 @@ describe('BaseTask', () => {
       await expect(
         task.initialize({
           smartVault: smartVault.address,
-          tokensSource: smartVault.address,
           previousBalanceConnectorId: ZERO_BYTES32,
           nextBalanceConnectorId: ZERO_BYTES32,
         })
@@ -57,38 +53,31 @@ describe('BaseTask', () => {
   })
 
   describe('getTaskAmount', () => {
-    const source = ONES_ADDRESS
     const balance = fp(0.1)
-
-    beforeEach('set source', async () => {
-      const setTokensSourceRole = task.interface.getSighash('setTokensSource')
-      await authorizer.connect(owner).authorize(owner.address, task.address, setTokensSourceRole, [])
-      await task.connect(owner).setTokensSource(source)
-    })
 
     context('when the task has no previous balance connector set', () => {
       context('when querying ETH', () => {
         const token = NATIVE_TOKEN_ADDRESS
 
-        beforeEach('fund source', async () => {
-          await owner.sendTransaction({ to: source, value: balance })
+        beforeEach('fund tokens source', async () => {
+          await owner.sendTransaction({ to: smartVault.address, value: balance })
         })
 
-        it('tells the source balance', async () => {
-          expect(await task.getTaskAmount(token)).to.be.equal(balance)
+        it('returns zero', async () => {
+          expect(await task.getTaskAmount(token)).to.be.equal(0)
         })
       })
 
       context('when the token is an ERC20', () => {
         let token: Contract
 
-        beforeEach('fund source', async () => {
+        beforeEach('fund smart vault', async () => {
           token = await deploy('TokenMock', ['USDC'])
-          await token.mint(source, balance)
+          await token.mint(smartVault.address, balance)
         })
 
-        it('tells the source balance', async () => {
-          expect(await task.getTaskAmount(token.address)).to.be.equal(balance)
+        it('tells the tokens source balance', async () => {
+          expect(await task.getTaskAmount(token.address)).to.be.equal(0)
         })
       })
     })
@@ -119,7 +108,7 @@ describe('BaseTask', () => {
       context('when the token is an ERC20', () => {
         let token: Contract
 
-        beforeEach('fund source', async () => {
+        beforeEach('fund tokens source', async () => {
           token = await deploy('TokenMock', ['USDC'])
         })
 
@@ -206,41 +195,6 @@ describe('BaseTask', () => {
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
         await expect(task.unpause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
-      })
-    })
-  })
-
-  describe('setTokensSource', () => {
-    context('when the sender is authorized', async () => {
-      beforeEach('set sender', async () => {
-        const setTokensSourceRole = task.interface.getSighash('setTokensSource')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setTokensSourceRole, [])
-        task = task.connect(owner)
-      })
-
-      context('when the source is not zero', async () => {
-        const source = ONES_ADDRESS
-
-        it('can be set', async () => {
-          const tx = await task.setTokensSource(source)
-
-          expect(await task.tokensSource()).to.include(source)
-          await assertEvent(tx, 'TokensSourceSet', { source })
-        })
-      })
-
-      context('when the source is zero', async () => {
-        const source = ZERO_ADDRESS
-
-        it('reverts', async () => {
-          await expect(task.setTokensSource(source)).to.be.revertedWith('TASK_TOKENS_SOURCE_ZERO')
-        })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(task.setTokensSource(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })

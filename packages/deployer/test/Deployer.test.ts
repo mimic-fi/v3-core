@@ -436,7 +436,6 @@ describe('Deployer', () => {
       initializeData = task.interface.encodeFunctionData('initialize', [
         {
           smartVault: smartVault.address,
-          tokensSource: smartVault.address,
           previousBalanceConnectorId: ZERO_BYTES32,
           nextBalanceConnectorId: ZERO_BYTES32,
         },
@@ -469,7 +468,6 @@ describe('Deployer', () => {
             await expect(
               instance.initialize({
                 smartVault: smartVault.address,
-                tokensSource: smartVault.address,
                 previousBalanceConnectorId: ZERO_BYTES32,
                 nextBalanceConnectorId: ZERO_BYTES32,
               })

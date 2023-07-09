@@ -61,7 +61,6 @@ export type TaskConfig = {
   baseConfig: {
     owner: string
     smartVault: string
-    tokensSource: string
     previousBalanceConnectorId: string
     nextBalanceConnectorId: string
   }
@@ -94,7 +93,6 @@ export function buildEmptyTaskConfig(owner: SignerWithAddress, smartVault: Contr
     baseConfig: {
       owner: owner.address,
       smartVault: smartVault.address,
-      tokensSource: smartVault.address,
       previousBalanceConnectorId: ZERO_BYTES32,
       nextBalanceConnectorId: ZERO_BYTES32,
     },

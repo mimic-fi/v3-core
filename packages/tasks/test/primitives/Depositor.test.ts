@@ -29,14 +29,17 @@ describe('Depositor', () => {
 
   beforeEach('deploy task', async () => {
     const deployer = await getSigner()
-    const source = getContractAddress({ from: deployer.address, nonce: (await deployer.getTransactionCount()) + 1 })
+    const tokensSource = getContractAddress({
+      from: deployer.address,
+      nonce: (await deployer.getTransactionCount()) + 1,
+    })
 
     task = await deployProxy(
       'Depositor',
       [],
       [
         {
-          source: source,
+          tokensSource,
           taskConfig: buildEmptyTaskConfig(owner, smartVault),
         },
       ]
@@ -50,42 +53,42 @@ describe('Depositor', () => {
     })
   })
 
-  describe('setSource', () => {
+  describe('setTokensSource', () => {
     context('when the sender is authorized', async () => {
       beforeEach('set sender', async () => {
-        const setSourceRole = task.interface.getSighash('setSource')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setSourceRole, [])
+        const setTokensSourceRole = task.interface.getSighash('setTokensSource')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setTokensSourceRole, [])
         task = task.connect(owner)
       })
 
       context('when the new address is the task itself', async () => {
-        let newSource: string
+        let newTokensSource: string
 
-        beforeEach('set new source', async () => {
-          newSource = task.address
+        beforeEach('set new tokens source', async () => {
+          newTokensSource = task.address
         })
 
-        it('sets the source', async () => {
-          await task.setSource(newSource)
-          expect(await task.source()).to.be.equal(newSource)
+        it('sets the tokens source', async () => {
+          await task.setTokensSource(newTokensSource)
+          expect(await task.getTokensSource()).to.be.equal(newTokensSource)
         })
 
         it('emits an event', async () => {
-          const tx = await task.setSource(newSource)
-          await assertEvent(tx, 'SourceSet', { source: newSource })
+          const tx = await task.setTokensSource(newTokensSource)
+          await assertEvent(tx, 'TokensSourceSet', { tokensSource: newTokensSource })
         })
       })
 
       context('when the new address is another', async () => {
         it('reverts', async () => {
-          await expect(task.setSource(ZERO_ADDRESS)).to.be.revertedWith('TASK_DEPOSITOR_BAD_SOURCE')
+          await expect(task.setTokensSource(ZERO_ADDRESS)).to.be.revertedWith('TASK_DEPOSITOR_BAD_TOKENS_SOURCE')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setSource(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setTokensSource(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })
@@ -95,7 +98,7 @@ describe('Depositor', () => {
 
     const threshold = fp(2)
 
-    beforeEach('set token and source', async () => {
+    beforeEach('set token', async () => {
       token = await deploy('TokenMock', ['USDC'])
     })
 

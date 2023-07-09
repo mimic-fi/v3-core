@@ -41,6 +41,21 @@ contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
     }
 
     /**
+     * @dev Tells the address from where the token amounts to execute this task are fetched
+     */
+    function getTokensSource() external view virtual override(IBaseTask, BaseTask) returns (address) {
+        return address(ConvexConnector(connector).booster());
+    }
+
+    /**
+     * @dev Tells the amount a task should use for a token, in this case always zero since it is not possible to
+     * compute on-chain how many tokens are available to be claimed.
+     */
+    function getTaskAmount(address) external pure virtual override(IBaseTask, BaseTask) returns (uint256) {
+        return 0;
+    }
+
+    /**
      * @dev Executes the Convex claimer task
      * @param token Address of the Convex pool token to claim rewards for
      * @param amount Must be zero, it is not possible to claim a specific number of tokens
@@ -49,7 +64,7 @@ contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
         external
         override
         authP(authParams(token))
-        baseTaskCall(token, amount) // Cannot know how much it will claim
+        baseTaskCall(token, amount)
     {
         bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.claim.selector, token);
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
