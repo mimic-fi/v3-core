@@ -29,6 +29,20 @@ import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorized.sol';
  */
 interface IPriceOracle is IAuthorized {
     /**
+     * @dev Price data
+     * @param base Token to rate
+     * @param quote Token used for the price rate
+     * @param rate Price of a token (base) expressed in `quote`
+     * @param deadline Expiration timestamp until when the given quote is considered valid
+     */
+    struct PriceData {
+        address base;
+        address quote;
+        uint256 rate;
+        uint256 deadline;
+    }
+
+    /**
      * @dev Emitted every time a signer is changed
      */
     event SignerSet(address indexed signer, bool allowed);
@@ -48,6 +62,12 @@ interface IPriceOracle is IAuthorized {
      * @dev Tells the list of allowed signers
      */
     function getAllowedSigners() external view returns (address[] memory);
+
+    /**
+     * @dev Tells the digest expected to be signed by the off-chain oracle signers for a list of prices
+     * @param prices List of prices to be signed
+     */
+    function getPricesDigest(PriceData[] memory prices) external view returns (bytes32);
 
     /**
      * @dev Tells the price of a token `base` expressed in a token `quote`
