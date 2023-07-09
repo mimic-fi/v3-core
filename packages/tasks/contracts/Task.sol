@@ -20,12 +20,21 @@ import './base/GasLimitedTask.sol';
 import './base/TimeLockedTask.sol';
 import './base/TokenIndexedTask.sol';
 import './base/TokenThresholdTask.sol';
+import './base/VolumeLimitedTask.sol';
 
 /**
  * @title Task
  * @dev Shared components across all tasks
  */
-abstract contract Task is ITask, BaseTask, GasLimitedTask, TimeLockedTask, TokenIndexedTask, TokenThresholdTask {
+abstract contract Task is
+    ITask,
+    BaseTask,
+    GasLimitedTask,
+    TimeLockedTask,
+    TokenIndexedTask,
+    TokenThresholdTask,
+    VolumeLimitedTask
+{
     /**
      * @dev Task config params. Only used in the initializer.
      */
@@ -35,6 +44,7 @@ abstract contract Task is ITask, BaseTask, GasLimitedTask, TimeLockedTask, Token
         TimeLockConfig timeLockConfig;
         TokenIndexConfig tokenIndexConfig;
         TokenThresholdConfig tokenThresholdConfig;
+        VolumeLimitConfig volumeLimitConfig;
     }
 
     /**
@@ -46,6 +56,7 @@ abstract contract Task is ITask, BaseTask, GasLimitedTask, TimeLockedTask, Token
         _initialize(config.timeLockConfig);
         _initialize(config.tokenIndexConfig);
         _initialize(config.tokenThresholdConfig);
+        _initialize(config.volumeLimitConfig);
     }
 
     /**
@@ -54,13 +65,14 @@ abstract contract Task is ITask, BaseTask, GasLimitedTask, TimeLockedTask, Token
     function _beforeTask(address token, uint256 amount)
         internal
         virtual
-        override(BaseTask, GasLimitedTask, TimeLockedTask, TokenIndexedTask, TokenThresholdTask)
+        override(BaseTask, GasLimitedTask, TimeLockedTask, TokenIndexedTask, TokenThresholdTask, VolumeLimitedTask)
     {
         BaseTask._beforeTask(token, amount);
         GasLimitedTask._beforeTask(token, amount);
         TimeLockedTask._beforeTask(token, amount);
         TokenIndexedTask._beforeTask(token, amount);
         TokenThresholdTask._beforeTask(token, amount);
+        VolumeLimitedTask._beforeTask(token, amount);
     }
 
     /**
@@ -69,8 +81,9 @@ abstract contract Task is ITask, BaseTask, GasLimitedTask, TimeLockedTask, Token
     function _afterTask(address token, uint256 amount)
         internal
         virtual
-        override(BaseTask, GasLimitedTask, TimeLockedTask)
+        override(BaseTask, GasLimitedTask, TimeLockedTask, VolumeLimitedTask)
     {
+        VolumeLimitedTask._beforeTask(token, amount);
         TimeLockedTask._afterTask(token, amount);
         GasLimitedTask._afterTask(token, amount);
         BaseTask._afterTask(token, amount);

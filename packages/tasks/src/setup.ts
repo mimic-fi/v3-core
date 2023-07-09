@@ -86,6 +86,17 @@ export type TaskConfig = {
       max: BigNumberish
     }
   }
+  volumeLimitConfig: {
+    defaultLimitToken: string
+    defaultLimitAmount: BigNumberish
+    defaultLimitPeriod: BigNumberish
+    customVolumeLimitConfigs: {
+      token: string
+      limitToken: string
+      limitAmount: BigNumberish
+      limitPeriod: BigNumberish
+    }[]
+  }
 }
 
 export function buildEmptyTaskConfig(owner: SignerWithAddress, smartVault: Contract): TaskConfig {
@@ -117,6 +128,12 @@ export function buildEmptyTaskConfig(owner: SignerWithAddress, smartVault: Contr
         min: 0,
         max: 0,
       },
+    },
+    volumeLimitConfig: {
+      defaultLimitToken: ZERO_ADDRESS,
+      defaultLimitAmount: 0,
+      defaultLimitPeriod: 0,
+      customVolumeLimitConfigs: [],
     },
   }
 }
