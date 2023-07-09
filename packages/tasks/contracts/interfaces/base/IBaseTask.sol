@@ -30,16 +30,6 @@ interface IBaseTask is IAuthorized {
     event Executed();
 
     /**
-     * @dev Emitted every time an task is paused
-     */
-    event Paused();
-
-    /**
-     * @dev Emitted every time an task is unpaused
-     */
-    event Unpaused();
-
-    /**
      * @dev Emitted every time the balance connectors are set
      */
     event BalanceConnectorsSet(bytes32 indexed previous, bytes32 indexed next);
@@ -48,11 +38,6 @@ interface IBaseTask is IAuthorized {
      * @dev Tells the address of the Smart Vault tied to it, it cannot be changed
      */
     function smartVault() external view returns (address);
-
-    /**
-     * @dev Tells the task is paused or not
-     */
-    function isPaused() external view returns (bool);
 
     /**
      * @dev Tells the balance connector id of the previous task in the workflow
@@ -75,16 +60,6 @@ interface IBaseTask is IAuthorized {
      * @param token Address of the token being queried
      */
     function getTaskAmount(address token) external view returns (uint256);
-
-    /**
-     * @dev Pauses an task
-     */
-    function pause() external;
-
-    /**
-     * @dev Unpauses an task
-     */
-    function unpause() external;
 
     /**
      * @dev Sets the balance connector IDs

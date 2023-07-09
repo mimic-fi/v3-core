@@ -16,6 +16,7 @@ pragma solidity ^0.8.0;
 
 import './interfaces/ITask.sol';
 import './base/BaseTask.sol';
+import './base/PausableTask.sol';
 import './base/GasLimitedTask.sol';
 import './base/TimeLockedTask.sol';
 import './base/TokenIndexedTask.sol';
@@ -29,6 +30,7 @@ import './base/VolumeLimitedTask.sol';
 abstract contract Task is
     ITask,
     BaseTask,
+    PausableTask,
     GasLimitedTask,
     TimeLockedTask,
     TokenIndexedTask,
@@ -65,9 +67,18 @@ abstract contract Task is
     function _beforeTask(address token, uint256 amount)
         internal
         virtual
-        override(BaseTask, GasLimitedTask, TimeLockedTask, TokenIndexedTask, TokenThresholdTask, VolumeLimitedTask)
+        override(
+            BaseTask,
+            PausableTask, 
+            GasLimitedTask,
+            TimeLockedTask,
+            TokenIndexedTask,
+            TokenThresholdTask,
+            VolumeLimitedTask
+        )
     {
         BaseTask._beforeTask(token, amount);
+        PausableTask._beforeTask(token, amount);
         GasLimitedTask._beforeTask(token, amount);
         TimeLockedTask._beforeTask(token, amount);
         TokenIndexedTask._beforeTask(token, amount);
