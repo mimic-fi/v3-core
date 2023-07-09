@@ -125,7 +125,6 @@ describe('BaseTask', () => {
     })
   })
 
-
   describe('setBalanceConnectors', () => {
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async () => {

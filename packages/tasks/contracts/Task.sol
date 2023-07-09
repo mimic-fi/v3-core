@@ -69,7 +69,7 @@ abstract contract Task is
         virtual
         override(
             BaseTask,
-            PausableTask, 
+            PausableTask,
             GasLimitedTask,
             TimeLockedTask,
             TokenIndexedTask,
