@@ -20,6 +20,10 @@ import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import './BaseBridgeTask.sol';
 import '../interfaces/bridge/IHopBridger.sol';
 
+/**
+ * @title Hop bridger
+ * @dev Task that extends the base bridge task to use Hop
+ */
 contract HopBridger is IHopBridger, BaseBridgeTask {
     using FixedPoint for uint256;
 
@@ -42,7 +46,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     mapping (address => address) public override tokenHopEntrypoint;
 
     /**
-     * @dev Custom max fee percentage config
+     * @dev Custom max fee percentage config. Only used in the initializer.
      */
     struct CustomMaxFeePct {
         address token;
@@ -50,7 +54,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Token Hop entrypoint config
+     * @dev Token Hop entrypoint config. Only used in the initializer.
      */
     struct TokenHopEntrypoint {
         address token;
@@ -58,9 +62,9 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Hop bridger task config
+     * @dev Hop bridge config. Only used in the initializer.
      */
-    struct HopBridgerConfig {
+    struct HopBridgeConfig {
         address relayer;
         uint256 maxFeePct;
         uint256 maxDeadline;
@@ -70,10 +74,27 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Creates a Hop bridger task
+     * @dev Initializes the Hop bridger
+     * @param config Hop bridge config
      */
-    function initialize(HopBridgerConfig memory config) external initializer {
-        _initialize(config.baseBridgeConfig);
+    function initialize(HopBridgeConfig memory config) external virtual initializer {
+        __HopBridger_init(config);
+    }
+
+    /**
+     * @dev Initializes the Hop bridger. It does call upper contracts initializers.
+     * @param config Hop bridge config
+     */
+    function __HopBridger_init(HopBridgeConfig memory config) internal onlyInitializing {
+        __BaseBridgeTask_init(config.baseBridgeConfig);
+        __HopBridger_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the Hop bridger. It does not call upper contracts initializers.
+     * @param config Hop bridge config
+     */
+    function __HopBridger_init_unchained(HopBridgeConfig memory config) internal onlyInitializing {
         _setRelayer(config.relayer);
         _setMaxDeadline(config.maxDeadline);
         _setDefaultMaxFeePct(config.maxFeePct);
@@ -87,6 +108,14 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
             TokenHopEntrypoint memory customConfig = config.tokenHopEntrypoints[i];
             _setTokenHopEntrypoint(customConfig.token, customConfig.entrypoint);
         }
+    }
+
+    /**
+     * @dev Tells the max fee percentage that should be used for a token
+     */
+    function getMaxFeePct(address token) public view virtual override returns (uint256) {
+        uint256 maxFeePct = customMaxFeePct[token];
+        return maxFeePct == 0 ? defaultMaxFeePct : maxFeePct;
     }
 
     /**
@@ -140,65 +169,46 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Execution function
+     * @dev Execute Hop bridger
      */
     function call(address token, uint256 amount, uint256 slippage, uint256 fee)
         external
         override
         authP(authParams(token, amount, slippage, fee))
-        baseBridgeTaskCall(token, amount, slippage)
     {
-        _validateFee(token, amount, fee);
-        bytes memory connectorData = _buildConnectorData(token, amount, slippage, fee);
-        ISmartVault(smartVault).execute(connector, connectorData);
-    }
-
-    /**
-     * @dev Build Hop bridger connector data
-     */
-    function _buildConnectorData(address token, uint256 amount, uint256 slippage, uint256 fee)
-        internal
-        view
-        returns (bytes memory)
-    {
+        _beforeHopBridger(token, amount, slippage, fee);
         uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
-        return
-            abi.encodeWithSelector(
-                HopConnector.execute.selector,
-                _getApplicableDestinationChain(token),
-                token,
-                amount,
-                minAmountOut,
-                recipient,
-                tokenHopEntrypoint[token],
-                block.timestamp + maxDeadline,
-                relayer,
-                fee
-            );
+        bytes memory connectorData = abi.encodeWithSelector(
+            HopConnector.execute.selector,
+            getDestinationChain(token),
+            token,
+            amount,
+            minAmountOut,
+            recipient,
+            tokenHopEntrypoint[token],
+            block.timestamp + maxDeadline,
+            relayer,
+            fee
+        );
+
+        ISmartVault(smartVault).execute(connector, connectorData);
+        _afterHopBridger(token, amount, slippage, fee);
     }
 
     /**
-     * @dev Tells the max fee percentage that should be used for a token
+     * @dev Before Hop bridger hook
      */
-    function _getApplicableMaxFeePct(address token) internal view returns (uint256) {
-        uint256 maxFeePct = customMaxFeePct[token];
-        return maxFeePct == 0 ? defaultMaxFeePct : maxFeePct;
-    }
-
-    /**
-     * @dev Reverts if the requested fee is above the relayer fee configured for a token
-     */
-    function _validateFee(address token, uint256 amount, uint256 fee) internal view {
-        require(fee.divUp(amount) <= _getApplicableMaxFeePct(token), 'TASK_FEE_TOO_HIGH');
-    }
-
-    /**
-     * @dev Hook to be called before the bridge task call starts. This implementation calls the base bridge task hooks
-     * and validates there is an entrypoint defined for the given token to be bridged.
-     */
-    function _beforeBridgeTask(address token, uint256 amount, uint256 slippage) internal virtual override {
-        super._beforeBridgeTask(token, amount, slippage);
+    function _beforeHopBridger(address token, uint256 amount, uint256 slippage, uint256 fee) internal virtual {
+        _beforeBaseBridgeTask(token, amount, slippage);
         require(tokenHopEntrypoint[token] != address(0), 'TASK_MISSING_HOP_ENTRYPOINT');
+        require(fee.divUp(amount) <= getMaxFeePct(token), 'TASK_FEE_TOO_HIGH');
+    }
+
+    /**
+     * @dev After Hop bridger hook
+     */
+    function _afterHopBridger(address token, uint256 amount, uint256 slippage, uint256) internal virtual {
+        _afterBaseBridgeTask(token, amount, slippage);
     }
 
     /**

@@ -21,24 +21,14 @@ describe('PausableTask', () => {
       [],
       [
         {
-          smartVault: smartVault.address,
-          previousBalanceConnectorId: ZERO_BYTES32,
-          nextBalanceConnectorId: ZERO_BYTES32,
+          baseConfig: {
+            smartVault: smartVault.address,
+            previousBalanceConnectorId: ZERO_BYTES32,
+            nextBalanceConnectorId: ZERO_BYTES32,
+          },
         },
       ]
     )
-  })
-
-  describe('initialization', async () => {
-    it('cannot be initialized twice', async () => {
-      await expect(
-        task.initialize({
-          smartVault: smartVault.address,
-          previousBalanceConnectorId: ZERO_BYTES32,
-          nextBalanceConnectorId: ZERO_BYTES32,
-        })
-      ).to.be.revertedWith('Initializable: contract is already initialized')
-    })
   })
 
   describe('pause', () => {

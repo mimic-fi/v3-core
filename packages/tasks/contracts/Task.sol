@@ -38,7 +38,7 @@ abstract contract Task is
     VolumeLimitedTask
 {
     /**
-     * @dev Task config params. Only used in the initializer.
+     * @dev Task config. Only used in the initializer.
      */
     struct TaskConfig {
         BaseConfig baseConfig;
@@ -50,53 +50,63 @@ abstract contract Task is
     }
 
     /**
-     * @dev Initializes a task
+     * @dev Initializes the task. It does call upper contracts initializers.
+     * @param config Task config
      */
-    function _initialize(TaskConfig memory config) internal onlyInitializing {
-        _initialize(config.baseConfig);
-        _initialize(config.gasLimitConfig);
-        _initialize(config.timeLockConfig);
-        _initialize(config.tokenIndexConfig);
-        _initialize(config.tokenThresholdConfig);
-        _initialize(config.volumeLimitConfig);
+    function __Task_init(TaskConfig memory config) internal onlyInitializing {
+        __BaseTask_init(config.baseConfig);
+        __PausableTask_init();
+        __GasLimitedTask_init(config.gasLimitConfig);
+        __TimeLockedTask_init(config.timeLockConfig);
+        __TokenIndexedTask_init(config.tokenIndexConfig);
+        __TokenThresholdTask_init(config.tokenThresholdConfig);
+        __VolumeLimitedTask_init(config.volumeLimitConfig);
+        __Task_init_unchained(config);
     }
 
     /**
-     * @dev Hook to be called before the task call starts.
+     * @dev Initializes the task. It does not call upper contracts initializers.
+     * @param config Task config
      */
-    function _beforeTask(address token, uint256 amount)
-        internal
-        virtual
-        override(
-            BaseTask,
-            PausableTask,
-            GasLimitedTask,
-            TimeLockedTask,
-            TokenIndexedTask,
-            TokenThresholdTask,
-            VolumeLimitedTask
-        )
-    {
-        BaseTask._beforeTask(token, amount);
-        PausableTask._beforeTask(token, amount);
-        GasLimitedTask._beforeTask(token, amount);
-        TimeLockedTask._beforeTask(token, amount);
-        TokenIndexedTask._beforeTask(token, amount);
-        TokenThresholdTask._beforeTask(token, amount);
-        VolumeLimitedTask._beforeTask(token, amount);
+    function __Task_init_unchained(TaskConfig memory config) internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     /**
-     * @dev Hook to be called after the task call has finished.
+     * @dev Fetches a base/quote price
      */
-    function _afterTask(address token, uint256 amount)
+    function _getPrice(address base, address quote)
         internal
-        virtual
-        override(BaseTask, GasLimitedTask, TimeLockedTask, VolumeLimitedTask)
+        view
+        override(BaseTask, GasLimitedTask, TokenThresholdTask, VolumeLimitedTask)
+        returns (uint256)
     {
-        VolumeLimitedTask._beforeTask(token, amount);
-        TimeLockedTask._afterTask(token, amount);
-        GasLimitedTask._afterTask(token, amount);
-        BaseTask._afterTask(token, amount);
+        return BaseTask._getPrice(base, quote);
+    }
+
+    /**
+     * @dev Before task hook
+     */
+    function _beforeTask(address token, uint256 amount) internal virtual {
+        _beforeBaseTask(token, amount);
+        _beforePausableTask(token, amount);
+        _beforeGasLimitedTask(token, amount);
+        _beforeTimeLockedTask(token, amount);
+        _beforeTokenIndexedTask(token, amount);
+        _beforeTokenThresholdTask(token, amount);
+        _beforeVolumeLimitedTask(token, amount);
+    }
+
+    /**
+     * @dev After task hook
+     */
+    function _afterTask(address token, uint256 amount) internal virtual {
+        _afterVolumeLimitedTask(token, amount);
+        _afterTokenThresholdTask(token, amount);
+        _afterTokenIndexedTask(token, amount);
+        _afterTimeLockedTask(token, amount);
+        _afterGasLimitedTask(token, amount);
+        _afterPausableTask(token, amount);
+        _afterBaseTask(token, amount);
     }
 }

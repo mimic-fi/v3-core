@@ -21,6 +21,10 @@ import '@mimic-fi/v3-connectors/contracts/swap/hop/HopSwapConnector.sol';
 import './BaseSwapTask.sol';
 import '../interfaces/swap/IHopL2Swapper.sol';
 
+/**
+ * @title Hop L2 swapper
+ * @dev Task that extends the base swap task to use Hop
+ */
 contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
     using FixedPoint for uint256;
     using BytesHelpers for bytes;
@@ -40,19 +44,35 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev Hop L2 swapper task config. Only used in the initializer.
+     * @dev Hop L2 swap config. Only used in the initializer.
      */
-    struct HopL2SwapperConfig {
+    struct HopL2SwapConfig {
         TokenAmm[] tokenAmms;
         BaseSwapConfig baseSwapConfig;
     }
 
     /**
-     * @dev Initializes a Hop L2 swapper task
+     * @dev Initializes the Hop L2 swapper
+     * @param config Hop L2 swap config
      */
-    function initialize(HopL2SwapperConfig memory config) external initializer {
-        _initialize(config.baseSwapConfig);
+    function initialize(HopL2SwapConfig memory config) external virtual initializer {
+        __HopL2Swapper_init(config);
+    }
 
+    /**
+     * @dev Initializes the Hop L2 swapper. It does call upper contracts initializers.
+     * @param config Hop L2 swap config
+     */
+    function __HopL2Swapper_init(HopL2SwapConfig memory config) internal onlyInitializing {
+        __BaseSwapTask_init(config.baseSwapConfig);
+        __HopL2Swapper_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the Hop L2 swapper. It does not call upper contracts initializers.
+     * @param config Hop L2 swap config
+     */
+    function __HopL2Swapper_init_unchained(HopL2SwapConfig memory config) internal onlyInitializing {
         for (uint256 i = 0; i < config.tokenAmms.length; i++) {
             _setTokenAmm(config.tokenAmms[i].token, config.tokenAmms[i].amm);
         }
@@ -74,12 +94,11 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
         external
         override
         authP(authParams(hToken, amount, slippage))
-        baseSwapTaskCall(hToken, amount, slippage)
     {
-        address tokenOut = _getApplicableTokenOut(hToken);
+        _beforeHopL2Swapper(hToken, amount, slippage);
+        address tokenOut = getTokenOut(hToken);
         address dexAddress = IHopL2Amm(tokenAmm[hToken]).exchangeAddress();
         uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
-
         bytes memory connectorData = abi.encodeWithSelector(
             HopSwapConnector.execute.selector,
             hToken,
@@ -90,16 +109,28 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
         );
 
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
-        _increaseBalanceConnector(tokenOut, result.toUint256());
+        _afterHopL2Swapper(hToken, amount, slippage, tokenOut, result.toUint256());
     }
 
     /**
-     * @dev Hook to be called before the swap task call starts. This implementation calls the base swap task hooks
-     * and validates there is an AMM defined for the given hToken to be swapped.
+     * @dev Before Hop L2 swapper hook
      */
-    function _beforeSwapTask(address token, uint256 amount, uint256 slippage) internal virtual override {
-        super._beforeSwapTask(token, amount, slippage);
+    function _beforeHopL2Swapper(address token, uint256 amount, uint256 slippage) internal virtual {
+        _beforeBaseSwapTask(token, amount, slippage);
         require(tokenAmm[token] != address(0), 'TASK_MISSING_HOP_TOKEN_AMM');
+    }
+
+    /**
+     * @dev After Hop L2 swapper hook
+     */
+    function _afterHopL2Swapper(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 slippage,
+        address tokenOut,
+        uint256 amountOut
+    ) internal virtual {
+        _afterBaseSwapTask(tokenIn, amountIn, slippage, tokenOut, amountOut);
     }
 
     /**

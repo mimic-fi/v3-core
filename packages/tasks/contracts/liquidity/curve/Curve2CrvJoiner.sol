@@ -21,7 +21,8 @@ import './BaseCurveTask.sol';
 import '../../interfaces/liquidity/curve/ICurve2CrvJoiner.sol';
 
 /**
- * @title Curve 2CRV joiner task
+ * @title Curve 2CRV joiner
+ * @dev Task that extends the base Curve task to join 2CRV pools
  */
 contract Curve2CrvJoiner is ICurve2CrvJoiner, BaseCurveTask {
     using BytesHelpers for bytes;
@@ -30,21 +31,39 @@ contract Curve2CrvJoiner is ICurve2CrvJoiner, BaseCurveTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('CURVE_2CRV_JOINER');
 
     /**
-     * @dev Curve 2CRV joiner task config. Only used in the initializer.
+     * @dev Curve 2CRV join config. Only used in the initializer.
      */
-    struct Curve2CrvJoinerConfig {
+    struct Curve2CrvJoinConfig {
         BaseCurveConfig baseCurveConfig;
     }
 
     /**
-     * @dev Initializes a Curve 2CRV joiner task
+     * @dev Initializes a Curve 2CRV joiner
+     * @param config Curve 2CRV join config
      */
-    function initialize(Curve2CrvJoinerConfig memory config) external initializer {
-        _initialize(config.baseCurveConfig);
+    function initialize(Curve2CrvJoinConfig memory config) external virtual initializer {
+        __Curve2CrvJoiner_init(config);
     }
 
     /**
-     * @dev Executes the Curve 2CRV joiner task
+     * @dev Initializes the Curve 2CRV joiner. It does call upper contracts initializers.
+     * @param config Curve 2CRV join config
+     */
+    function __Curve2CrvJoiner_init(Curve2CrvJoinConfig memory config) internal onlyInitializing {
+        __BaseCurveTask_init(config.baseCurveConfig);
+        __Curve2CrvJoiner_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the Curve 2CRV joiner. It does not call upper contracts initializers.
+     * @param config Curve 2CRV join config
+     */
+    function __Curve2CrvJoiner_init_unchained(Curve2CrvJoinConfig memory config) internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
+    }
+
+    /**
+     * @dev Execute Curve 2CRV joiner
      * @param token Address of the token to join the Curve pool with
      * @param amount Amount of tokens to join the Curve pool with
      */
@@ -52,9 +71,9 @@ contract Curve2CrvJoiner is ICurve2CrvJoiner, BaseCurveTask {
         external
         override
         authP(authParams(token, amount, slippage))
-        baseCurveTaskCall(token, amount, slippage)
     {
-        address tokenOut = _getApplicableTokenOut(token);
+        _beforeCurve2CrvJoiner(token, amount, slippage);
+        address tokenOut = getTokenOut(token);
         bytes memory connectorData = abi.encodeWithSelector(
             Curve2CrvConnector.join.selector,
             tokenOut,
@@ -64,6 +83,26 @@ contract Curve2CrvJoiner is ICurve2CrvJoiner, BaseCurveTask {
         );
 
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
-        _increaseBalanceConnector(tokenOut, result.toUint256());
+        _afterCurve2CrvJoiner(token, amount, slippage, tokenOut, result.toUint256());
+    }
+
+    /**
+     * @dev Before Curve 2CRV joiner hook
+     */
+    function _beforeCurve2CrvJoiner(address token, uint256 amount, uint256 slippage) internal virtual {
+        _beforeBaseCurveTask(token, amount, slippage);
+    }
+
+    /**
+     * @dev After Curve 2CRV joiner hook
+     */
+    function _afterCurve2CrvJoiner(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 slippage,
+        address tokenOut,
+        uint256 amountOut
+    ) internal virtual {
+        _afterBaseCurveTask(tokenIn, amountIn, slippage, tokenOut, amountOut);
     }
 }

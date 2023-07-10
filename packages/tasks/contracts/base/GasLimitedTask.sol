@@ -14,15 +14,16 @@
 
 pragma solidity ^0.8.17;
 
+import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
+import '@mimic-fi/v3-smart-vault/contracts/interfaces/ISmartVault.sol';
 
-import './BaseTask.sol';
 import '../interfaces/base/IGasLimitedTask.sol';
 
 /**
  * @dev Gas config for tasks. It allows setting different gas-related configs, specially useful to control relayed txs.
  */
-abstract contract GasLimitedTask is IGasLimitedTask, BaseTask {
+abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
     using FixedPoint for uint256;
 
     // Variable used to allow a better developer experience to reimburse tx gas cost
@@ -56,9 +57,18 @@ abstract contract GasLimitedTask is IGasLimitedTask, BaseTask {
     }
 
     /**
-     * @dev Initializes a gas limited task
+     * @dev Initializes the gas limited task. It does call upper contracts initializers.
+     * @param config Gas limited task config
      */
-    function _initialize(GasLimitConfig memory config) internal onlyInitializing {
+    function __GasLimitedTask_init(GasLimitConfig memory config) internal onlyInitializing {
+        __GasLimitedTask_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the gas limited task. It does not call upper contracts initializers.
+     * @param config Gas limited task config
+     */
+    function __GasLimitedTask_init_unchained(GasLimitConfig memory config) internal onlyInitializing {
         _setGasPriceLimit(config.gasPriceLimit);
         _setPriorityFeeLimit(config.priorityFeeLimit);
         _setTxCostLimit(config.txCostLimit);
@@ -98,9 +108,14 @@ abstract contract GasLimitedTask is IGasLimitedTask, BaseTask {
     }
 
     /**
+     * @dev Fetches a base/quote price
+     */
+    function _getPrice(address base, address quote) internal view virtual returns (uint256);
+
+    /**
      * @dev Initializes gas limited tasks and validates gas price limit
      */
-    function _beforeTask(address, uint256) internal virtual override {
+    function _beforeGasLimitedTask(address, uint256) internal virtual {
         __initialGas__ = gasleft();
         require(gasPriceLimit == 0 || tx.gasprice <= gasPriceLimit, 'TASK_GAS_PRICE_LIMIT');
         require(priorityFeeLimit == 0 || tx.gasprice - block.basefee <= priorityFeeLimit, 'TASK_PRIORITY_FEE_LIMIT');
@@ -109,7 +124,7 @@ abstract contract GasLimitedTask is IGasLimitedTask, BaseTask {
     /**
      * @dev Validates transaction cost limit
      */
-    function _afterTask(address token, uint256 amount) internal virtual override {
+    function _afterGasLimitedTask(address token, uint256 amount) internal virtual {
         require(__initialGas__ > 0, 'TASK_GAS_NOT_INITIALIZED');
 
         uint256 totalGas = __initialGas__ - gasleft();
@@ -119,7 +134,7 @@ abstract contract GasLimitedTask is IGasLimitedTask, BaseTask {
 
         if (txCostLimitPct > 0) {
             require(amount > 0, 'TASK_TX_COST_LIMIT_PCT');
-            uint256 price = _getPrice(_wrappedNativeToken(), token);
+            uint256 price = _getPrice(ISmartVault(this.smartVault()).wrappedNativeToken(), token);
             uint256 totalCostInToken = totalCost.mulUp(price);
             require(totalCostInToken.divUp(amount) <= txCostLimitPct, 'TASK_TX_COST_LIMIT_PCT');
         }

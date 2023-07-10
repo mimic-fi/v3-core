@@ -6,34 +6,43 @@ import '../../base/BaseTask.sol';
 import '../../base/TokenIndexedTask.sol';
 
 contract TokenIndexedTaskMock is BaseTask, TokenIndexedTask {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
     bytes32 public constant override EXECUTION_TYPE = keccak256('TOKEN_INDEXED_TASK');
 
-    struct Config {
+    struct TokenIndexMockConfig {
         BaseConfig baseConfig;
         TokenIndexConfig tokenIndexConfig;
     }
 
-    function initialize(Config memory config) external initializer {
-        _initialize(config.baseConfig);
-        _initialize(config.tokenIndexConfig);
+    function initialize(TokenIndexMockConfig memory config) external virtual initializer {
+        __BaseTask_init(config.baseConfig);
+        __TokenIndexedTask_init(config.tokenIndexConfig);
     }
 
-    function call(address token) external baseTaskCall(token, 0) {
-        // solhint-disable-previous-line no-empty-blocks
+    function call(address token) external {
+        _beforeTokenIndexedTaskMock(token);
+        _afterTokenIndexedTaskMock(token);
+    }
+
+    function isTokenAllowed(address token) external view returns (bool) {
+        bool containsToken = _tokens.contains(token);
+        return tokensAcceptanceType == TokensAcceptanceType.AllowList ? containsToken : !containsToken;
     }
 
     /**
-     * @dev Hook to be called before the task call starts.
+     * @dev Before token indexed task mock hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override(BaseTask, TokenIndexedTask) {
-        BaseTask._beforeTask(token, amount);
-        TokenIndexedTask._beforeTask(token, amount);
+    function _beforeTokenIndexedTaskMock(address token) internal virtual {
+        _beforeBaseTask(token, 0);
+        _beforeTokenIndexedTask(token, 0);
     }
 
     /**
-     * @dev Hook to be called after the task call has finished.
+     * @dev After token indexed task mock hook
      */
-    function _afterTask(address token, uint256 amount) internal virtual override(BaseTask) {
-        BaseTask._afterTask(token, amount);
+    function _afterTokenIndexedTaskMock(address token) internal virtual {
+        _afterTokenIndexedTask(token, 0);
+        _afterBaseTask(token, 0);
     }
 }

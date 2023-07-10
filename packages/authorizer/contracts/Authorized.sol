@@ -53,11 +53,18 @@ contract Authorized is IAuthorized, Initializable, AuthorizedHelpers {
     }
 
     /**
-     * @dev Initialization function, sets the authorizer implementation
-     * Note this function can only be called from a function marked with the `initializer` modifier.
+     * @dev Initializes the authorized contract. It does call upper contracts initializers.
      * @param _authorizer Address of the authorizer to be set
      */
-    function _initialize(address _authorizer) internal onlyInitializing {
+    function __Authorized_init(address _authorizer) internal onlyInitializing {
+        __Authorized_init_unchained(_authorizer);
+    }
+
+    /**
+     * @dev Initializes the authorized contract. It does not call upper contracts initializers.
+     * @param _authorizer Address of the authorizer to be set
+     */
+    function __Authorized_init_unchained(address _authorizer) internal onlyInitializing {
         authorizer = _authorizer;
     }
 

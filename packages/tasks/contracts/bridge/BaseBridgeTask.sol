@@ -45,18 +45,6 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     mapping (address => uint256) public override customMaxSlippage;
 
     /**
-     * @dev Modifier to tag the execution function of a task to trigger before and after hooks automatically
-     * @param token Address of the token to be bridged
-     * @param amount Amount of tokens to be bridged
-     * @param slippage Slippage requested
-     */
-    modifier baseBridgeTaskCall(address token, uint256 amount, uint256 slippage) {
-        _beforeBridgeTask(token, amount, slippage);
-        _;
-        _afterBridgeTask(token, amount, slippage);
-    }
-
-    /**
      * @dev Custom destination chain config. Only used in the initializer.
      */
     struct CustomDestinationChain {
@@ -73,7 +61,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     }
 
     /**
-     * @dev Base bridge task config. Only used in the initializer.
+     * @dev Base bridge config. Only used in the initializer.
      */
     struct BaseBridgeConfig {
         address connector;
@@ -86,11 +74,19 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     }
 
     /**
-     * @dev Initializes a base bridge task
-     * @param config Base bridge task config
+     * @dev Initializes the base bridge task. It does call upper contracts initializers.
+     * @param config Base bridge config
      */
-    function _initialize(BaseBridgeConfig memory config) internal onlyInitializing {
-        _initialize(config.taskConfig);
+    function __BaseBridgeTask_init(BaseBridgeConfig memory config) internal onlyInitializing {
+        __Task_init(config.taskConfig);
+        __BaseBridgeTask_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the base bridge task. It does not call upper contracts initializers.
+     * @param config Base bridge config
+     */
+    function __BaseBridgeTask_init_unchained(BaseBridgeConfig memory config) internal onlyInitializing {
         _setConnector(config.connector);
         _setRecipient(config.recipient);
         _setDefaultDestinationChain(config.destinationChain);
@@ -104,6 +100,24 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
         for (uint256 i = 0; i < config.customMaxSlippages.length; i++) {
             _setCustomMaxSlippage(config.customMaxSlippages[i].token, config.customMaxSlippages[i].maxSlippage);
         }
+    }
+
+    /**
+     * @dev Tells the destination chain that should be used for a token
+     * @param token Address of the token to get the destination chain for
+     */
+    function getDestinationChain(address token) public view virtual override returns (uint256) {
+        uint256 chain = customDestinationChain[token];
+        return chain == 0 ? defaultDestinationChain : chain;
+    }
+
+    /**
+     * @dev Tells the max slippage that should be used for a token
+     * @param token Address of the token to get the max slippage for
+     */
+    function getMaxSlippage(address token) public view virtual override returns (uint256) {
+        uint256 maxSlippage = customMaxSlippage[token];
+        return maxSlippage == 0 ? defaultMaxSlippage : maxSlippage;
     }
 
     /**
@@ -169,47 +183,20 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     }
 
     /**
-     * @dev Tells the destination chain that should be used for a token
-     * @param token Address of the token to get the destination chain for
-     * @return destinationChain Destination chain to be used
+     * @dev Before base bridge task hook
      */
-    function _getApplicableDestinationChain(address token) internal view returns (uint256) {
-        uint256 chain = customDestinationChain[token];
-        return chain == 0 ? defaultDestinationChain : chain;
-    }
-
-    /**
-     * @dev Tells the max slippage that should be used for a token
-     * @param token Address of the token to get the max slippage for
-     * @return maxSlippage Max slippage to be used
-     */
-    function _getApplicableMaxSlippage(address token) internal view returns (uint256) {
-        uint256 maxSlippage = customMaxSlippage[token];
-        return maxSlippage == 0 ? defaultMaxSlippage : maxSlippage;
-    }
-
-    /**
-     * @dev Hook to be called before the bridge task call starts. This implementation calls the base task `_beforeTask`
-     * hook and finally adds some trivial token, amount, and slippage validations.
-     * @param token Address of the token to be bridged
-     * @param amount Amount of tokens to be bridged
-     * @param slippage Requested slippage
-     */
-    function _beforeBridgeTask(address token, uint256 amount, uint256 slippage) internal virtual {
+    function _beforeBaseBridgeTask(address token, uint256 amount, uint256 slippage) internal virtual {
         _beforeTask(token, amount);
         require(token != address(0), 'TASK_TOKEN_ZERO');
         require(amount > 0, 'TASK_AMOUNT_ZERO');
-        require(_getApplicableDestinationChain(token) != 0, 'TASK_DESTINATION_CHAIN_NOT_SET');
-        require(slippage <= _getApplicableMaxSlippage(token), 'TASK_SLIPPAGE_TOO_HIGH');
+        require(getDestinationChain(token) != 0, 'TASK_DESTINATION_CHAIN_NOT_SET');
+        require(slippage <= getMaxSlippage(token), 'TASK_SLIPPAGE_TOO_HIGH');
     }
 
     /**
-     * @dev Hook to be called after the bridge task call has finished. This implementation simply calls the base task
-     * `_afterTask` hook.
-     * @param token Address of the token to be bridged
-     * @param amount Amount of tokens to be bridged
+     * @dev After base bridge task hook
      */
-    function _afterBridgeTask(address token, uint256 amount, uint256) internal virtual {
+    function _afterBaseBridgeTask(address token, uint256 amount, uint256) internal virtual {
         _afterTask(token, amount);
     }
 

@@ -37,15 +37,6 @@ abstract contract BaseTask is IBaseTask, Authorized {
     bytes32 public override nextBalanceConnectorId;
 
     /**
-     * @dev Modifier to tag the execution function of a task to trigger before and after hooks automatically
-     */
-    modifier baseTaskCall(address token, uint256 amount) {
-        _beforeTask(token, amount);
-        _;
-        _afterTask(token, amount);
-    }
-
-    /**
      * @dev Base task config. Only used in the initializer.
      * @param smartVault Address of the smart vault this task will reference, it cannot be changed once set
      * @param previousBalanceConnectorId Balance connector id for the previous task in the workflow
@@ -58,18 +49,19 @@ abstract contract BaseTask is IBaseTask, Authorized {
     }
 
     /**
-     * @dev Creates a new authorized contract. Note that initializers are disabled at creation time.
+     * @dev Initializes the base task. It does call upper contracts initializers.
+     * @param config Base task config
      */
-    constructor() {
-        _disableInitializers();
+    function __BaseTask_init(BaseConfig memory config) internal onlyInitializing {
+        __Authorized_init(ISmartVault(config.smartVault).authorizer());
+        __BaseTask_init_unchained(config);
     }
 
     /**
-     * @dev Initializes the base task
+     * @dev Initializes the base task. It does not call upper contracts initializers.
      * @param config Base task config
      */
-    function _initialize(BaseConfig memory config) internal onlyInitializing {
-        _initialize(ISmartVault(config.smartVault).authorizer());
+    function __BaseTask_init_unchained(BaseConfig memory config) internal onlyInitializing {
         smartVault = config.smartVault;
         _setBalanceConnectors(config.previousBalanceConnectorId, config.nextBalanceConnectorId);
     }
@@ -103,18 +95,16 @@ abstract contract BaseTask is IBaseTask, Authorized {
     }
 
     /**
-     * @dev Hook to be called before the task call starts. This implementation updates the balance connector if
-     * necessary. It should be overwritten to add any extra logic that must run before the task is executed.
+     * @dev Before base task hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual {
+    function _beforeBaseTask(address token, uint256 amount) internal virtual {
         _decreaseBalanceConnector(token, amount);
     }
 
     /**
-     * @dev Hook to be called after the task call has finished. This implementation only emits the Executed event.
-     * It should be overwritten to add any extra logic that must run after the task has been executed.
+     * @dev After base task hook
      */
-    function _afterTask(address, uint256) internal virtual {
+    function _afterBaseTask(address, uint256) internal virtual {
         emit Executed();
     }
 
@@ -155,7 +145,7 @@ abstract contract BaseTask is IBaseTask, Authorized {
     /**
      * @dev Fetches a base/quote price from the smart vault's price oracle
      */
-    function _getPrice(address base, address quote) internal view returns (uint256) {
+    function _getPrice(address base, address quote) internal view virtual returns (uint256) {
         address priceOracle = ISmartVault(smartVault).priceOracle();
         require(priceOracle != address(0), 'TASK_PRICE_ORACLE_NOT_SET');
         return IPriceOracle(priceOracle).getPrice(_wrappedIfNative(base), _wrappedIfNative(quote));

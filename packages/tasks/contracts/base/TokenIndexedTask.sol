@@ -16,21 +16,22 @@ pragma solidity ^0.8.3;
 
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 
-import './BaseTask.sol';
+import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
+
 import '../interfaces/base/ITokenIndexedTask.sol';
 
 /**
  * @dev Token indexed task. It defines a token acceptance list to tell which are the tokens supported by the
  * task. Tokens acceptance can be configured either as an allow list or as a deny list.
  */
-abstract contract TokenIndexedTask is ITokenIndexedTask, BaseTask {
+abstract contract TokenIndexedTask is ITokenIndexedTask, Authorized {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     // Acceptance list type
     TokensAcceptanceType public override tokensAcceptanceType;
 
     // Enumerable set of tokens included in the acceptance list
-    EnumerableSet.AddressSet private _tokens;
+    EnumerableSet.AddressSet internal _tokens;
 
     /**
      * @dev Token index config. Only used in the initializer.
@@ -43,23 +44,23 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, BaseTask {
     }
 
     /**
-     * @dev Initializes a token indexed task
+     * @dev Initializes the token indexed task. It does not call upper contracts initializers.
+     * @param config Token indexed task config
      */
-    function _initialize(TokenIndexConfig memory config) internal onlyInitializing {
+    function __TokenIndexedTask_init(TokenIndexConfig memory config) internal onlyInitializing {
+        __TokenIndexedTask_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the token indexed task. It does call upper contracts initializers.
+     * @param config Token indexed task config
+     */
+    function __TokenIndexedTask_init_unchained(TokenIndexConfig memory config) internal onlyInitializing {
         _setTokensAcceptanceType(config.acceptanceType);
 
         for (uint256 i = 0; i < config.tokens.length; i++) {
             _setTokenAcceptanceList(config.tokens[i], true);
         }
-    }
-
-    /**
-     * @dev Tells if the requested token is compliant with the tokens acceptance list
-     * @param token Address of the token to be checked
-     */
-    function isTokenAllowed(address token) public view override returns (bool) {
-        return
-            tokensAcceptanceType == TokensAcceptanceType.AllowList ? _tokens.contains(token) : !_tokens.contains(token);
     }
 
     /**
@@ -87,10 +88,19 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, BaseTask {
     }
 
     /**
-     * @dev Reverts if the requested token does not comply with the tokens acceptance list
+     * @dev Before token indexed task hook
      */
-    function _beforeTask(address token, uint256) internal virtual override {
-        require(isTokenAllowed(token), 'TASK_TOKEN_NOT_ALLOWED');
+    function _beforeTokenIndexedTask(address token, uint256) internal virtual {
+        bool containsToken = _tokens.contains(token);
+        bool isTokenAllowed = tokensAcceptanceType == TokensAcceptanceType.AllowList ? containsToken : !containsToken;
+        require(isTokenAllowed, 'TASK_TOKEN_NOT_ALLOWED');
+    }
+
+    /**
+     * @dev After token indexed task hook
+     */
+    function _afterTokenIndexedTask(address token, uint256) internal virtual {
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     /**

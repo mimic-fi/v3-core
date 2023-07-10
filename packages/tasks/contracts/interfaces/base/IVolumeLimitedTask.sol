@@ -54,6 +54,12 @@ interface IVolumeLimitedTask is IBaseTask {
     function customVolumeLimit(address token) external view returns (VolumeLimit memory);
 
     /**
+     * @dev Tells the volume limit that should be used for a token
+     * @param token Address of the token being queried
+     */
+    function getVolumeLimit(address token) external view returns (VolumeLimit memory);
+
+    /**
      * @dev Sets a the default volume limit config
      * @param limitToken Address of the token to measure the volume limit
      * @param limitAmount Amount of tokens to be applied for the volume limit

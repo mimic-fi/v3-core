@@ -41,7 +41,7 @@ describe('ConnextBridger', () => {
         {
           defaultRelayerFee: 0,
           customRelayerFees: [],
-          baseConfig: {
+          baseBridgeConfig: {
             connector: connector.address,
             recipient: smartVault.address,
             destinationChain: 0,

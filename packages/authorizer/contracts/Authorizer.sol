@@ -76,7 +76,7 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
      * @dev Initialization function.
      * @param owners List of addresses that will be allowed to authorize and unauthorize permissions
      */
-    function initialize(address[] memory owners) external initializer {
+    function initialize(address[] memory owners) external virtual initializer {
         __ReentrancyGuard_init();
         for (uint256 i = 0; i < owners.length; i++) {
             _authorize(owners[i], address(this), IAuthorizer.authorize.selector, new Param[](0));

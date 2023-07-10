@@ -14,15 +14,15 @@
 
 pragma solidity ^0.8.17;
 
+import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 
-import './BaseTask.sol';
 import '../interfaces/base/IVolumeLimitedTask.sol';
 
 /**
- * @dev Gas config for tasks. It allows setting different gas-related configs, specially useful to control relayed txs.
+ * @dev Volume limit config for tasks. It allows setting volume limit per period of time.
  */
-abstract contract VolumeLimitedTask is IVolumeLimitedTask, BaseTask {
+abstract contract VolumeLimitedTask is IVolumeLimitedTask, Authorized {
     using FixedPoint for uint256;
 
     // Default volume limit
@@ -52,9 +52,18 @@ abstract contract VolumeLimitedTask is IVolumeLimitedTask, BaseTask {
     }
 
     /**
-     * @dev Initializes a token volume limit task
+     * @dev Initializes the volume limited task. It does call upper contracts initializers.
+     * @param config Volume limited task config
      */
-    function _initialize(VolumeLimitConfig memory config) internal onlyInitializing {
+    function __VolumeLimitedTask_init(VolumeLimitConfig memory config) internal onlyInitializing {
+        __VolumeLimitedTask_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the volume limited task. It does not call upper contracts initializers.
+     * @param config Volume limited task config
+     */
+    function __VolumeLimitedTask_init_unchained(VolumeLimitConfig memory config) internal onlyInitializing {
         _setDefaultVolumeLimit(config.defaultLimitToken, config.defaultLimitAmount, config.defaultLimitPeriod);
         for (uint256 i = 0; i < config.customVolumeLimitConfigs.length; i++) {
             CustomVolumeLimitConfig memory custom = config.customVolumeLimitConfigs[i];
@@ -75,6 +84,14 @@ abstract contract VolumeLimitedTask is IVolumeLimitedTask, BaseTask {
      */
     function customVolumeLimit(address token) external view override returns (VolumeLimit memory) {
         return _customVolumeLimits[token];
+    }
+
+    /**
+     * @dev Tells the volume limit that should be used for a token, it prioritizes custom limits over the default one
+     * @param token Address of the token being queried
+     */
+    function getVolumeLimit(address token) public view virtual override returns (VolumeLimit memory) {
+        return _getVolumeLimit(token);
     }
 
     /**
@@ -107,40 +124,36 @@ abstract contract VolumeLimitedTask is IVolumeLimitedTask, BaseTask {
     }
 
     /**
-     * @dev Tells the volume limit applicable for a token, it prioritizes custom limits over the default one
+     * @dev Fetches a base/quote price
+     */
+    function _getPrice(address base, address quote) internal view virtual returns (uint256);
+
+    /**
+     * @dev Tells the volume limit that should be used for a token, it prioritizes custom limits over the default one
      * @param token Address of the token being queried
      */
-    function _getApplicableVolumeLimit(address token) internal view returns (VolumeLimit storage) {
+    function _getVolumeLimit(address token) internal view returns (VolumeLimit storage) {
         VolumeLimit storage customLimit = _customVolumeLimits[token];
         return customLimit.token == address(0) ? _defaultVolumeLimit : customLimit;
     }
 
     /**
-     * @dev Tells if a token and amount are compliant with a volume limit, returns true if there is no limit set
-     * @param limit Volume limit to be evaluated
-     * @param token Address of the token to be validated
-     * @param amount Token amount to be validated
+     * @dev Before volume limited task hook
      */
-    function _isVolumeLimitValid(VolumeLimit memory limit, address token, uint256 amount) internal view returns (bool) {
-        if (limit.token == address(0)) return true;
+    function _beforeVolumeLimitedTask(address token, uint256 amount) internal virtual {
+        VolumeLimit memory limit = _getVolumeLimit(token);
+        if (limit.token == address(0)) return;
+
         uint256 amountInLimitToken = limit.token == token ? amount : amount.mulDown(_getPrice(token, limit.token));
         uint256 processedVolume = amountInLimitToken + (block.timestamp < limit.nextResetTime ? limit.accrued : 0);
-        return processedVolume <= limit.amount;
+        require(processedVolume <= limit.amount, 'TASK_VOLUME_LIMIT_EXCEEDED');
     }
 
     /**
-     * @dev Reverts if the requested token and amount does not comply with the required volume limit
+     * @dev After volume limited task hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override {
-        VolumeLimit memory limit = _getApplicableVolumeLimit(token);
-        require(_isVolumeLimitValid(limit, token, amount), 'TASK_VOLUME_LIMIT_EXCEEDED');
-    }
-
-    /**
-     * @dev Updates the accrued volume or resets it if necessary
-     */
-    function _afterTask(address token, uint256 amount) internal virtual override {
-        VolumeLimit storage limit = _getApplicableVolumeLimit(token);
+    function _afterVolumeLimitedTask(address token, uint256 amount) internal virtual {
+        VolumeLimit storage limit = _getVolumeLimit(token);
         if (limit.token == address(0)) return;
 
         uint256 amountInLimitToken = limit.token == token ? amount : amount.mulDown(_getPrice(token, limit.token));

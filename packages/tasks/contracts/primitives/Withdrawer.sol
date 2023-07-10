@@ -18,7 +18,7 @@ import '../Task.sol';
 import '../interfaces/primitives/IWithdrawer.sol';
 
 /**
- * @title Withdrawer task
+ * @title Withdrawer
  * @dev Task that offers a recipient address where funds can be withdrawn
  */
 contract Withdrawer is IWithdrawer, Task {
@@ -29,20 +29,35 @@ contract Withdrawer is IWithdrawer, Task {
     address public override recipient;
 
     /**
-     * @dev Withdrawer task config. Only used in the initializer.
-     * @param recipient Address of the allowed recipient
-     * @param taskConfig Task config params
+     * @dev Withdraw config. Only used in the initializer.
      */
-    struct WithdrawerConfig {
+    struct WithdrawConfig {
         address recipient;
         TaskConfig taskConfig;
     }
 
     /**
-     * @dev Initializes a withdrawer task
+     * @dev Initializes the withdrawer
+     * @param config Withdraw config
      */
-    function initialize(WithdrawerConfig memory config) external initializer {
-        _initialize(config.taskConfig);
+    function initialize(WithdrawConfig memory config) external virtual initializer {
+        __Withdrawer_init(config);
+    }
+
+    /**
+     * @dev Initializes the withdrawer. It does call upper contracts initializers.
+     * @param config Withdraw config
+     */
+    function __Withdrawer_init(WithdrawConfig memory config) internal onlyInitializing {
+        __Task_init(config.taskConfig);
+        __Withdrawer_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the withdrawer. It does not call upper contracts initializers.
+     * @param config Withdraw config
+     */
+    function __Withdrawer_init_unchained(WithdrawConfig memory config) internal onlyInitializing {
         _setRecipient(config.recipient);
     }
 
@@ -55,24 +70,28 @@ contract Withdrawer is IWithdrawer, Task {
     }
 
     /**
-     * @dev Executes the withdrawer task
+     * @dev Executes the Withdrawer
      */
-    function call(address token, uint256 amount)
-        external
-        override
-        authP(authParams(token, amount))
-        baseTaskCall(token, amount)
-    {
+    function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        _beforeWithdrawer(token, amount);
         ISmartVault(smartVault).withdraw(token, recipient, amount);
+        _afterWithdrawer(token, amount);
     }
 
     /**
-     * @dev Reverts if the token or the amount are zero
+     * @dev Before withdrawer hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override {
-        super._beforeTask(token, amount);
+    function _beforeWithdrawer(address token, uint256 amount) internal virtual {
+        _beforeTask(token, amount);
         require(token != address(0), 'TASK_TOKEN_ZERO');
         require(amount > 0, 'TASK_AMOUNT_ZERO');
+    }
+
+    /**
+     * @dev After withdrawer hook
+     */
+    function _afterWithdrawer(address token, uint256 amount) internal virtual {
+        _afterTask(token, amount);
     }
 
     /**

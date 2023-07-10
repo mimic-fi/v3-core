@@ -8,32 +8,46 @@ import '../../base/TokenThresholdTask.sol';
 contract TokenThresholdTaskMock is BaseTask, TokenThresholdTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('TOKEN_THRESHOLD_TASK');
 
-    struct Config {
+    struct TokenThresholdMockConfig {
         BaseConfig baseConfig;
         TokenThresholdConfig tokenThresholdConfig;
     }
 
-    function initialize(Config memory config) external initializer {
-        _initialize(config.baseConfig);
-        _initialize(config.tokenThresholdConfig);
+    function initialize(TokenThresholdMockConfig memory config) external virtual initializer {
+        __BaseTask_init(config.baseConfig);
+        __TokenThresholdTask_init(config.tokenThresholdConfig);
     }
 
-    function call(address token, uint256 amount) external baseTaskCall(token, amount) {
-        // solhint-disable-previous-line no-empty-blocks
-    }
-
-    /**
-     * @dev Hook to be called before the task call starts.
-     */
-    function _beforeTask(address token, uint256 amount) internal virtual override(BaseTask, TokenThresholdTask) {
-        BaseTask._beforeTask(token, amount);
-        TokenThresholdTask._beforeTask(token, amount);
+    function call(address token, uint256 amount) external {
+        _beforeTokenThresholdTask(token, amount);
+        _afterTokenThresholdTask(token, amount);
     }
 
     /**
-     * @dev Hook to be called after the task call has finished.
+     * @dev Fetches a base/quote price
      */
-    function _afterTask(address token, uint256 amount) internal virtual override(BaseTask) {
-        BaseTask._afterTask(token, amount);
+    function _getPrice(address base, address quote)
+        internal
+        view
+        override(BaseTask, TokenThresholdTask)
+        returns (uint256)
+    {
+        return BaseTask._getPrice(base, quote);
+    }
+
+    /**
+     * @dev Before token threshold task mock hook
+     */
+    function _beforeTokenThresholdTaskMock(address token, uint256 amount) internal virtual {
+        _beforeBaseTask(token, amount);
+        _beforeTokenThresholdTask(token, amount);
+    }
+
+    /**
+     * @dev After token threshold task mock hook
+     */
+    function _afterTokenThresholdTaskMock(address token, uint256 amount) internal virtual {
+        _afterTokenThresholdTask(token, amount);
+        _afterBaseTask(token, amount);
     }
 }
