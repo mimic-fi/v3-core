@@ -111,6 +111,14 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, BaseTask {
     }
 
     /**
+     * @dev Tells the threshold that should be used for a token
+     * @param token Address of the token to get the threshold for
+     */
+    function _getApplicableThreshold(address token) internal view returns (Threshold memory) {
+        return _customThresholds.tokens.contains(token) ? _customThresholds.thresholds[token] : _defaultThreshold;
+    }
+
+    /**
      * @dev Tells if a token and amount are compliant with a threshold, returns true if the threshold is not set
      * @param threshold Threshold to be evaluated
      * @param token Address of the token to be validated

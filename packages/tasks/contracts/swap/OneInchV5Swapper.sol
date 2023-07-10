@@ -34,7 +34,7 @@ contract OneInchV5Swapper is IOnceInchV5Swapper, BaseSwapTask {
     /**
      * @dev Creates a 1inch v5 swapper task
      */
-    function initialize(OneInchV5SwapperConfig memory config) external initializer {
+    function initialize(OneInchV5SwapperConfig memory config) public initializer {
         _initialize(config.baseSwapConfig);
     }
 
