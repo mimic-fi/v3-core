@@ -21,7 +21,8 @@ import './BaseCurveTask.sol';
 import '../../interfaces/liquidity/curve/ICurve2CrvExiter.sol';
 
 /**
- * @title Curve 2CRV exiter task
+ * @title Curve 2CRV exiter
+ * @dev Task that extends the base Curve task to exit 2CRV pools
  */
 contract Curve2CrvExiter is ICurve2CrvExiter, BaseCurveTask {
     using BytesHelpers for bytes;
@@ -30,21 +31,39 @@ contract Curve2CrvExiter is ICurve2CrvExiter, BaseCurveTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('CURVE_2CRV_EXITER');
 
     /**
-     * @dev Curve 2CRV exiter task config. Only used in the initializer.
+     * @dev Curve 2CRV exit config. Only used in the initializer.
      */
-    struct Curve2CrvExiterConfig {
+    struct Curve2CrvExitConfig {
         BaseCurveConfig baseCurveConfig;
     }
 
     /**
-     * @dev Initializes a Curve 2CRV exiter task
+     * @dev Initializes a Curve 2CRV exiter
+     * @param config Curve 2CRV exit config
      */
-    function initialize(Curve2CrvExiterConfig memory config) external initializer {
-        _initialize(config.baseCurveConfig);
+    function initialize(Curve2CrvExitConfig memory config) external virtual initializer {
+        __Curve2CrvExiter_init(config);
     }
 
     /**
-     * @dev Executes the Curve 2CRV exiter task
+     * @dev Initializes the Curve 2CRV exiter. It does call upper contracts initializers.
+     * @param config Curve 2CRV exit config
+     */
+    function __Curve2CrvExiter_init(Curve2CrvExitConfig memory config) internal onlyInitializing {
+        __BaseCurveTask_init(config.baseCurveConfig);
+        __Curve2CrvExiter_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the Curve 2CRV exiter. It does not call upper contracts initializers.
+     * @param config Curve 2CRV exit config
+     */
+    function __Curve2CrvExiter_init_unchained(Curve2CrvExitConfig memory config) internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
+    }
+
+    /**
+     * @dev Execute Curve 2CRV exiter
      * @param token Address of the Curve pool token to exit
      * @param amount Amount of Curve pool tokens to exit
      */
@@ -52,9 +71,9 @@ contract Curve2CrvExiter is ICurve2CrvExiter, BaseCurveTask {
         external
         override
         authP(authParams(token, amount, slippage))
-        baseCurveTaskCall(token, amount, slippage)
     {
-        address tokenOut = _getApplicableTokenOut(token);
+        _beforeCurve2CrvExiter(token, amount, slippage);
+        address tokenOut = getTokenOut(token);
         bytes memory connectorData = abi.encodeWithSelector(
             Curve2CrvConnector.exit.selector,
             token,
@@ -64,6 +83,26 @@ contract Curve2CrvExiter is ICurve2CrvExiter, BaseCurveTask {
         );
 
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
-        _increaseBalanceConnector(tokenOut, result.toUint256());
+        _afterCurve2CrvExiter(token, amount, slippage, tokenOut, result.toUint256());
+    }
+
+    /**
+     * @dev Before Curve 2CRV exiter hook
+     */
+    function _beforeCurve2CrvExiter(address token, uint256 amount, uint256 slippage) internal virtual {
+        _beforeBaseCurveTask(token, amount, slippage);
+    }
+
+    /**
+     * @dev After Curve 2CRV exiter hook
+     */
+    function _afterCurve2CrvExiter(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 slippage,
+        address tokenOut,
+        uint256 amountOut
+    ) internal virtual {
+        _afterBaseCurveTask(tokenIn, amountIn, slippage, tokenOut, amountOut);
     }
 }

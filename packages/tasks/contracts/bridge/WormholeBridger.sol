@@ -21,7 +21,7 @@ import './BaseBridgeTask.sol';
 import '../interfaces/bridge/IWormholeBridger.sol';
 
 /**
- * @title Wormhole bridger task
+ * @title Wormhole bridger
  * @dev Task that extends the bridger task to use Wormhole
  */
 contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
@@ -31,34 +31,50 @@ contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('WORMHOLE_BRIDGER');
 
     /**
-     * @dev Wormhole bridger task config. Only used in the initializer.
-     * @param baseBridgeConfig Base bridge task config params
+     * @dev Wormhole bridge config. Only used in the initializer.
      */
-    struct WormholeBridgerConfig {
+    struct WormholeBridgeConfig {
         BaseBridgeConfig baseBridgeConfig;
     }
 
     /**
-     * @dev Creates a Wormhole bridger task
+     * @dev Initializes the Wormhole bridger
+     * @param config Wormhole bridge config
      */
-    function initialize(WormholeBridgerConfig memory config) external initializer {
-        _initialize(config.baseBridgeConfig);
+    function initialize(WormholeBridgeConfig memory config) external virtual initializer {
+        __WormholeBridger_init(config);
     }
 
     /**
-     * @dev Execute Wormhole bridger task
+     * @dev Initializes the Wormhole bridger. It does call upper contracts initializers.
+     * @param config Wormhole bridge config
+     */
+    function __WormholeBridger_init(WormholeBridgeConfig memory config) internal onlyInitializing {
+        __BaseBridgeTask_init(config.baseBridgeConfig);
+        __WormholeBridger_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the Wormhole bridger. It does not call upper contracts initializers.
+     * @param config Wormhole bridge config
+     */
+    function __WormholeBridger_init_unchained(WormholeBridgeConfig memory config) internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
+    }
+
+    /**
+     * @dev Execute Wormhole bridger
      */
     function call(address token, uint256 amountIn, uint256 slippage)
         external
         override
         authP(authParams(token, amountIn, slippage))
-        baseBridgeTaskCall(token, amountIn, slippage)
     {
+        _beforeWormholeBridger(token, amountIn, slippage);
         uint256 minAmountOut = amountIn.mulUp(FixedPoint.ONE - slippage);
-
         bytes memory connectorData = abi.encodeWithSelector(
             WormholeConnector.execute.selector,
-            _getApplicableDestinationChain(token),
+            getDestinationChain(token),
             token,
             amountIn,
             minAmountOut,
@@ -66,5 +82,20 @@ contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
         );
 
         ISmartVault(smartVault).execute(connector, connectorData);
+        _afterWormholeBridger(token, amountIn, slippage);
+    }
+
+    /**
+     * @dev Before Wormhole bridger hook
+     */
+    function _beforeWormholeBridger(address token, uint256 amount, uint256 slippage) internal virtual {
+        _beforeBaseBridgeTask(token, amount, slippage);
+    }
+
+    /**
+     * @dev After Wormhole bridger hook
+     */
+    function _afterWormholeBridger(address token, uint256 amount, uint256 slippage) internal virtual {
+        _afterBaseBridgeTask(token, amount, slippage);
     }
 }

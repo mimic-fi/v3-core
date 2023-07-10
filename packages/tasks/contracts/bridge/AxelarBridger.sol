@@ -21,8 +21,8 @@ import './BaseBridgeTask.sol';
 import '../interfaces/bridge/IAxelarBridger.sol';
 
 /**
- * @title Axelar bridger task
- * @dev Task that extends the bridger task to use Axelar
+ * @title Axelar bridger
+ * @dev Task that extends the base bridge task to use Axelar
  */
 contract AxelarBridger is IAxelarBridger, BaseBridgeTask {
     using FixedPoint for uint256;
@@ -31,37 +31,67 @@ contract AxelarBridger is IAxelarBridger, BaseBridgeTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('AXELAR_BRIDGER');
 
     /**
-     * @dev Axelar bridger task config. Only used in the initializer.
-     * @param baseBridgeConfig Base bridge task config params
+     * @dev Axelar bridge config. Only used in the initializer.
      */
-    struct AxelarBridgerConfig {
+    struct AxelarBridgeConfig {
         BaseBridgeConfig baseBridgeConfig;
     }
 
     /**
-     * @dev Creates a Axelar bridger task
+     * @dev Initializes the Axelar bridger
+     * @param config Axelar bridge config
      */
-    function initialize(AxelarBridgerConfig memory config) external initializer {
-        _initialize(config.baseBridgeConfig);
+    function initialize(AxelarBridgeConfig memory config) external virtual initializer {
+        __AxelarBridger_init(config);
     }
 
     /**
-     * @dev Execute Axelar bridger task
+     * @dev Initializes the Axelar bridger. It does call upper contracts initializers.
+     * @param config Axelar bridge config
      */
-    function call(address token, uint256 amountIn)
-        external
-        override
-        authP(authParams(token, amountIn))
-        baseBridgeTaskCall(token, amountIn, 0)
-    {
+    function __AxelarBridger_init(AxelarBridgeConfig memory config) internal onlyInitializing {
+        __BaseBridgeTask_init(config.baseBridgeConfig);
+        __AxelarBridger_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the Axelar bridger. It does not call upper contracts initializers.
+     * @param config Axelar bridge config
+     */
+    function __AxelarBridger_init_unchained(AxelarBridgeConfig memory config) internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
+    }
+
+    /**
+     * @dev Execute Axelar bridger
+     */
+    function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        _beforeAxelarBridger(token, amount);
         bytes memory connectorData = abi.encodeWithSelector(
             AxelarConnector.execute.selector,
-            _getApplicableDestinationChain(token),
+            getDestinationChain(token),
             token,
-            amountIn,
+            amount,
             recipient
         );
 
         ISmartVault(smartVault).execute(connector, connectorData);
+        _afterAxelarBridger(token, amount);
+    }
+
+    /**
+     * @dev Before Axelar bridger hook
+     */
+    function _beforeAxelarBridger(address token, uint256 amount) internal virtual {
+        // Axelar does not support specifying slippage
+        _beforeBaseBridgeTask(token, amount, 0);
+    }
+
+    /**
+     * @dev After Axelar bridger task hook
+     */
+    function _afterAxelarBridger(address token, uint256 amount) internal virtual {
+        // Axelar does not support specifying slippage
+        _afterBaseBridgeTask(token, amount, 0);
     }
 }

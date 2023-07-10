@@ -14,12 +14,12 @@
 
 pragma solidity >=0.8.0;
 
-import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorized.sol';
+import './IBaseTask.sol';
 
 /**
  * @dev Pausable task interface
  */
-interface IPausableTask is IAuthorized {
+interface IPausableTask is IBaseTask {
     /**
      * @dev Emitted every time a task is paused
      */

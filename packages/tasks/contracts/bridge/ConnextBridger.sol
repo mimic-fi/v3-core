@@ -21,8 +21,8 @@ import './BaseBridgeTask.sol';
 import '../interfaces/bridge/IConnextBridger.sol';
 
 /**
- * @title Connext bridger task
- * @dev Task that extends the bridger task to use Connext
+ * @title Connext bridger
+ * @dev Task that extends the base bridge task to use Connext
  */
 contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     using FixedPoint for uint256;
@@ -45,24 +45,49 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Connext bridger task config. Only used in the initializer
+     * @dev Connext bridge config. Only used in the initializer.
      */
     struct ConnextBridgeConfig {
         uint256 defaultRelayerFee;
         CustomRelayerFee[] customRelayerFees;
-        BaseBridgeConfig baseConfig;
+        BaseBridgeConfig baseBridgeConfig;
     }
 
     /**
-     * @dev Creates a Connext bridger task
+     * @dev Initializes the Connext bridger
+     * @param config Connext bridge config
      */
-    function initialize(ConnextBridgeConfig memory config) external initializer {
-        _initialize(config.baseConfig);
-        _setDefaultRelayerFee(config.defaultRelayerFee);
+    function initialize(ConnextBridgeConfig memory config) external virtual initializer {
+        __ConnextBridger_init(config);
+    }
 
+    /**
+     * @dev Initializes the Connext bridger. It does call upper contracts initializers.
+     * @param config Connext bridge config
+     */
+    function __ConnextBridger_init(ConnextBridgeConfig memory config) internal onlyInitializing {
+        __BaseBridgeTask_init(config.baseBridgeConfig);
+        __ConnextBridger_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the Connext bridger. It does not call upper contracts initializers.
+     * @param config Connext bridge config
+     */
+    function __ConnextBridger_init_unchained(ConnextBridgeConfig memory config) internal onlyInitializing {
+        _setDefaultRelayerFee(config.defaultRelayerFee);
         for (uint256 i = 0; i < config.customRelayerFees.length; i++) {
             _setCustomRelayerFee(config.customRelayerFees[i].token, config.customRelayerFees[i].relayerFee);
         }
+    }
+
+    /**
+     * @dev Tells the relayer fee that should be used for a token
+     * @param token Address of the token being queried
+     */
+    function getRelayerFee(address token) public view virtual override returns (uint256) {
+        uint256 relayerFee = customRelayerFee[token];
+        return relayerFee == 0 ? defaultRelayerFee : relayerFee;
     }
 
     /**
@@ -84,20 +109,18 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Execute Connext bridger task
+     * @dev Execute Connext bridger
      */
     function call(address token, uint256 amountIn, uint256 slippage, uint256 relayerFee)
         external
         override
         authP(authParams(token, amountIn, slippage, relayerFee))
-        baseBridgeTaskCall(token, amountIn, slippage)
     {
-        _validateFee(token, amountIn, relayerFee);
-
+        _beforeConnextBridger(token, amountIn, slippage, relayerFee);
         uint256 minAmountOut = amountIn.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
             ConnextConnector.execute.selector,
-            _getApplicableDestinationChain(token),
+            getDestinationChain(token),
             token,
             amountIn,
             minAmountOut,
@@ -106,21 +129,25 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
         );
 
         ISmartVault(smartVault).execute(connector, connectorData);
+        _afterConnextBridger(token, amountIn, slippage, relayerFee);
     }
 
     /**
-     * @dev Tells the relayer fee that should be used for a token
+     * @dev Before connext bridger hook
      */
-    function _getApplicableRelayerFee(address token) internal view returns (uint256) {
-        uint256 relayerFee = customRelayerFee[token];
-        return relayerFee == 0 ? defaultRelayerFee : relayerFee;
+    function _beforeConnextBridger(address token, uint256 amount, uint256 slippage, uint256 relayerFee)
+        internal
+        virtual
+    {
+        _beforeBaseBridgeTask(token, amount, slippage);
+        require(relayerFee.divUp(amount) <= getRelayerFee(token), 'TASK_FEE_TOO_HIGH');
     }
 
     /**
-     * @dev Reverts if the requested fee is above the relayer fee configured for a token
+     * @dev After connext bridger hook
      */
-    function _validateFee(address token, uint256 amount, uint256 fee) internal view {
-        require(fee.divUp(amount) <= _getApplicableRelayerFee(token), 'TASK_FEE_TOO_HIGH');
+    function _afterConnextBridger(address token, uint256 amount, uint256 slippage, uint256) internal virtual {
+        _afterBaseBridgeTask(token, amount, slippage);
     }
 
     /**

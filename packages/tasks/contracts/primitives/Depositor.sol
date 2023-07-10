@@ -24,8 +24,8 @@ import './Collector.sol';
 import '../interfaces/primitives/ICollector.sol';
 
 /**
- * @title Depositor task
- * @dev Task that offers a source address where funds can be withdrawn
+ * @title Depositor
+ * @dev Task that extends the Collector task to be the source from where funds can be pulled
  */
 contract Depositor is ICollector, Collector {
     using SafeERC20 for IERC20;
@@ -48,8 +48,8 @@ contract Depositor is ICollector, Collector {
     /**
      * @dev Approves the requested amount of tokens to the smart vault in case it's not the native token
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override {
-        super._beforeTask(token, amount);
+    function _beforeCollector(address token, uint256 amount) internal virtual override {
+        super._beforeCollector(token, amount);
         if (!Denominations.isNativeToken(token)) {
             IERC20(token).approve(smartVault, amount);
         }

@@ -41,6 +41,12 @@ interface IConnextBridger is IBaseBridgeTask {
     function customRelayerFee(address token) external view returns (uint256);
 
     /**
+     * @dev Tells the relayer fee that should be used for a token
+     * @param token Address of the token being queried
+     */
+    function getRelayerFee(address token) external view returns (uint256);
+
+    /**
      * @dev Sets the default relayer fee
      */
     function setDefaultRelayerFee(uint256 relayerFee) external;

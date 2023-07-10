@@ -21,7 +21,8 @@ import './BaseConvexTask.sol';
 import '../../interfaces/liquidity/convex/IConvexJoiner.sol';
 
 /**
- * @title Convex joiner task
+ * @title Convex joiner
+ * @dev Task that extends the base Convex task to join Convex pools
  */
 contract ConvexJoiner is IConvexJoiner, BaseConvexTask {
     using BytesHelpers for bytes;
@@ -30,17 +31,35 @@ contract ConvexJoiner is IConvexJoiner, BaseConvexTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('CONVEX_JOINER');
 
     /**
-     * @dev Convex joiner task config. Only used in the initializer.
+     * @dev Convex join config. Only used in the initializer.
      */
-    struct ConvexConfig {
+    struct ConvexJoinConfig {
         BaseConvexConfig baseConvexConfig;
     }
 
     /**
-     * @dev Initializes a Convex joiner task
+     * @dev Initializes a Convex joiner
+     * @param config Convex join config
      */
-    function initialize(ConvexConfig memory config) external initializer {
-        _initialize(config.baseConvexConfig);
+    function initialize(ConvexJoinConfig memory config) external virtual initializer {
+        __ConvexJoiner_init(config);
+    }
+
+    /**
+     * @dev Initializes the Convex joiner. It does call upper contracts initializers.
+     * @param config Convex join config
+     */
+    function __ConvexJoiner_init(ConvexJoinConfig memory config) internal onlyInitializing {
+        __BaseConvexTask_init(config.baseConvexConfig);
+        __ConvexJoiner_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the Convex joiner. It does not call upper contracts initializers.
+     * @param config Convex join config
+     */
+    function __ConvexJoiner_init_unchained(ConvexJoinConfig memory config) internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     /**
@@ -48,22 +67,29 @@ contract ConvexJoiner is IConvexJoiner, BaseConvexTask {
      * @param token Address of the Curve pool token to be joined with
      * @param amount Amount of Curve pool tokens to be joined with
      */
-    function call(address token, uint256 amount)
-        external
-        override
-        authP(authParams(token, amount))
-        baseTaskCall(token, amount)
-    {
+    function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        _beforeConvexJoiner(token, amount);
         bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.join.selector, token, amount);
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
-        _increaseBalanceConnector(ConvexConnector(connector).getCvxPool(token), result.toUint256());
+        _afterConvexJoiner(token, amount, ConvexConnector(connector).getCvxPool(token), result.toUint256());
     }
 
     /**
-     * @dev Hook to be called before the Convex task call starts. Adds simple validations to avoid zeroed amounts.
+     * @dev Before Convex joiner hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override {
-        super._beforeTask(token, amount);
+    function _beforeConvexJoiner(address token, uint256 amount) internal virtual {
+        _beforeBaseConvexTask(token, amount);
         require(amount > 0, 'TASK_AMOUNT_ZERO');
+    }
+
+    /**
+     * @dev After Convex joiner hook
+     */
+    function _afterConvexJoiner(address tokenIn, uint256 amountIn, address tokenOut, uint256 amountOut)
+        internal
+        virtual
+    {
+        _increaseBalanceConnector(tokenOut, amountOut);
+        _afterBaseConvexTask(tokenIn, amountIn);
     }
 }

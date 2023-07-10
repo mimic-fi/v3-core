@@ -73,6 +73,16 @@ interface IBaseCurveTask is ITask {
     function customMaxSlippage(address token) external view returns (uint256);
 
     /**
+     * @dev Tells the token out that should be used for a token
+     */
+    function getTokenOut(address token) external view returns (address);
+
+    /**
+     * @dev Tells the max slippage that should be used for a token
+     */
+    function getMaxSlippage(address token) external view returns (uint256);
+
+    /**
      * @dev Sets a new connector
      * @param newConnector Address of the connector to be set
      */

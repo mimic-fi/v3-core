@@ -8,33 +8,34 @@ import '../../base/TimeLockedTask.sol';
 contract TimeLockedTaskMock is BaseTask, TimeLockedTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('TIME_LOCKED_TASK');
 
-    struct Config {
+    struct TimeLockMockConfig {
         BaseConfig baseConfig;
         TimeLockConfig timeLockConfig;
     }
 
-    function initialize(Config memory config) external initializer {
-        _initialize(config.baseConfig);
-        _initialize(config.timeLockConfig);
+    function initialize(TimeLockMockConfig memory config) external virtual initializer {
+        __BaseTask_init(config.baseConfig);
+        __TimeLockedTask_init(config.timeLockConfig);
     }
 
-    function call() external baseTaskCall(address(0), 0) {
-        // solhint-disable-previous-line no-empty-blocks
-    }
-
-    /**
-     * @dev Hook to be called before the task call starts.
-     */
-    function _beforeTask(address token, uint256 amount) internal virtual override(BaseTask, TimeLockedTask) {
-        BaseTask._beforeTask(token, amount);
-        TimeLockedTask._beforeTask(token, amount);
+    function call() external {
+        _beforeTimeLockedTaskMock();
+        _afterTimeLockedTaskMock();
     }
 
     /**
-     * @dev Hook to be called after the task call has finished.
+     * @dev Before time locked task mock hook
      */
-    function _afterTask(address token, uint256 amount) internal virtual override(BaseTask, TimeLockedTask) {
-        TimeLockedTask._afterTask(token, amount);
-        BaseTask._afterTask(token, amount);
+    function _beforeTimeLockedTaskMock() internal virtual {
+        _beforeBaseTask(address(0), 0);
+        _beforeTimeLockedTask(address(0), 0);
+    }
+
+    /**
+     * @dev After time locked task mock hook
+     */
+    function _afterTimeLockedTaskMock() internal virtual {
+        _afterTimeLockedTask(address(0), 0);
+        _afterBaseTask(address(0), 0);
     }
 }
