@@ -14,19 +14,33 @@
 
 pragma solidity ^0.8.17;
 
+import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 
-import './BaseTask.sol';
 import '../interfaces/base/IPausableTask.sol';
 
 /**
  * @dev Pausable config for tasks
  */
-abstract contract PausableTask is IPausableTask, BaseTask {
+abstract contract PausableTask is IPausableTask, Authorized {
     using FixedPoint for uint256;
 
     // Whether the task is paused or not
     bool public override isPaused;
+
+    /**
+     * @dev Initializes the pausable task. It does call upper contracts initializers.
+     */
+    function __PausableTask_init() internal onlyInitializing {
+        __PausableTask_init_unchained();
+    }
+
+    /**
+     * @dev Initializes the pausable task. It does not call upper contracts initializers.
+     */
+    function __PausableTask_init_unchained() internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
+    }
 
     /**
      * @dev Pauses a task
@@ -47,9 +61,16 @@ abstract contract PausableTask is IPausableTask, BaseTask {
     }
 
     /**
-     * @dev Hook to be called before the task call starts. This implementation only adds a not-paused guard
+     * @dev Before pausable task hook
      */
-    function _beforeTask(address, uint256) internal virtual override {
+    function _beforePausableTask(address, uint256) internal virtual {
         require(!isPaused, 'TASK_PAUSED');
+    }
+
+    /**
+     * @dev After pausable task hook
+     */
+    function _afterPausableTask(address, uint256) internal virtual {
+        // solhint-disable-previous-line no-empty-blocks
     }
 }

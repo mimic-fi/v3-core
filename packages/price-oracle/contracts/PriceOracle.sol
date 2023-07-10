@@ -85,8 +85,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @dev Initializes the price oracle.
-     * Note this function can only be called from a function marked with the `initializer` modifier.
+     * @dev Initializes the price oracle
      * @param _authorizer Address of the authorizer to be set
      * @param _signer Address of the initial allowed signer
      * @param _pivot Address of the token to be used as the pivot
@@ -96,8 +95,35 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         external
         initializer
     {
+        __PriceOracle_init(_authorizer, _signer, _pivot, _feeds);
+    }
+
+    /**
+     * @dev Initializes the price oracle. It does call upper contracts initializers.
+     * @param _authorizer Address of the authorizer to be set
+     * @param _signer Address of the initial allowed signer
+     * @param _pivot Address of the token to be used as the pivot
+     * @param _feeds List of feeds to be initialized with
+     */
+    function __PriceOracle_init(address _authorizer, address _signer, address _pivot, FeedData[] memory _feeds)
+        internal
+        onlyInitializing
+    {
         __ReentrancyGuard_init();
-        _initialize(_authorizer);
+        __Authorized_init(_authorizer);
+        __PriceOracle_init_unchained(_authorizer, _signer, _pivot, _feeds);
+    }
+
+    /**
+     * @dev Initializes the price oracle. It does not call upper contracts initializers.
+     * @param _signer Address of the initial allowed signer
+     * @param _pivot Address of the token to be used as the pivot
+     * @param _feeds List of feeds to be initialized with
+     */
+    function __PriceOracle_init_unchained(address, address _signer, address _pivot, FeedData[] memory _feeds)
+        internal
+        onlyInitializing
+    {
         _setSigner(_signer, true);
         pivot = _pivot;
         for (uint256 i = 0; i < _feeds.length; i++) _setFeed(_feeds[i].base, _feeds[i].quote, _feeds[i].feed);

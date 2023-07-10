@@ -74,20 +74,36 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @param _wrappedNativeToken Address of the wrapped native token to be used
      */
     constructor(address _registry, address _feeController, address _wrappedNativeToken) {
-        _disableInitializers();
         registry = _registry;
         feeController = _feeController;
         wrappedNativeToken = _wrappedNativeToken;
     }
 
     /**
-     * @dev Initializes the Smart Vault instance
+     * @dev Initializes the smart vault
      * @param _authorizer Address of the authorizer to be linked
      * @param _priceOracle Address of the price oracle to be set, it is ignored in case it's zero
      */
-    function initialize(address _authorizer, address _priceOracle) external initializer {
+    function initialize(address _authorizer, address _priceOracle) external virtual initializer {
+        __SmartVault_init(_authorizer, _priceOracle);
+    }
+
+    /**
+     * @dev Initializes the smart vault. It does call upper contracts initializers.
+     * @param _authorizer Address of the authorizer to be linked
+     * @param _priceOracle Address of the price oracle to be set, it is ignored in case it's zero
+     */
+    function __SmartVault_init(address _authorizer, address _priceOracle) internal onlyInitializing {
         __ReentrancyGuard_init();
-        _initialize(_authorizer);
+        __Authorized_init(_authorizer);
+        __SmartVault_init_unchained(_authorizer, _priceOracle);
+    }
+
+    /**
+     * @dev Initializes the smart vault. It does not call upper contracts initializers.
+     * @param _priceOracle Address of the price oracle to be set, it is ignored in case it's zero
+     */
+    function __SmartVault_init_unchained(address, address _priceOracle) internal onlyInitializing {
         _setPriceOracle(_priceOracle);
     }
 

@@ -20,8 +20,8 @@ import '../../Task.sol';
 import '../../interfaces/liquidity/curve/IBaseCurveTask.sol';
 
 /**
- * @title Base curve task
- * @dev Task that offers the basic components for more detailed Curve related tasks.
+ * @title Base Curve task
+ * @dev Task that offers the basic components for more detailed Curve related tasks
  */
 abstract contract BaseCurveTask is IBaseCurveTask, Task {
     using FixedPoint for uint256;
@@ -42,15 +42,6 @@ abstract contract BaseCurveTask is IBaseCurveTask, Task {
     mapping (address => uint256) public override customMaxSlippage;
 
     /**
-     * @dev Modifier to tag the execution function of an task to trigger before and after hooks automatically
-     */
-    modifier baseCurveTaskCall(address token, uint256 amount, uint256 slippage) {
-        _beforeCurveTask(token, amount, slippage);
-        _;
-        _afterCurveTask(token, amount, slippage);
-    }
-
-    /**
      * @dev Custom token out config. Only used in the initializer.
      */
     struct CustomTokenOut {
@@ -67,7 +58,7 @@ abstract contract BaseCurveTask is IBaseCurveTask, Task {
     }
 
     /**
-     * @dev Base Curve task config. Only used in the initializer.
+     * @dev Base Curve config. Only used in the initializer.
      */
     struct BaseCurveConfig {
         address connector;
@@ -79,10 +70,19 @@ abstract contract BaseCurveTask is IBaseCurveTask, Task {
     }
 
     /**
-     * @dev Initializes a base Curve task
+     * @dev Initializes the base Curve task. It does call upper contracts initializers.
+     * @param config Base Curve config
      */
-    function _initialize(BaseCurveConfig memory config) internal onlyInitializing {
-        _initialize(config.taskConfig);
+    function __BaseCurveTask_init(BaseCurveConfig memory config) internal onlyInitializing {
+        __Task_init(config.taskConfig);
+        __BaseCurveTask_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the base Curve task. It does not call upper contracts initializers.
+     * @param config Base Curve config
+     */
+    function __BaseCurveTask_init_unchained(BaseCurveConfig memory config) internal onlyInitializing {
         _setConnector(config.connector);
         _setDefaultTokenOut(config.tokenOut);
         _setDefaultMaxSlippage(config.maxSlippage);
@@ -92,6 +92,22 @@ abstract contract BaseCurveTask is IBaseCurveTask, Task {
         for (uint256 i = 0; i < config.customMaxSlippages.length; i++) {
             _setCustomMaxSlippage(config.customMaxSlippages[i].token, config.customMaxSlippages[i].maxSlippage);
         }
+    }
+
+    /**
+     * @dev Tells the token out that should be used for a token
+     */
+    function getTokenOut(address token) public view virtual override returns (address) {
+        address tokenOut = customTokenOut[token];
+        return tokenOut == address(0) ? defaultTokenOut : tokenOut;
+    }
+
+    /**
+     * @dev Tells the max slippage that should be used for a token
+     */
+    function getMaxSlippage(address token) public view virtual override returns (uint256) {
+        uint256 maxSlippage = customMaxSlippage[token];
+        return maxSlippage == 0 ? defaultMaxSlippage : maxSlippage;
     }
 
     /**
@@ -140,39 +156,25 @@ abstract contract BaseCurveTask is IBaseCurveTask, Task {
     }
 
     /**
-     * @dev Tells the token out that should be used for a token
+     * @dev Before base Curve task hook
      */
-    function _getApplicableTokenOut(address token) internal view returns (address) {
-        address tokenOut = customTokenOut[token];
-        return tokenOut == address(0) ? defaultTokenOut : tokenOut;
-    }
-
-    /**
-     * @dev Tells the max slippage that should be used for a token
-     */
-    function _getApplicableMaxSlippage(address token) internal view returns (uint256) {
-        uint256 maxSlippage = customMaxSlippage[token];
-        return maxSlippage == 0 ? defaultMaxSlippage : maxSlippage;
-    }
-
-    /**
-     * @dev Hook to be called before the Curve task call starts. This implementation calls the base task `_beforeTask`
-     * hook and finally adds some trivial token, amount, and max slippage validations.
-     */
-    function _beforeCurveTask(address token, uint256 amount, uint256 slippage) internal virtual {
+    function _beforeBaseCurveTask(address token, uint256 amount, uint256 slippage) internal virtual {
         _beforeTask(token, amount);
         require(token != address(0), 'TASK_TOKEN_ZERO');
         require(amount > 0, 'TASK_AMOUNT_ZERO');
-        require(_getApplicableTokenOut(token) != address(0), 'TASK_TOKEN_OUT_NOT_SET');
-        require(slippage <= _getApplicableMaxSlippage(token), 'TASK_SLIPPAGE_TOO_HIGH');
+        require(getTokenOut(token) != address(0), 'TASK_TOKEN_OUT_NOT_SET');
+        require(slippage <= getMaxSlippage(token), 'TASK_SLIPPAGE_TOO_HIGH');
     }
 
     /**
-     * @dev Hook to be called after the Curve task call has finished. This implementation simply calls the base task
-     * `_afterTask` hook.
+     * @dev After base Curve task hook
      */
-    function _afterCurveTask(address token, uint256 amount, uint256) internal virtual {
-        _afterTask(token, amount);
+    function _afterBaseCurveTask(address tokenIn, uint256 amountIn, uint256, address tokenOut, uint256 amountOut)
+        internal
+        virtual
+    {
+        _increaseBalanceConnector(tokenOut, amountOut);
+        _afterTask(tokenIn, amountIn);
     }
 
     /**

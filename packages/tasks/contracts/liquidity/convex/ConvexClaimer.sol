@@ -20,24 +20,42 @@ import './BaseConvexTask.sol';
 import '../../interfaces/liquidity/convex/IConvexClaimer.sol';
 
 /**
- * @title Convex claimer task
+ * @title Convex claimer
  */
 contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('CONVEX_CLAIMER');
 
     /**
-     * @dev Convex claimer task config. Only used in the initializer.
+     * @dev Convex claim config. Only used in the initializer.
      */
-    struct ConvexConfig {
+    struct ConvexClaimConfig {
         BaseConvexConfig baseConvexConfig;
     }
 
     /**
-     * @dev Initializes a Convex claimer task
+     * @dev Initializes a Convex claimer
+     * @param config Convex claim config
      */
-    function initialize(ConvexConfig memory config) external initializer {
-        _initialize(config.baseConvexConfig);
+    function initialize(ConvexClaimConfig memory config) external virtual initializer {
+        __ConvexClaimer_init(config);
+    }
+
+    /**
+     * @dev Initializes the Convex claimer. It does call upper contracts initializers.
+     * @param config Convex claim config
+     */
+    function __ConvexClaimer_init(ConvexClaimConfig memory config) internal onlyInitializing {
+        __BaseConvexTask_init(config.baseConvexConfig);
+        __ConvexClaimer_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the Convex claimer. It does not call upper contracts initializers.
+     * @param config Convex claim config
+     */
+    function __ConvexClaimer_init_unchained(ConvexClaimConfig memory config) internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     /**
@@ -56,29 +74,47 @@ contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
     }
 
     /**
-     * @dev Executes the Convex claimer task
+     * @dev Execute Convex claimer
      * @param token Address of the Convex pool token to claim rewards for
      * @param amount Must be zero, it is not possible to claim a specific number of tokens
      */
-    function call(address token, uint256 amount)
-        external
-        override
-        authP(authParams(token))
-        baseTaskCall(token, amount)
-    {
+    function call(address token, uint256 amount) external override authP(authParams(token)) {
+        _beforeConvexClaimer(token, amount);
         bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.claim.selector, token);
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
         (address[] memory tokens, uint256[] memory amounts) = abi.decode(result, (address[], uint256[]));
-
-        require(tokens.length == amounts.length, 'CLAIMER_INVALID_RESULT_LEN');
-        for (uint256 i = 0; i < tokens.length; i++) _increaseBalanceConnector(tokens[i], amounts[i]);
+        _afterConvexClaimer(token, amount, tokens, amounts);
     }
 
     /**
-     * @dev Hook to be called before the Convex task call starts. Adds a validation to make sure the amount is zero.
+     * @dev Before Convex claimer hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override {
-        super._beforeTask(token, amount);
+    function _beforeConvexClaimer(address token, uint256 amount) internal virtual {
+        _beforeBaseConvexTask(token, amount);
         require(amount == 0, 'TASK_AMOUNT_NOT_ZERO');
+    }
+
+    /**
+     * @dev After Convex claimer hook
+     */
+    function _afterConvexClaimer(
+        address tokenIn,
+        uint256 amountIn,
+        address[] memory tokensOut,
+        uint256[] memory amountsOut
+    ) internal virtual {
+        require(tokensOut.length == amountsOut.length, 'CLAIMER_INVALID_RESULT_LEN');
+        for (uint256 i = 0; i < tokensOut.length; i++) _increaseBalanceConnector(tokensOut[i], amountsOut[i]);
+        _afterBaseConvexTask(tokenIn, amountIn);
+    }
+
+    /**
+     * @dev Sets the balance connectors. Previous balance connector must be unset.
+     * @param previous Balance connector id of the previous task in the workflow
+     * @param next Balance connector id of the next task in the workflow
+     */
+    function _setBalanceConnectors(bytes32 previous, bytes32 next) internal virtual override {
+        require(previous == bytes32(0), 'TASK_PREVIOUS_CONNECTOR_NOT_ZERO');
+        super._setBalanceConnectors(previous, next);
     }
 }

@@ -7560,7 +7560,7 @@ prettier-linter-helpers@^1.0.0:
   dependencies:
     fast-diff "^1.1.2"
 
-prettier-plugin-solidity@lkndjrt/prettier-plugin-solidity:
+"prettier-plugin-solidity@github:lkndjrt/prettier-plugin-solidity":
   version "1.0.0-beta.18"
   resolved "https://codeload.github.com/lkndjrt/prettier-plugin-solidity/tar.gz/e7b6b2d7fb2cfd820f0cc98095dac00a60352010"
   dependencies:
@@ -8436,10 +8436,10 @@ solc@^0.6.3:
     semver "^5.5.0"
     tmp "0.0.33"
 
-solhint-config-mimic@^0.0.2:
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/solhint-config-mimic/-/solhint-config-mimic-0.0.2.tgz#07f678d0bb05680a5949f50881b213641e1c4979"
-  integrity sha512-iKEnMbIkU/R9JNgdvniI9d7aMjBgHK6dInnzO+vN1QFRIRew7G+r1tZ155QJI9so4F0n90Wl0LL+j5tbf7uAVw==
+solhint-config-mimic@^0.0.3:
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/solhint-config-mimic/-/solhint-config-mimic-0.0.3.tgz#324e42d7b38ffd6858cadcfac4378f12d1e1917c"
+  integrity sha512-PCK3jUYlRppQYXDFb5YUkvZN42E3NUEL1+vXVGtf+2ZkJc7B2zVlQeXinlALem7k1WgS7KxUUdbSvQLTMPH9Xw==
   dependencies:
     eslint "^7.9.0"
     eslint-plugin-prettier "^3.1.4"

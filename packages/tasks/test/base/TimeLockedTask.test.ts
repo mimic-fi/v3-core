@@ -33,7 +33,6 @@ describe('TimeLockedTask', () => {
       [
         {
           baseConfig: {
-            owner: owner.address,
             smartVault: smartVault.address,
             previousBalanceConnectorId: ZERO_BYTES32,
             nextBalanceConnectorId: ZERO_BYTES32,

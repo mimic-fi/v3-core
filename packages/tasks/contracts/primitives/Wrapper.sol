@@ -20,46 +20,68 @@ import '../Task.sol';
 import '../interfaces/primitives/IWrapper.sol';
 
 /**
- * @title Wrapper task
+ * @title Wrapper
+ * @dev Task that offers facilities to wrap native tokens
  */
 contract Wrapper is IWrapper, Task {
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('WRAPPER');
 
     /**
-     * @dev Wrapper task config. Only used in the initializer.
-     * @param taskConfig Task config params
+     * @dev Wrap config. Only used in the initializer.
      */
-    struct WrapperConfig {
+    struct WrapConfig {
         TaskConfig taskConfig;
     }
 
     /**
-     * @dev Initializes a wrapper task
+     * @dev Initializes the wrapper
+     * @param config Wrap config
      */
-    function initialize(WrapperConfig memory config) external initializer {
-        _initialize(config.taskConfig);
+    function initialize(WrapConfig memory config) external virtual initializer {
+        __Wrapper_init(config);
     }
 
     /**
-     * @dev Executes the wrapper task
+     * @dev Initializes the wrapper. It does call upper contracts initializers.
+     * @param config Wrap config
      */
-    function call(address token, uint256 amount)
-        external
-        override
-        authP(authParams(token, amount))
-        baseTaskCall(token, amount)
-    {
+    function __Wrapper_init(WrapConfig memory config) internal onlyInitializing {
+        __Task_init(config.taskConfig);
+        __Wrapper_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the wrapper. It does not call upper contracts initializers.
+     * @param config Wrap config
+     */
+    function __Wrapper_init_unchained(WrapConfig memory config) internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
+    }
+
+    /**
+     * @dev Execute Wrapper
+     */
+    function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        _beforeWrapper(token, amount);
         ISmartVault(smartVault).wrap(amount);
-        _increaseBalanceConnector(_wrappedNativeToken(), amount);
+        _afterWrapper(token, amount);
     }
 
     /**
-     * @dev Reverts if the token or the amount are zero
+     * @dev Before wrapper hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override {
-        super._beforeTask(token, amount);
+    function _beforeWrapper(address token, uint256 amount) internal virtual {
+        _beforeTask(token, amount);
         require(token == Denominations.NATIVE_TOKEN, 'TASK_TOKEN_NOT_NATIVE');
         require(amount > 0, 'TASK_AMOUNT_ZERO');
+    }
+
+    /**
+     * @dev After wrapper hook
+     */
+    function _afterWrapper(address token, uint256 amount) internal virtual {
+        _increaseBalanceConnector(_wrappedNativeToken(), amount);
+        _afterTask(token, amount);
     }
 }

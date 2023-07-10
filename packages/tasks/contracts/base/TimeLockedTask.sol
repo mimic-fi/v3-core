@@ -14,13 +14,13 @@
 
 pragma solidity ^0.8.3;
 
-import './BaseTask.sol';
+import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '../interfaces/base/ITimeLockedTask.sol';
 
 /**
  * @dev Time lock config for tasks. It allows limiting the frequency of an task.
  */
-abstract contract TimeLockedTask is ITimeLockedTask, BaseTask {
+abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
     // Period in seconds that must pass after an task has been executed
     uint256 public override timeLockDelay;
 
@@ -38,9 +38,18 @@ abstract contract TimeLockedTask is ITimeLockedTask, BaseTask {
     }
 
     /**
-     * @dev Initializes a time locked task
+     * @dev Initializes the time locked task. It does not call upper contracts initializers.
+     * @param config Time locked task config
      */
-    function _initialize(TimeLockConfig memory config) internal onlyInitializing {
+    function __TimeLockedTask_init(TimeLockConfig memory config) internal onlyInitializing {
+        __TimeLockedTask_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the time locked task. It does call upper contracts initializers.
+     * @param config Time locked task config
+     */
+    function __TimeLockedTask_init_unchained(TimeLockConfig memory config) internal onlyInitializing {
         _setTimeLockDelay(config.delay);
         _setTimeLockExpiration(config.nextExecutionTimestamp);
     }
@@ -62,16 +71,16 @@ abstract contract TimeLockedTask is ITimeLockedTask, BaseTask {
     }
 
     /**
-     * @dev Reverts if the given time-lock is not expired
+     * @dev Before time locked task hook
      */
-    function _beforeTask(address, uint256) internal virtual override {
+    function _beforeTimeLockedTask(address, uint256) internal virtual {
         require(block.timestamp >= timeLockExpiration, 'TASK_TIME_LOCK_NOT_EXPIRED');
     }
 
     /**
-     * @dev Bumps the time-lock expire date
+     * @dev After time locked task hook
      */
-    function _afterTask(address, uint256) internal virtual override {
+    function _afterTimeLockedTask(address, uint256) internal virtual {
         if (timeLockDelay > 0) {
             uint256 expiration = (timeLockExpiration > 0 ? timeLockExpiration : block.timestamp) + timeLockDelay;
             _setTimeLockExpiration(expiration);

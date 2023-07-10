@@ -14,9 +14,9 @@
 
 pragma solidity ^0.8.3;
 
+import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 
-import './BaseTask.sol';
 import '../interfaces/base/ITokenThresholdTask.sol';
 
 /**
@@ -25,11 +25,11 @@ import '../interfaces/base/ITokenThresholdTask.sol';
  * make use of a default threshold config as a fallback in case there is no custom threshold defined for the token
  * being evaluated.
  */
-abstract contract TokenThresholdTask is ITokenThresholdTask, BaseTask {
+abstract contract TokenThresholdTask is ITokenThresholdTask, Authorized {
     using FixedPoint for uint256;
 
     // Default threshold
-    Threshold private _defaultThreshold;
+    Threshold internal _defaultThreshold;
 
     // Custom thresholds per token
     mapping (address => Threshold) internal _customThresholds;
@@ -53,9 +53,18 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, BaseTask {
     }
 
     /**
-     * @dev Initializes a token threshold task
+     * @dev Initializes the token threshold task. It does not call upper contracts initializers.
+     * @param config Token threshold task config
      */
-    function _initialize(TokenThresholdConfig memory config) internal onlyInitializing {
+    function __TokenThresholdTask_init(TokenThresholdConfig memory config) internal onlyInitializing {
+        __TokenThresholdTask_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the token threshold task. It does call upper contracts initializers.
+     * @param config Token threshold task config
+     */
+    function __TokenThresholdTask_init_unchained(TokenThresholdConfig memory config) internal onlyInitializing {
         Threshold memory defaultThreshold = config.defaultThreshold;
         _setDefaultTokenThreshold(defaultThreshold.token, defaultThreshold.min, defaultThreshold.max);
 
@@ -79,6 +88,15 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, BaseTask {
      */
     function customTokenThreshold(address token) public view override returns (Threshold memory) {
         return _customThresholds[token];
+    }
+
+    /**
+     * @dev Tells the threshold that should be used for a token, it prioritizes custom thresholds over the default one
+     * @param token Address of the token being queried
+     */
+    function getTokenThreshold(address token) public view virtual override returns (Threshold memory) {
+        Threshold storage customThreshold = _customThresholds[token];
+        return customThreshold.token == address(0) ? _defaultThreshold : customThreshold;
     }
 
     /**
@@ -111,36 +129,27 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, BaseTask {
     }
 
     /**
-     * @dev Tells the threshold applicable for a token, it prioritizes custom thresholds over the default one
-     * @param token Address of the token being queried
+     * @dev Fetches a base/quote price
      */
-    function _getApplicableThreshold(address token) internal view returns (Threshold storage) {
-        Threshold storage customThreshold = _customThresholds[token];
-        return customThreshold.token == address(0) ? _defaultThreshold : customThreshold;
-    }
+    function _getPrice(address base, address quote) internal view virtual returns (uint256);
 
     /**
-     * @dev Tells if a token and amount are compliant with a threshold, returns true if the threshold is not set
-     * @param threshold Threshold to be evaluated
-     * @param token Address of the token to be validated
-     * @param amount Token amount to be validated
+     * @dev Before token threshold task hook
      */
-    function _isTokenThresholdValid(Threshold memory threshold, address token, uint256 amount)
-        internal
-        view
-        returns (bool)
-    {
-        if (threshold.token == address(0)) return true;
+    function _beforeTokenThresholdTask(address token, uint256 amount) internal virtual {
+        Threshold memory threshold = getTokenThreshold(token);
+        if (threshold.token == address(0)) return;
+
         uint256 convertedAmount = threshold.token == token ? amount : amount.mulDown(_getPrice(token, threshold.token));
-        return convertedAmount >= threshold.min && (threshold.max == 0 || convertedAmount <= threshold.max);
+        bool isValid = convertedAmount >= threshold.min && (threshold.max == 0 || convertedAmount <= threshold.max);
+        require(isValid, 'TASK_TOKEN_THRESHOLD_NOT_MET');
     }
 
     /**
-     * @dev Reverts if the requested token and amount does not comply with the given threshold config
+     * @dev After token threshold task hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override {
-        Threshold memory threshold = _getApplicableThreshold(token);
-        require(_isTokenThresholdValid(threshold, token, amount), 'TASK_TOKEN_THRESHOLD_NOT_MET');
+    function _afterTokenThresholdTask(address, uint256) internal virtual {
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     /**
@@ -150,7 +159,7 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, BaseTask {
      * @param thresholdMax New threshold maximum to be set
      */
     function _setDefaultTokenThreshold(address thresholdToken, uint256 thresholdMin, uint256 thresholdMax) internal {
-        _setThreshold(_defaultThreshold, thresholdToken, thresholdMin, thresholdMax);
+        _setTokenThreshold(_defaultThreshold, thresholdToken, thresholdMin, thresholdMax);
         emit DefaultTokenThresholdSet(thresholdToken, thresholdMin, thresholdMax);
     }
 
@@ -165,7 +174,7 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, BaseTask {
         internal
     {
         require(token != address(0), 'TASK_THRESHOLD_TOKEN_ZERO');
-        _setThreshold(_customThresholds[token], thresholdToken, thresholdMin, thresholdMax);
+        _setTokenThreshold(_customThresholds[token], thresholdToken, thresholdMin, thresholdMax);
         emit CustomTokenThresholdSet(token, thresholdToken, thresholdMin, thresholdMax);
     }
 
@@ -176,7 +185,7 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, BaseTask {
      * @param min New threshold minimum to be set
      * @param max New threshold maximum to be set
      */
-    function _setThreshold(Threshold storage threshold, address token, uint256 min, uint256 max) private {
+    function _setTokenThreshold(Threshold storage threshold, address token, uint256 min, uint256 max) private {
         // If there is no threshold, all values must be zero
         bool isZeroThreshold = token == address(0) && min == 0 && max == 0;
         bool isNonZeroThreshold = token != address(0) && (max == 0 || max >= min);

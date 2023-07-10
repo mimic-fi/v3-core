@@ -51,6 +51,12 @@ interface ITokenThresholdTask is IBaseTask {
     function customTokenThreshold(address token) external view returns (Threshold memory);
 
     /**
+     * @dev Tells the threshold that should be used for a token
+     * @param token Address of the token being queried
+     */
+    function getTokenThreshold(address token) external view returns (Threshold memory);
+
+    /**
      * @dev Sets a new default threshold config
      * @param thresholdToken New threshold token to be set
      * @param thresholdMin New threshold minimum to be set

@@ -20,7 +20,7 @@ import '../Task.sol';
 import '../interfaces/primitives/ICollector.sol';
 
 /**
- * @title Collector task
+ * @title Collector
  * @dev Task that offers a source address where funds can be pulled from
  */
 contract Collector is ICollector, Task {
@@ -31,20 +31,35 @@ contract Collector is ICollector, Task {
     address internal _tokensSource;
 
     /**
-     * @dev Collector task config. Only used in the initializer.
-     * @param tokensSource Address from where tokens will be fetched
-     * @param taskConfig Task config params
+     * @dev Collect config. Only used in the initializer.
      */
-    struct CollectorConfig {
+    struct CollectConfig {
         address tokensSource;
         TaskConfig taskConfig;
     }
 
     /**
-     * @dev Initializes a collector task
+     * @dev Initializes the collector
+     * @param config Collect config
      */
-    function initialize(CollectorConfig memory config) external initializer {
-        _initialize(config.taskConfig);
+    function initialize(CollectConfig memory config) external virtual initializer {
+        __Collector_init(config);
+    }
+
+    /**
+     * @dev Initializes the collector. It does call upper contracts initializers.
+     * @param config Collect config
+     */
+    function __Collector_init(CollectConfig memory config) internal onlyInitializing {
+        __Task_init(config.taskConfig);
+        __Collector_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the collector. It does not call upper contracts initializers.
+     * @param config Collect config
+     */
+    function __Collector_init_unchained(CollectConfig memory config) internal onlyInitializing {
         _setTokensSource(config.tokensSource);
     }
 
@@ -64,25 +79,29 @@ contract Collector is ICollector, Task {
     }
 
     /**
-     * @dev Executes the collector task
+     * @dev Execute Collector
      */
-    function call(address token, uint256 amount)
-        external
-        override
-        authP(authParams(token, amount))
-        baseTaskCall(token, amount)
-    {
+    function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        _beforeCollector(token, amount);
         ISmartVault(smartVault).collect(token, _tokensSource, amount);
-        _increaseBalanceConnector(token, amount);
+        _afterCollector(token, amount);
     }
 
     /**
-     * @dev Reverts if the token or the amount are zero
+     * @dev Before collector hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override {
-        super._beforeTask(token, amount);
+    function _beforeCollector(address token, uint256 amount) internal virtual {
+        _beforeTask(token, amount);
         require(token != address(0), 'TASK_TOKEN_ZERO');
         require(amount > 0, 'TASK_AMOUNT_ZERO');
+    }
+
+    /**
+     * @dev After collector hook
+     */
+    function _afterCollector(address token, uint256 amount) internal virtual {
+        _increaseBalanceConnector(token, amount);
+        _afterTask(token, amount);
     }
 
     /**
