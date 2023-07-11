@@ -19,10 +19,18 @@ import './base/IGasLimitedTask.sol';
 import './base/ITimeLockedTask.sol';
 import './base/ITokenIndexedTask.sol';
 import './base/ITokenThresholdTask.sol';
+import './base/IVolumeLimitedTask.sol';
 
 /**
  * @dev Task interface
  */
-interface ITask is IBaseTask, IGasLimitedTask, ITimeLockedTask, ITokenIndexedTask, ITokenThresholdTask {
+interface ITask is
+    IBaseTask,
+    IGasLimitedTask,
+    ITimeLockedTask,
+    ITokenIndexedTask,
+    ITokenThresholdTask,
+    IVolumeLimitedTask
+{
     // solhint-disable-previous-line no-empty-blocks
 }
