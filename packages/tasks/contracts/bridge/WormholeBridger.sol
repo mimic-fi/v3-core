@@ -62,7 +62,7 @@ contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
             token,
             amountIn,
             minAmountOut,
-            address(smartVault)
+            recipient
         );
 
         ISmartVault(smartVault).execute(connector, connectorData);

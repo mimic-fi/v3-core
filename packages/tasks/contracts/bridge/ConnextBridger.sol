@@ -109,7 +109,7 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
             token,
             amountIn,
             minAmountOut,
-            address(smartVault),
+            recipient,
             relayerFee
         );
 
