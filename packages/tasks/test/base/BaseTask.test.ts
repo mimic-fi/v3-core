@@ -125,80 +125,6 @@ describe('BaseTask', () => {
     })
   })
 
-  describe('pause', () => {
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async () => {
-        const pauseRole = task.interface.getSighash('pause')
-        await authorizer.connect(owner).authorize(owner.address, task.address, pauseRole, [])
-        task = task.connect(owner)
-      })
-
-      context('when the task is not paused', () => {
-        it('can be paused', async () => {
-          const tx = await task.pause()
-
-          expect(await task.isPaused()).to.be.true
-
-          await assertEvent(tx, 'Paused')
-        })
-      })
-
-      context('when the task is paused', () => {
-        beforeEach('pause', async () => {
-          await task.pause()
-        })
-
-        it('cannot be paused', async () => {
-          await expect(task.pause()).to.be.revertedWith('TASK_ALREADY_PAUSED')
-        })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(task.pause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
-      })
-    })
-  })
-
-  describe('unpause', () => {
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async () => {
-        const unpauseRole = task.interface.getSighash('unpause')
-        await authorizer.connect(owner).authorize(owner.address, task.address, unpauseRole, [])
-        task = task.connect(owner)
-      })
-
-      context('when the task is not paused', () => {
-        it('cannot be unpaused', async () => {
-          await expect(task.unpause()).to.be.revertedWith('TASK_ALREADY_UNPAUSED')
-        })
-      })
-
-      context('when the task is paused', () => {
-        beforeEach('pause', async () => {
-          const pauseRole = task.interface.getSighash('pause')
-          await authorizer.connect(owner).authorize(owner.address, task.address, pauseRole, [])
-          await task.connect(owner).pause()
-        })
-
-        it('can be unpaused', async () => {
-          const tx = await task.unpause()
-
-          expect(await task.isPaused()).to.be.false
-
-          await assertEvent(tx, 'Unpaused')
-        })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(task.unpause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
-      })
-    })
-  })
-
   describe('setBalanceConnectors', () => {
     context('when the sender is authorized', () => {
       beforeEach('authorize sender', async () => {
@@ -257,56 +183,36 @@ describe('BaseTask', () => {
     const token = NATIVE_TOKEN_ADDRESS
     const amount = fp(0.01)
 
-    context('when the task is not paused', () => {
-      context('when the task has a previous balance connector set', () => {
-        const previousConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000001'
+    context('when the task has a previous balance connector set', () => {
+      const previousConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000001'
 
-        beforeEach('set previous balance connector', async () => {
-          const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
-          await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
-          await task.connect(owner).setBalanceConnectors(previousConnectorId, ZERO_BYTES32)
-        })
-
-        beforeEach('authorize task', async () => {
-          const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-          await authorizer.connect(owner).authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
-        })
-
-        context('when there is enough balance in the connector', () => {
-          beforeEach('increase previous connector balance', async () => {
-            const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-            await authorizer.connect(owner).authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
-            await smartVault.connect(owner).updateBalanceConnector(previousConnectorId, token, amount, true)
-          })
-
-          it('updates the balance connectors properly', async () => {
-            const tx = await task.call(token, amount)
-
-            await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
-              id: previousConnectorId,
-              token,
-              amount,
-              added: false,
-            })
-          })
-
-          it('emits an Executed event', async () => {
-            const tx = await task.call(token, amount)
-            await assertEvent(tx, 'Executed')
-          })
-        })
-
-        context('when there is not enough balance in the connector', () => {
-          it('reverts', async () => {
-            await expect(task.call(token, amount)).to.be.revertedWith('SMART_VAULT_CONNECTOR_NO_BALANCE')
-          })
-        })
+      beforeEach('set previous balance connector', async () => {
+        const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+        await task.connect(owner).setBalanceConnectors(previousConnectorId, ZERO_BYTES32)
       })
 
-      context('when the task has no previous balance connector set', () => {
-        it('does not update any balance connector', async () => {
+      beforeEach('authorize task', async () => {
+        const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+        await authorizer.connect(owner).authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+      })
+
+      context('when there is enough balance in the connector', () => {
+        beforeEach('increase previous connector balance', async () => {
+          const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+          await authorizer.connect(owner).authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
+          await smartVault.connect(owner).updateBalanceConnector(previousConnectorId, token, amount, true)
+        })
+
+        it('updates the balance connectors properly', async () => {
           const tx = await task.call(token, amount)
-          await assertNoIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated')
+
+          await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+            id: previousConnectorId,
+            token,
+            amount,
+            added: false,
+          })
         })
 
         it('emits an Executed event', async () => {
@@ -314,17 +220,23 @@ describe('BaseTask', () => {
           await assertEvent(tx, 'Executed')
         })
       })
+
+      context('when there is not enough balance in the connector', () => {
+        it('reverts', async () => {
+          await expect(task.call(token, amount)).to.be.revertedWith('SMART_VAULT_CONNECTOR_NO_BALANCE')
+        })
+      })
     })
 
-    context('when the task is paused', () => {
-      beforeEach('pause', async () => {
-        const pauseRole = smartVault.interface.getSighash('pause')
-        await authorizer.connect(owner).authorize(owner.address, task.address, pauseRole, [])
-        await task.connect(owner).pause()
+    context('when the task has no previous balance connector set', () => {
+      it('does not update any balance connector', async () => {
+        const tx = await task.call(token, amount)
+        await assertNoIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated')
       })
 
-      it('reverts', async () => {
-        await expect(task.call(token, amount)).to.be.revertedWith('TASK_PAUSED')
+      it('emits an Executed event', async () => {
+        const tx = await task.call(token, amount)
+        await assertEvent(tx, 'Executed')
       })
     })
   })

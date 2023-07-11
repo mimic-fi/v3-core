@@ -14,25 +14,34 @@
 
 pragma solidity >=0.8.0;
 
-import './base/IBaseTask.sol';
-import './base/IGasLimitedTask.sol';
-import './base/ITimeLockedTask.sol';
-import './base/ITokenIndexedTask.sol';
-import './base/ITokenThresholdTask.sol';
-import './base/IVolumeLimitedTask.sol';
-
-// solhint-disable no-empty-blocks
+import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorized.sol';
 
 /**
- * @dev Task interface
+ * @dev Pausable task interface
  */
-interface ITask is
-    IBaseTask,
-    IGasLimitedTask,
-    ITimeLockedTask,
-    ITokenIndexedTask,
-    ITokenThresholdTask,
-    IVolumeLimitedTask
-{
+interface IPausableTask is IAuthorized {
+    /**
+     * @dev Emitted every time a task is paused
+     */
+    event Paused();
 
+    /**
+     * @dev Emitted every time a task is unpaused
+     */
+    event Unpaused();
+
+    /**
+     * @dev Tells the task is paused or not
+     */
+    function isPaused() external view returns (bool);
+
+    /**
+     * @dev Pauses a task
+     */
+    function pause() external;
+
+    /**
+     * @dev Unpauses a task
+     */
+    function unpause() external;
 }

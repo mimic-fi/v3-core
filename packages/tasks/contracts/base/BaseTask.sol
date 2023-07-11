@@ -30,9 +30,6 @@ abstract contract BaseTask is IBaseTask, Authorized {
     // Smart Vault reference
     address public override smartVault;
 
-    // Whether the task is paused or not
-    bool public override isPaused;
-
     // Optional balance connector id for the previous task in the workflow
     bytes32 public override previousBalanceConnectorId;
 
@@ -97,24 +94,6 @@ abstract contract BaseTask is IBaseTask, Authorized {
     }
 
     /**
-     * @dev Pauses a task
-     */
-    function pause() external override auth {
-        require(!isPaused, 'TASK_ALREADY_PAUSED');
-        isPaused = true;
-        emit Paused();
-    }
-
-    /**
-     * @dev Unpauses a task
-     */
-    function unpause() external override auth {
-        require(isPaused, 'TASK_ALREADY_UNPAUSED');
-        isPaused = false;
-        emit Unpaused();
-    }
-
-    /**
      * @dev Sets the balance connectors
      * @param previous Balance connector id of the previous task in the workflow
      * @param next Balance connector id of the next task in the workflow
@@ -124,11 +103,10 @@ abstract contract BaseTask is IBaseTask, Authorized {
     }
 
     /**
-     * @dev Hook to be called before the task call starts. This implementation only adds a not-paused guard.
-     * It should be overwritten to add any extra logic that must run before the task is executed.
+     * @dev Hook to be called before the task call starts. This implementation updates the balance connector if
+     * necessary. It should be overwritten to add any extra logic that must run before the task is executed.
      */
     function _beforeTask(address token, uint256 amount) internal virtual {
-        require(!isPaused, 'TASK_PAUSED');
         _decreaseBalanceConnector(token, amount);
     }
 
