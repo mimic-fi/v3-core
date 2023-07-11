@@ -71,20 +71,6 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @dev Price data
-     * @param base Token to rate
-     * @param quote Token used for the price rate
-     * @param rate Price of a token (base) expressed in `quote`
-     * @param deadline Expiration timestamp until when the given quote is considered valid
-     */
-    struct PriceData {
-        address base;
-        address quote;
-        uint256 rate;
-        uint256 deadline;
-    }
-
-    /**
      * @dev Initializes the price oracle
      * @param _authorizer Address of the authorizer to be set
      * @param _signer Address of the initial allowed signer
@@ -142,6 +128,14 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
      */
     function getAllowedSigners() external view override returns (address[] memory) {
         return _signers.values();
+    }
+
+    /**
+     * @dev Tells the digest expected to be signed by the off-chain oracle signers for a list of prices
+     * @param prices List of prices to be signed
+     */
+    function getPricesDigest(PriceData[] memory prices) public pure override returns (bytes32) {
+        return ECDSA.toEthSignedMessageHash(keccak256(abi.encode(prices)));
     }
 
     /**
@@ -310,8 +304,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         if (!_isOffChainDataEncodedProperly(data)) return new PriceData[](0);
 
         (PriceData[] memory prices, bytes memory signature) = abi.decode(data, (PriceData[], bytes));
-        bytes32 message = ECDSA.toEthSignedMessageHash(keccak256(abi.encode(prices)));
-        (address recovered, ECDSA.RecoverError error) = ECDSA.tryRecover(message, signature);
+        (address recovered, ECDSA.RecoverError error) = ECDSA.tryRecover(getPricesDigest(prices), signature);
         require(error == ECDSA.RecoverError.NoError && isSignerAllowed(recovered), 'ORACLE_INVALID_SIGNER');
         return prices;
     }

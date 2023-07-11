@@ -18,23 +18,28 @@ import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '../interfaces/base/ITimeLockedTask.sol';
 
 /**
- * @dev Time lock config for tasks. It allows limiting the frequency of an task.
+ * @dev Time lock config for tasks. It allows limiting the frequency of a task.
  */
 abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
-    // Period in seconds that must pass after an task has been executed
+    // Period in seconds that must pass after a task has been executed
     uint256 public override timeLockDelay;
 
     // Future timestamp in which the task can be executed
     uint256 public override timeLockExpiration;
 
+    // Period in seconds during when a time-locked task can be executed right after it becomes executable
+    uint256 public override timeLockExecutionPeriod;
+
     /**
      * @dev Time lock config params. Only used in the initializer.
-     * @param delay Period in seconds that must pass after an task has been executed
+     * @param delay Period in seconds that must pass after a task has been executed
      * @param nextExecutionTimestamp Next time when the task can be executed
+     * @param executionPeriod Period in seconds during when a time-locked task can be executed
      */
     struct TimeLockConfig {
         uint256 delay;
         uint256 nextExecutionTimestamp;
+        uint256 executionPeriod;
     }
 
     /**
@@ -52,6 +57,7 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
     function __TimeLockedTask_init_unchained(TimeLockConfig memory config) internal onlyInitializing {
         _setTimeLockDelay(config.delay);
         _setTimeLockExpiration(config.nextExecutionTimestamp);
+        _setTimeLockExecutionPeriod(config.executionPeriod);
     }
 
     /**
@@ -71,10 +77,33 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
     }
 
     /**
+     * @dev Sets the time-lock execution period
+     * @param period New execution period to be set
+     */
+    function setTimeLockExecutionPeriod(uint256 period) external override authP(authParams(period)) {
+        _setTimeLockExecutionPeriod(period);
+    }
+
+    /**
+     * @dev Tells the number of delay periods passed between the last expiration timestamp and the current timestamp
+     */
+    function _getDelayPeriods() internal view returns (uint256) {
+        uint256 diff = block.timestamp - timeLockExpiration;
+        return diff / timeLockDelay;
+    }
+
+    /**
      * @dev Before time locked task hook
      */
     function _beforeTimeLockedTask(address, uint256) internal virtual {
         require(block.timestamp >= timeLockExpiration, 'TASK_TIME_LOCK_NOT_EXPIRED');
+
+        if (timeLockExecutionPeriod > 0) {
+            uint256 diff = block.timestamp - timeLockExpiration;
+            uint256 periods = diff / timeLockDelay;
+            uint256 offset = diff - (periods * timeLockDelay);
+            require(offset <= timeLockExecutionPeriod, 'TASK_TIME_LOCK_WAIT_NEXT_PERIOD');
+        }
     }
 
     /**
@@ -82,8 +111,15 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
      */
     function _afterTimeLockedTask(address, uint256) internal virtual {
         if (timeLockDelay > 0) {
-            uint256 expiration = (timeLockExpiration > 0 ? timeLockExpiration : block.timestamp) + timeLockDelay;
-            _setTimeLockExpiration(expiration);
+            uint256 nextExpirationTimestamp;
+            if (timeLockExpiration == 0) {
+                nextExpirationTimestamp = block.timestamp + timeLockDelay;
+            } else {
+                uint256 diff = block.timestamp - timeLockExpiration;
+                uint256 nextPeriod = (diff / timeLockDelay) + 1;
+                nextExpirationTimestamp = timeLockExpiration + (nextPeriod * timeLockDelay);
+            }
+            _setTimeLockExpiration(nextExpirationTimestamp);
         }
     }
 
@@ -92,6 +128,7 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
      * @param delay New delay to be set
      */
     function _setTimeLockDelay(uint256 delay) internal {
+        require(delay >= timeLockExecutionPeriod, 'TASK_DELAY_GT_EXECUTION_PERIOD');
         timeLockDelay = delay;
         emit TimeLockDelaySet(delay);
     }
@@ -103,5 +140,15 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
     function _setTimeLockExpiration(uint256 expiration) internal {
         timeLockExpiration = expiration;
         emit TimeLockExpirationSet(expiration);
+    }
+
+    /**
+     * @dev Sets the time-lock execution period
+     * @param period New execution period to be set
+     */
+    function _setTimeLockExecutionPeriod(uint256 period) internal {
+        require(period <= timeLockDelay, 'TASK_EXECUTION_PERIOD_GT_DELAY');
+        timeLockExecutionPeriod = period;
+        emit TimeLockExecutionPeriodSet(period);
     }
 }

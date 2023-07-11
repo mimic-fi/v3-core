@@ -25,7 +25,7 @@ interface IBaseTask is IAuthorized {
     function EXECUTION_TYPE() external view returns (bytes32);
 
     /**
-     * @dev Emitted every time an task is executed
+     * @dev Emitted every time a task is executed
      */
     event Executed();
 

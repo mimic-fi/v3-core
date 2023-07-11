@@ -250,7 +250,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     /**
      * @dev Collect tokens from an external account to the Smart Vault. Sender must be authorized. Smart vault must not be paused.
      * @param token Address of the token to be collected
-     * @param from Address where the tokens will be transfer from
+     * @param from Address where the tokens will be transferred from
      * @param amount Amount of tokens to be transferred
      */
     function collect(address token, address from, uint256 amount)
