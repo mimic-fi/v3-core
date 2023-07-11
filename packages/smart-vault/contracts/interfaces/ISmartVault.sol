@@ -142,7 +142,7 @@ interface ISmartVault is IAuthorized {
     function overrideConnectorCheck(address connector, bool ignored) external;
 
     /**
-     * @dev Updates a balance connector. Sender must be authorized. Smart vault must not be paused.
+     * @dev Updates a balance connector
      * @param id Balance connector identifier to be updated
      * @param token Address of the token to update the balance connector for
      * @param amount Amount to be updated to the balance connector
@@ -182,7 +182,7 @@ interface ISmartVault is IAuthorized {
     /**
      * @dev Collect tokens from an external account to the Smart Vault
      * @param token Address of the token to be collected
-     * @param from Address where the tokens will be transfer from
+     * @param from Address where the tokens will be transferred from
      * @param amount Amount of tokens to be transferred
      */
     function collect(address token, address from, uint256 amount) external;

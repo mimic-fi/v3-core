@@ -18,10 +18,10 @@ import './BaseTask.sol';
 import '../interfaces/base/ITimeLockedTask.sol';
 
 /**
- * @dev Time lock config for tasks. It allows limiting the frequency of an task.
+ * @dev Time lock config for tasks. It allows limiting the frequency of a task.
  */
 abstract contract TimeLockedTask is ITimeLockedTask, BaseTask {
-    // Period in seconds that must pass after an task has been executed
+    // Period in seconds that must pass after a task has been executed
     uint256 public override timeLockDelay;
 
     // Future timestamp in which the task can be executed
@@ -32,7 +32,7 @@ abstract contract TimeLockedTask is ITimeLockedTask, BaseTask {
 
     /**
      * @dev Time lock config params. Only used in the initializer.
-     * @param delay Period in seconds that must pass after an task has been executed
+     * @param delay Period in seconds that must pass after a task has been executed
      * @param nextExecutionTimestamp Next time when the task can be executed
      * @param executionPeriod Period in seconds during when a time-locked task can be executed
      */

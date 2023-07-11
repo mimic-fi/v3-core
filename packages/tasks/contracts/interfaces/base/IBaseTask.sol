@@ -25,17 +25,17 @@ interface IBaseTask is IAuthorized {
     function EXECUTION_TYPE() external view returns (bytes32);
 
     /**
-     * @dev Emitted every time an task is executed
+     * @dev Emitted every time a task is executed
      */
     event Executed();
 
     /**
-     * @dev Emitted every time an task is paused
+     * @dev Emitted every time a task is paused
      */
     event Paused();
 
     /**
-     * @dev Emitted every time an task is unpaused
+     * @dev Emitted every time a task is unpaused
      */
     event Unpaused();
 
@@ -77,12 +77,12 @@ interface IBaseTask is IAuthorized {
     function getTaskAmount(address token) external view returns (uint256);
 
     /**
-     * @dev Pauses an task
+     * @dev Pauses a task
      */
     function pause() external;
 
     /**
-     * @dev Unpauses an task
+     * @dev Unpauses a task
      */
     function unpause() external;
 

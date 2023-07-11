@@ -45,7 +45,7 @@ abstract contract BaseCurveTask is IBaseCurveTask, Task {
     EnumerableMap.AddressToUintMap private _customMaxSlippages;
 
     /**
-     * @dev Modifier to tag the execution function of an task to trigger before and after hooks automatically
+     * @dev Modifier to tag the execution function of a task to trigger before and after hooks automatically
      */
     modifier baseCurveTaskCall(address token, uint256 amount, uint256 slippage) {
         _beforeCurveTask(token, amount, slippage);

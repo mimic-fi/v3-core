@@ -46,7 +46,7 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
     EnumerableMap.AddressToUintMap private _customMaxSlippages;
 
     /**
-     * @dev Modifier to tag the execution function of an task to trigger before and after hooks automatically
+     * @dev Modifier to tag the execution function of a task to trigger before and after hooks automatically
      */
     modifier baseSwapTaskCall(address token, uint256 amount, uint256 slippage) {
         _beforeSwapTask(token, amount, slippage);

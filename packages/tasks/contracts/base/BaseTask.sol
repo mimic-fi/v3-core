@@ -40,7 +40,7 @@ abstract contract BaseTask is IBaseTask, Authorized {
     bytes32 public override nextBalanceConnectorId;
 
     /**
-     * @dev Modifier to tag the execution function of an task to trigger before and after hooks automatically
+     * @dev Modifier to tag the execution function of a task to trigger before and after hooks automatically
      */
     modifier baseTaskCall(address token, uint256 amount) {
         _beforeTask(token, amount);
@@ -97,7 +97,7 @@ abstract contract BaseTask is IBaseTask, Authorized {
     }
 
     /**
-     * @dev Pauses an task
+     * @dev Pauses a task
      */
     function pause() external override auth {
         require(!isPaused, 'TASK_ALREADY_PAUSED');
@@ -106,7 +106,7 @@ abstract contract BaseTask is IBaseTask, Authorized {
     }
 
     /**
-     * @dev Unpauses an task
+     * @dev Unpauses a task
      */
     function unpause() external override auth {
         require(isPaused, 'TASK_ALREADY_UNPAUSED');
