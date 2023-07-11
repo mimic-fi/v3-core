@@ -61,12 +61,13 @@ export type TaskConfig = {
   baseConfig: {
     owner: string
     smartVault: string
-    groupId: BigNumberish
+    tokensSource: string
   }
   gasLimitConfig: {
     gasPriceLimit: BigNumberish
     priorityFeeLimit: BigNumberish
     txCostLimit: BigNumberish
+    txCostLimitPct: BigNumberish
   }
   timeLockConfig: {
     delay: BigNumberish
@@ -76,7 +77,6 @@ export type TaskConfig = {
   tokenIndexConfig: {
     acceptanceType: BigNumberish
     tokens: string[]
-    sources: string[]
   }
   tokenThresholdConfig: {
     customThresholds: { token: string; min: BigNumberish; max: BigNumberish }[]
@@ -93,12 +93,13 @@ export function buildEmptyTaskConfig(owner: SignerWithAddress, smartVault: Contr
     baseConfig: {
       owner: owner.address,
       smartVault: smartVault.address,
-      groupId: 0,
+      tokensSource: smartVault.address,
     },
     gasLimitConfig: {
       gasPriceLimit: 0,
       priorityFeeLimit: 0,
       txCostLimit: 0,
+      txCostLimitPct: 0,
     },
     timeLockConfig: {
       delay: 0,
@@ -108,7 +109,6 @@ export function buildEmptyTaskConfig(owner: SignerWithAddress, smartVault: Contr
     tokenIndexConfig: {
       acceptanceType: 0,
       tokens: [],
-      sources: [],
     },
     tokenThresholdConfig: {
       customThresholds: [],

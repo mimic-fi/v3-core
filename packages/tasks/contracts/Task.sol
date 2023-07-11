@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.0;
 
-import './ITask.sol';
+import './interfaces/ITask.sol';
 import './base/BaseTask.sol';
 import './base/GasLimitedTask.sol';
 import './base/TimeLockedTask.sol';
@@ -27,7 +27,7 @@ import './base/TokenThresholdTask.sol';
  */
 abstract contract Task is ITask, BaseTask, GasLimitedTask, TimeLockedTask, TokenIndexedTask, TokenThresholdTask {
     /**
-     * @dev Task config params. Only used in the constructor.
+     * @dev Task config params. Only used in the initializer.
      */
     struct TaskConfig {
         BaseConfig baseConfig;

@@ -19,7 +19,7 @@ export function itBehavesLikeWormholeConnector(
     let amountIn: BigNumber
     let minAmountOut: BigNumber
 
-    const relayerFee = bn(35000000)
+    const relayerFee = sourceChainId == 1 ? bn(270000) : bn(35000000)
 
     beforeEach('set amount in and min amount out', async () => {
       const decimals = await token.decimals()
@@ -48,6 +48,26 @@ export function itBehavesLikeWormholeConnector(
 
           const currentConnectorBalance = await token.balanceOf(this.connector.address)
           expect(currentConnectorBalance).to.be.equal(previousConnectorBalance)
+        })
+
+        context('when relayerFee is greater than amountIn', () => {
+          it('reverts', async function () {
+            await expect(
+              this.connector
+                .connect(whale)
+                .execute(destinationChainId, tokenAddress, relayerFee.sub(1), minAmountOut, whale.address)
+            ).to.be.revertedWith('WORMHOLE_RELAYER_FEE_GT_AMT_IN')
+          })
+        })
+
+        context('when minAmountOut is greater than amountIn minus relayerFee', () => {
+          it('reverts', async function () {
+            await expect(
+              this.connector
+                .connect(whale)
+                .execute(destinationChainId, tokenAddress, amountIn, amountIn.add(1), whale.address)
+            ).to.be.revertedWith('WORMHOLE_MIN_AMOUNT_OUT_TOO_BIG')
+          })
         })
       } else {
         it('reverts', async function () {

@@ -15,12 +15,15 @@
 pragma solidity ^0.8.0;
 
 import '../Task.sol';
-import './interfaces/IWrapper.sol';
+import '../interfaces/primitives/IWrapper.sol';
 
 /**
  * @title Wrapper task
  */
 contract Wrapper is IWrapper, Task {
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('WRAPPER');
+
     /**
      * @dev Wrapper task config. Only used in the initializer.
      * @param taskConfig Task config params

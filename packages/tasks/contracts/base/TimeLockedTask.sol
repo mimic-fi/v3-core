@@ -15,7 +15,7 @@
 pragma solidity ^0.8.3;
 
 import './BaseTask.sol';
-import './interfaces/ITimeLockedTask.sol';
+import '../interfaces/base/ITimeLockedTask.sol';
 
 /**
  * @dev Time lock config for tasks. It allows limiting the frequency of an task.

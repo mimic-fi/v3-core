@@ -60,7 +60,7 @@ contract WormholeConnector {
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
      * @param amountIn Amount of tokens to be bridged
-     * @param minAmountOut Minimum amount of tokens willing to receive on the destination chain
+     * @param minAmountOut Minimum amount of tokens willing to receive on the destination chain after relayer fees
      * @param recipient Address that will receive the tokens on the destination chain
      */
     function execute(uint256 chainId, address token, uint256 amountIn, uint256 minAmountOut, address recipient)
@@ -71,6 +71,7 @@ contract WormholeConnector {
 
         uint16 wormholeNetworkId = _getWormholeNetworkId(chainId);
         uint256 relayerFee = wormholeCircleRelayer.relayerFee(wormholeNetworkId, token);
+        require(relayerFee <= amountIn, 'WORMHOLE_RELAYER_FEE_GT_AMT_IN');
         require(minAmountOut <= amountIn - relayerFee, 'WORMHOLE_MIN_AMOUNT_OUT_TOO_BIG');
 
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));

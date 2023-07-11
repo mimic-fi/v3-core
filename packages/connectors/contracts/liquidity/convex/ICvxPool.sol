@@ -19,6 +19,8 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 interface ICvxPool is IERC20 {
     function crv() external view returns (address);
 
+    function convexPoolId() external view returns (uint256);
+
     function getReward(address account) external;
 
     function withdraw(uint256 amount, bool claim) external returns (bool);

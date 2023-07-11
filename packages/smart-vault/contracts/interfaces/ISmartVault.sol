@@ -21,6 +21,16 @@ import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorized.sol';
  */
 interface ISmartVault is IAuthorized {
     /**
+     * @dev Emitted every time a smart vault is paused
+     */
+    event Paused();
+
+    /**
+     * @dev Emitted every time a smart vault is unpaused
+     */
+    event Unpaused();
+
+    /**
      * @dev Emitted every time the price oracle is set
      */
     event PriceOracleSet(address indexed priceOracle);
@@ -29,6 +39,11 @@ interface ISmartVault is IAuthorized {
      * @dev Emitted every time a connector check is overridden
      */
     event ConnectorCheckOverridden(address indexed connector, bool ignored);
+
+    /**
+     * @dev Emitted every time a balance connector is updated
+     */
+    event BalanceConnectorUpdated(bytes32 indexed id, address indexed token, uint256 amount, bool added);
 
     /**
      * @dev Emitted every time `execute` is called
@@ -61,6 +76,11 @@ interface ISmartVault is IAuthorized {
     event Withdrawn(address indexed token, address indexed recipient, uint256 amount, uint256 fee);
 
     /**
+     * @dev Tells if the smart vault is paused or not
+     */
+    function isPaused() external view returns (bool);
+
+    /**
      * @dev Tells the address of the price oracle
      */
     function priceOracle() external view returns (address);
@@ -87,6 +107,28 @@ interface ISmartVault is IAuthorized {
     function isConnectorCheckIgnored(address connector) external view returns (bool);
 
     /**
+     * @dev Tells the balance to a balance connector for a token
+     * @param id Balance connector identifier
+     * @param token Address of the token querying the balance connector for
+     */
+    function getBalanceConnector(bytes32 id, address token) external view returns (uint256);
+
+    /**
+     * @dev Tells whether someone has any permission over the smart vault
+     */
+    function hasPermissions(address who) external view returns (bool);
+
+    /**
+     * @dev Pauses a smart vault
+     */
+    function pause() external;
+
+    /**
+     * @dev Unpauses a smart vault
+     */
+    function unpause() external;
+
+    /**
      * @dev Sets the price oracle
      * @param newPriceOracle Address of the new price oracle to be set
      */
@@ -98,6 +140,15 @@ interface ISmartVault is IAuthorized {
      * @param ignored Whether the connector check should be ignored
      */
     function overrideConnectorCheck(address connector, bool ignored) external;
+
+    /**
+     * @dev Updates a balance connector. Sender must be authorized. Smart vault must not be paused.
+     * @param id Balance connector identifier to be updated
+     * @param token Address of the token to update the balance connector for
+     * @param amount Amount to be updated to the balance connector
+     * @param add Whether the balance connector should be increased or decreased
+     */
+    function updateBalanceConnector(bytes32 id, address token, uint256 amount, bool add) external;
 
     /**
      * @dev Executes a connector inside of the Smart Vault context

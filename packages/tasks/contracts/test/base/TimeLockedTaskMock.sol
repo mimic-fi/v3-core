@@ -6,6 +6,8 @@ import '../../base/BaseTask.sol';
 import '../../base/TimeLockedTask.sol';
 
 contract TimeLockedTaskMock is BaseTask, TimeLockedTask {
+    bytes32 public constant override EXECUTION_TYPE = keccak256('TIME_LOCKED_TASK');
+
     struct Config {
         BaseConfig baseConfig;
         TimeLockConfig timeLockConfig;

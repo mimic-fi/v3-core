@@ -24,7 +24,6 @@ import '@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 
 import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-helpers/contracts/math/UncheckedMath.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 
 import './interfaces/IPriceOracle.sol';
@@ -41,7 +40,6 @@ import './interfaces/IPriceOracle.sol';
  */
 contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
     using FixedPoint for uint256;
-    using UncheckedMath for uint256;
     using BytesHelpers for bytes;
     using EnumerableSet for EnumerableSet.AddressSet;
 
@@ -70,20 +68,6 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         address base;
         address quote;
         address feed;
-    }
-
-    /**
-     * @dev Price data
-     * @param base Token to rate
-     * @param quote Token used for the price rate
-     * @param rate Price of a token (base) expressed in `quote`
-     * @param deadline Expiration timestamp until when the given quote is considered valid
-     */
-    struct PriceData {
-        address base;
-        address quote;
-        uint256 rate;
-        uint256 deadline;
     }
 
     /**
@@ -121,6 +105,14 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
     }
 
     /**
+     * @dev Tells the digest expected to be signed by the off-chain oracle signers for a list of prices
+     * @param prices List of prices to be signed
+     */
+    function getPricesDigest(PriceData[] memory prices) public pure override returns (bytes32) {
+        return ECDSA.toEthSignedMessageHash(keccak256(abi.encode(prices)));
+    }
+
+    /**
      * @dev Tells the price of a token (base) in a given quote. The response is expressed using the corresponding
      * number of decimals so that when performing a fixed point product of it by a `base` amount it results in
      * a value expressed in `quote` decimals.
@@ -135,10 +127,10 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         uint256 quoteDecimals = IERC20Metadata(quote).decimals();
 
         // No need for checked math as an uint8 + FP_DECIMALS (constant) will always fit in an uint256
-        require(baseDecimals <= quoteDecimals.uncheckedAdd(FP_DECIMALS), 'BASE_DECIMALS_TOO_BIG');
+        require(baseDecimals <= quoteDecimals + FP_DECIMALS, 'BASE_DECIMALS_TOO_BIG');
 
         // No need for checked math as we are checking it manually beforehand
-        uint256 resultDecimals = quoteDecimals.uncheckedAdd(FP_DECIMALS).uncheckedSub(baseDecimals);
+        uint256 resultDecimals = quoteDecimals + FP_DECIMALS - baseDecimals;
         (uint256 price, uint256 decimals) = _getPrice(base, quote);
         return _scalePrice(price, decimals, resultDecimals);
     }
@@ -236,7 +228,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         // Prices are requested for different purposes, we are rounding down always to follow a single strategy
         price = FixedPoint.ONE.divDown(inversePrice);
         // No need for checked math as we are checking it manually beforehand
-        decimals = INVERSE_FEED_MAX_DECIMALS.uncheckedSub(inverseFeedDecimals);
+        decimals = INVERSE_FEED_MAX_DECIMALS - inverseFeedDecimals;
     }
 
     /**
@@ -261,7 +253,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         // Prices are requested for different purposes, we are rounding down always to follow a single strategy
         price = basePrice.divDown(quotePrice);
         // No need for checked math as we are checking it manually beforehand
-        decimals = baseFeedDecimals.uncheckedAdd(FP_DECIMALS).uncheckedSub(quoteFeedDecimals);
+        decimals = baseFeedDecimals + FP_DECIMALS - quoteFeedDecimals;
     }
 
     /**
@@ -273,8 +265,8 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
     function _scalePrice(uint256 price, uint256 priceDecimals, uint256 resultDecimals) internal pure returns (uint256) {
         return
             resultDecimals >= priceDecimals
-                ? (price * 10**(resultDecimals.uncheckedSub(priceDecimals)))
-                : (price / 10**(priceDecimals.uncheckedSub(resultDecimals)));
+                ? (price * 10**(resultDecimals - priceDecimals))
+                : (price / 10**(priceDecimals - resultDecimals));
     }
 
     /**
@@ -286,8 +278,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         if (!_isOffChainDataEncodedProperly(data)) return new PriceData[](0);
 
         (PriceData[] memory prices, bytes memory signature) = abi.decode(data, (PriceData[], bytes));
-        bytes32 message = ECDSA.toEthSignedMessageHash(keccak256(abi.encode(prices)));
-        (address recovered, ECDSA.RecoverError error) = ECDSA.tryRecover(message, signature);
+        (address recovered, ECDSA.RecoverError error) = ECDSA.tryRecover(getPricesDigest(prices), signature);
         require(error == ECDSA.RecoverError.NoError && isSignerAllowed(recovered), 'ORACLE_INVALID_SIGNER');
         return prices;
     }

@@ -1,4 +1,13 @@
-import { assertEvent, deploy, deployProxy, fp, getSigners, NATIVE_TOKEN_ADDRESS } from '@mimic-fi/v3-helpers'
+import {
+  assertEvent,
+  deploy,
+  deployProxy,
+  fp,
+  getSigners,
+  NATIVE_TOKEN_ADDRESS,
+  ONES_ADDRESS,
+  ZERO_ADDRESS,
+} from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
@@ -16,39 +25,49 @@ describe('BaseTask', () => {
   })
 
   beforeEach('deploy task', async () => {
-    task = await deployProxy('BaseTaskMock', [], [{ groupId: 0, smartVault: smartVault.address }])
+    task = await deployProxy('BaseTaskMock', [], [{ tokensSource: smartVault.address, smartVault: smartVault.address }])
   })
 
   describe('initialization', async () => {
     it('cannot be initialized twice', async () => {
-      await expect(task.initialize({ groupId: 0, smartVault: smartVault.address })).to.be.revertedWith(
-        'Initializable: contract is already initialized'
-      )
+      await expect(
+        task.initialize({ tokensSource: smartVault.address, smartVault: smartVault.address })
+      ).to.be.revertedWith('Initializable: contract is already initialized')
     })
   })
 
-  describe('setGroupId', () => {
-    const groupId = 1
+  describe('getTaskAmount', () => {
+    const source = ONES_ADDRESS
+    const balance = fp(0.1)
 
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async () => {
-        const setGroupIdRole = task.interface.getSighash('setGroupId')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setGroupIdRole, [])
-        task = task.connect(owner)
+    beforeEach('set source', async () => {
+      const setTokensSourceRole = task.interface.getSighash('setTokensSource')
+      await authorizer.connect(owner).authorize(owner.address, task.address, setTokensSourceRole, [])
+      await task.connect(owner).setTokensSource(source)
+    })
+
+    context('when querying ETH', () => {
+      const token = NATIVE_TOKEN_ADDRESS
+
+      beforeEach('fund source', async () => {
+        await owner.sendTransaction({ to: source, value: balance })
       })
 
-      it('can be set', async () => {
-        const tx = await task.setGroupId(groupId)
-
-        expect(await task.groupId()).to.be.equal(groupId)
-
-        await assertEvent(tx, 'GroupIdSet', { groupId })
+      it('tells the source balance', async () => {
+        expect(await task.getTaskAmount(token)).to.be.equal(balance)
       })
     })
 
-    context('when the sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(task.setGroupId(groupId)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+    context('when the token is an ERC20', () => {
+      let token: Contract
+
+      beforeEach('fund source', async () => {
+        token = await deploy('TokenMock', ['USDC'])
+        await token.mint(source, balance)
+      })
+
+      it('tells the source balance', async () => {
+        expect(await task.getTaskAmount(token.address)).to.be.equal(balance)
       })
     })
   })
@@ -127,63 +146,37 @@ describe('BaseTask', () => {
     })
   })
 
-  describe('transferToSmartVault', () => {
-    const balance = fp(1)
-
-    context('when the sender has permissions', async () => {
-      beforeEach('authorize sender', async () => {
-        const transferToSmartVaultRole = task.interface.getSighash('transferToSmartVault')
-        await authorizer.connect(owner).authorize(owner.address, task.address, transferToSmartVaultRole, [])
+  describe('setTokensSource', () => {
+    context('when the sender is authorized', async () => {
+      beforeEach('set sender', async () => {
+        const setTokensSourceRole = task.interface.getSighash('setTokensSource')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setTokensSourceRole, [])
         task = task.connect(owner)
       })
 
-      context('when the token is ETH', () => {
-        const token = NATIVE_TOKEN_ADDRESS
+      context('when the source is not zero', async () => {
+        const source = ONES_ADDRESS
 
-        beforeEach('fund task', async () => {
-          await owner.sendTransaction({ to: task.address, value: balance })
-        })
+        it('can be set', async () => {
+          const tx = await task.setTokensSource(source)
 
-        it('transfers it to smart vault', async () => {
-          const previousTaskBalance = await task.getTaskBalance(token)
-          const previousSmartVaultBalance = await task.getSmartVaultBalance(token)
-
-          await task.transferToSmartVault(token, balance)
-
-          const currentTaskBalance = await task.getTaskBalance(token)
-          expect(currentTaskBalance).to.be.equal(previousTaskBalance.sub(balance))
-
-          const currentSmartVaultBalance = await task.getSmartVaultBalance(token)
-          expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.add(balance))
+          expect(await task.tokensSource()).to.include(source)
+          await assertEvent(tx, 'TokensSourceSet', { source })
         })
       })
 
-      context('when the token is an ERC20', () => {
-        let token: Contract
+      context('when the source is zero', async () => {
+        const source = ZERO_ADDRESS
 
-        beforeEach('fund task', async () => {
-          token = await deploy('TokenMock', ['USDC'])
-          await token.mint(task.address, balance)
-        })
-
-        it('transfers it to smart vault', async () => {
-          const previousTaskBalance = await task.getTaskBalance(token.address)
-          const previousSmartVaultBalance = await task.getSmartVaultBalance(token.address)
-
-          await task.transferToSmartVault(token.address, balance)
-
-          const currentTaskBalance = await task.getTaskBalance(token.address)
-          expect(currentTaskBalance).to.be.equal(previousTaskBalance.sub(balance))
-
-          const currentSmartVaultBalance = await task.getSmartVaultBalance(token.address)
-          expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.add(balance))
+        it('reverts', async () => {
+          await expect(task.setTokensSource(source)).to.be.revertedWith('TASK_TOKENS_SOURCE_ZERO')
         })
       })
     })
 
-    context('when the sender does not have permissions', async () => {
+    context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.transferToSmartVault(NATIVE_TOKEN_ADDRESS, balance)).to.be.revertedWith('SENDER_NOT_ALLOWED')
+        await expect(task.setTokensSource(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })

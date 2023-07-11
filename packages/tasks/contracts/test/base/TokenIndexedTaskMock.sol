@@ -6,6 +6,8 @@ import '../../base/BaseTask.sol';
 import '../../base/TokenIndexedTask.sol';
 
 contract TokenIndexedTaskMock is BaseTask, TokenIndexedTask {
+    bytes32 public constant override EXECUTION_TYPE = keccak256('TOKEN_INDEXED_TASK');
+
     struct Config {
         BaseConfig baseConfig;
         TokenIndexConfig tokenIndexConfig;

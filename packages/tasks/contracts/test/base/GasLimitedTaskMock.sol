@@ -6,6 +6,8 @@ import '../../base/BaseTask.sol';
 import '../../base/GasLimitedTask.sol';
 
 contract GasLimitedTaskMock is BaseTask, GasLimitedTask {
+    bytes32 public constant override EXECUTION_TYPE = keccak256('GAS_LIMITED_TASK');
+
     struct Config {
         BaseConfig baseConfig;
         GasLimitConfig gasLimitConfig;
@@ -16,7 +18,7 @@ contract GasLimitedTaskMock is BaseTask, GasLimitedTask {
         _initialize(config.gasLimitConfig);
     }
 
-    function call() external baseTaskCall(address(0), 0) {
+    function call(address token, uint256 amount) external baseTaskCall(token, amount) {
         // solhint-disable-previous-line no-empty-blocks
     }
 

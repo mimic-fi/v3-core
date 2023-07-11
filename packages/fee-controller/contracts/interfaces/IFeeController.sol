@@ -21,7 +21,7 @@ interface IFeeController {
     /**
      * @dev Emitted every time a default fee collector is set
      */
-    event DefaultFeeCollectorSet(address collector);
+    event DefaultFeeCollectorSet(address indexed collector);
 
     /**
      * @dev Emitted every time a max fee percentage is set for a smart vault
@@ -36,7 +36,7 @@ interface IFeeController {
     /**
      * @dev Emitted every time a custom fee collector is set
      */
-    event FeeCollectorSet(address indexed smartVault, address collector);
+    event FeeCollectorSet(address indexed smartVault, address indexed collector);
 
     /**
      * @dev Tells the default fee collector

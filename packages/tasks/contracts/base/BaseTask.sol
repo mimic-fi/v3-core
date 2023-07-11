@@ -14,9 +14,6 @@
 
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol';
-
 import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
@@ -24,21 +21,21 @@ import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 import '@mimic-fi/v3-price-oracle/contracts/interfaces/IPriceOracle.sol';
 import '@mimic-fi/v3-smart-vault/contracts/interfaces/ISmartVault.sol';
 
-import './interfaces/IBaseTask.sol';
+import '../interfaces/base/IBaseTask.sol';
 
 /**
  * @title BaseTask
  * @dev Base task implementation with a Smart Vault reference and using the Authorizer
  */
-contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
+abstract contract BaseTask is IBaseTask, Authorized {
+    // Smart Vault reference
+    address public override smartVault;
+
     // Whether the task is paused or not
     bool public override isPaused;
 
-    // Group ID of the task
-    uint8 public override groupId;
-
-    // Smart Vault reference
-    address public override smartVault;
+    // Source from where the token amounts to execute each task must be calculated
+    address public override tokensSource;
 
     /**
      * @dev Modifier to tag the execution function of an task to trigger before and after hooks automatically
@@ -52,11 +49,11 @@ contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
     /**
      * @dev Base task config. Only used in the initializer.
      * @param smartVault Address of the smart vault this task will reference, it cannot be changed once set
-     * @param groupId Id of the group to which this task must refer to, use zero to avoid grouping
+     * @param tokensSource Address of the tokens source to be set
      */
     struct BaseConfig {
-        uint8 groupId;
         address smartVault;
+        address tokensSource;
     }
 
     /**
@@ -71,44 +68,17 @@ contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
      * @param config Base task config
      */
     function _initialize(BaseConfig memory config) internal onlyInitializing {
-        __ReentrancyGuard_init();
         _initialize(ISmartVault(config.smartVault).authorizer());
-        _setGroupId(config.groupId);
+        _setTokensSource(config.tokensSource);
         smartVault = config.smartVault;
     }
 
     /**
-     * @dev It allows receiving native token transfers
+     * @dev Tells the amount a task should use for a token
+     * @param token Address of the token being queried
      */
-    receive() external payable {
-        // solhint-disable-previous-line no-empty-blocks
-    }
-
-    /**
-     * @dev Tells the balance of the task for a given token
-     * @param token Address of the token querying the balance of
-     * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to query the native token balance
-     */
-    function getTaskBalance(address token) public view override returns (uint256) {
-        return ERC20Helpers.balanceOf(token, address(this));
-    }
-
-    /**
-     * @dev Tells the balance of the Smart Vault for a given token
-     * @param token Address of the token querying the balance of
-     * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to query the native token balance
-     */
-    function getSmartVaultBalance(address token) public view override returns (uint256) {
-        return ERC20Helpers.balanceOf(token, smartVault);
-    }
-
-    /**
-     * @dev Tells the total balance for a given token
-     * @param token Address of the token querying the balance of
-     * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to query the native token balance
-     */
-    function getTotalBalance(address token) public view override returns (uint256) {
-        return getTaskBalance(token) + getSmartVaultBalance(token);
+    function getTaskAmount(address token) external view virtual override returns (uint256) {
+        return ERC20Helpers.balanceOf(token, tokensSource);
     }
 
     /**
@@ -130,28 +100,18 @@ contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @dev Sets a group ID for the task. Sender must be authorized
-     * @param newGroupId ID of the group to be set for the task
+     * @dev Sets the tokens source of the task
+     * @param source Address of the new tokens source to be set
      */
-    function setGroupId(uint8 newGroupId) external override authP(authParams(uint256(newGroupId))) {
-        _setGroupId(newGroupId);
+    function setTokensSource(address source) external override authP(authParams(source)) {
+        _setTokensSource(source);
     }
 
     /**
-     * @dev Transfers task's assets to the Smart Vault
-     * @param token Address of the token to be transferred
-     * @param amount Amount of tokens to be transferred
-     * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to transfer the native token balance
+     * @dev Hook to be called before the task call starts. This implementation only adds a not-paused guard.
+     * It should be overwritten to add any extra logic that must run before the task is executed.
      */
-    function transferToSmartVault(address token, uint256 amount) external override authP(authParams(token, amount)) {
-        _transferToSmartVault(token, amount);
-    }
-
-    /**
-     * @dev Hook to be called before the task call starts. This implementation only adds a non-reentrant and
-     * not-paused guard. It should be overwritten to add any extra logic that must run before the task is executed.
-     */
-    function _beforeTask(address, uint256) internal virtual nonReentrant {
+    function _beforeTask(address, uint256) internal virtual {
         require(!isPaused, 'TASK_PAUSED');
     }
 
@@ -164,22 +124,13 @@ contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
     }
 
     /**
-     * @dev Sets a group ID for the task
-     * @param newGroupId ID of the group to be set for the task
+     * @dev Sets the tokens source of the task
+     * @param source Address of the new tokens source to be set
      */
-    function _setGroupId(uint8 newGroupId) internal {
-        groupId = newGroupId;
-        emit GroupIdSet(newGroupId);
-    }
-
-    /**
-     * @dev Transfers task's assets to the Smart Vault
-     * @param token Address of the token to be transferred
-     * @param amount Amount of tokens to be transferred
-     * @notice Denominations.NATIVE_TOKEN_ADDRESS can be used to transfer the native token balance
-     */
-    function _transferToSmartVault(address token, uint256 amount) internal {
-        ERC20Helpers.transfer(token, smartVault, amount);
+    function _setTokensSource(address source) internal {
+        require(source != address(0), 'TASK_TOKENS_SOURCE_ZERO');
+        tokensSource = source;
+        emit TokensSourceSet(source);
     }
 
     /**
@@ -188,7 +139,15 @@ contract BaseTask is IBaseTask, Authorized, ReentrancyGuardUpgradeable {
     function _getPrice(address base, address quote) internal view returns (uint256) {
         address priceOracle = ISmartVault(smartVault).priceOracle();
         require(priceOracle != address(0), 'TASK_PRICE_ORACLE_NOT_SET');
-        return IPriceOracle(priceOracle).getPrice(base, quote);
+        return IPriceOracle(priceOracle).getPrice(_wrappedIfNative(base), _wrappedIfNative(quote));
+    }
+
+    /**
+     * @dev Tells the wrapped native token address if the given address is the native token
+     * @param token Address of the token to be checked
+     */
+    function _wrappedIfNative(address token) internal view returns (address) {
+        return Denominations.isNativeToken(token) ? _wrappedNativeToken() : token;
     }
 
     /**
