@@ -17,9 +17,10 @@ pragma solidity ^0.8.0;
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-relayer/contracts/interfaces/IRelayer.sol';
 
+import '../interfaces/relayer/IBaseRelayerFunder.sol';
 import '../Task.sol';
 
-abstract contract BaseRelayerFunder is Task {
+abstract contract BaseRelayerFunder is IBaseRelayerFunder, Task {
     using FixedPoint for uint256;
 
     // Reference to the contract to be funded
@@ -30,25 +31,33 @@ abstract contract BaseRelayerFunder is Task {
      */
     struct BaseRelayerFunderConfig {
         address relayer;
+        TaskConfig taskConfig;
     }
 
     /**
-     * @dev Creates a BaseRelayerFunder task
-     * @param config BaseRelayerFunder task config
+     * @dev Initializes the base relayer funder. It does call upper contracts initializers.
+     * @param config BaseRelayerFunder config
      */
-    function _initialize(BaseRelayerFunderConfig memory config) internal initializer {
+    function __BaseRelayerFunder_init(BaseRelayerFunderConfig memory config) internal onlyInitializing {
+        __Task_init(config.taskConfig);
+        __BaseRelayerFunder_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the base relayer funder. It does not call upper contracts initializers.
+     * @param config BaseRelayerFunder config
+     */
+    function __BaseRelayerFunder_init_unchained(BaseRelayerFunderConfig memory config) internal onlyInitializing {
         require(config.relayer != address(0), 'FUNDER_RELAYER_ZERO');
         relayer = IRelayer(config.relayer);
-        // task config will be initialized by child contracts
     }
 
     /**
      * @dev Tells the amount in `token` to be funded
-     * @param token Token to be used for funding
+     * @param token Address of the token to be used for funding
      */
-    // TODO: make this function override the parent once implemented
-    function getTaskAmount(address token) external view returns (uint256) {
-        Threshold memory threshold = _getApplicableThreshold(token);
+    function getTaskAmount(address token) public view virtual override(IBaseTask, BaseTask) returns (uint256) {
+        Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
         uint256 depositedThresholdToken = _getDepositedThresholdToken(threshold.token);
 
         if (depositedThresholdToken >= threshold.min) return 0;
@@ -58,16 +67,10 @@ abstract contract BaseRelayerFunder is Task {
     }
 
     /**
-     * @dev Hook to be called before the task call starts. Overrides TokenThresholdTask hook.
+     * @dev Before token threshold task hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override {
-        // TODO: refactor, copy-paste from Task
-        BaseTask._beforeTask(token, amount);
-        GasLimitedTask._beforeTask(token, amount);
-        TimeLockedTask._beforeTask(token, amount);
-        TokenIndexedTask._beforeTask(token, amount);
-
-        Threshold memory threshold = _getApplicableThreshold(token);
+    function _beforeTokenThresholdTask(address token, uint256) internal virtual override {
+        Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
         uint256 depositedThresholdToken = _getDepositedThresholdToken(threshold.token);
         require(depositedThresholdToken < threshold.min, 'TASK_THRESHOLD_NOT_MET');
     }

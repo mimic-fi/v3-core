@@ -1,53 +1,76 @@
 import {
   assertEvent,
   assertIndirectEvent,
+  deploy,
   deployProxy,
   fp,
   getSigners,
   NATIVE_TOKEN_ADDRESS,
   ZERO_ADDRESS,
-  ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
-import { ethers } from 'hardhat'
 
-import { buildEmptyTaskConfig, deployEnvironment, Mimic } from '../../src/setup'
+import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
 
-describe('Unwrapper', () => {
-  let task: Contract
-  let smartVault: Contract, authorizer: Contract, mimic: Mimic, owner: SignerWithAddress
+describe('RelayerDepositor', () => {
+  let task: Contract, relayer: Contract
+  let smartVault: Contract, authorizer: Contract, owner: SignerWithAddress
 
   before('setup', async () => {
     // eslint-disable-next-line prettier/prettier
     ([, owner] = await getSigners())
-    ;({ authorizer, smartVault, mimic } = await deployEnvironment(owner))
+    ;({ authorizer, smartVault } = await deployEnvironment(owner))
+  })
+
+  beforeEach('deploy relayer', async () => {
+    relayer = await deploy('RelayerMock', [0])
   })
 
   beforeEach('deploy task', async () => {
     task = await deployProxy(
-      'Unwrapper',
+      'RelayerDepositor',
       [],
       [
         {
+          relayer: relayer.address,
           taskConfig: buildEmptyTaskConfig(owner, smartVault),
         },
       ]
     )
   })
 
-  describe('execution type', () => {
-    it('defines it correctly', async () => {
-      const expectedType = ethers.utils.solidityKeccak256(['string'], ['UNWRAPPER'])
-      expect(await task.EXECUTION_TYPE()).to.be.equal(expectedType)
+  describe('initialization', async () => {
+    context('when the relayer is not zero', async () => {
+      it('has a relayer reference', async () => {
+        expect(await task.relayer()).to.be.equal(relayer.address)
+      })
+
+      it('cannot be initialized twice', async () => {
+        const config = {
+          relayer: relayer.address,
+          taskConfig: buildEmptyTaskConfig(owner, smartVault),
+        }
+        await expect(task.initialize(config)).to.be.revertedWith('Initializable: contract is already initialized')
+      })
+    })
+
+    context('when the relayer is zero', async () => {
+      const config = {
+        relayer: ZERO_ADDRESS,
+        taskConfig: buildEmptyTaskConfig(owner, smartVault),
+      }
+      it('reverts', async () => {
+        expect(await task.initialize(config)).to.be.revertedWith('RELAYER_DEPOSITOR_RELAYER_ZERO')
+      })
     })
   })
 
   describe('call', () => {
     beforeEach('authorize task', async () => {
-      const unwrapRole = smartVault.interface.getSighash('unwrap')
-      await authorizer.connect(owner).authorize(task.address, smartVault.address, unwrapRole, [])
+      const callRole = smartVault.interface.getSighash('call')
+      await authorizer.connect(owner).authorize(task.address, smartVault.address, callRole, [])
     })
 
     context('when the sender is authorized', () => {
@@ -57,19 +80,14 @@ describe('Unwrapper', () => {
         task = task.connect(owner)
       })
 
-      context('when the given token is the wrapped native token', () => {
-        let token: string
-
-        beforeEach('set token', async () => {
-          token = mimic.wrappedNativeToken.address
-        })
+      context('when the given token is the native token', () => {
+        const token = NATIVE_TOKEN_ADDRESS
 
         context('when the given amount is greater than zero', () => {
-          const amount = fp(0.02)
+          const amount = fp(100)
 
           beforeEach('fund smart vault', async () => {
-            await mimic.wrappedNativeToken.connect(owner).deposit({ value: amount })
-            await mimic.wrappedNativeToken.connect(owner).transfer(smartVault.address, amount)
+            await owner.sendTransaction({ to: smartVault.address, value: amount.mul(2) })
           })
 
           context('when the threshold has passed', () => {
@@ -78,38 +96,26 @@ describe('Unwrapper', () => {
             beforeEach('set default token threshold', async () => {
               const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
               await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-              await task.connect(owner).setDefaultTokenThreshold(NATIVE_TOKEN_ADDRESS, threshold, 0)
+              await task.connect(owner).setDefaultTokenThreshold(token, threshold, 0)
             })
 
-            it('calls the unwrap primitive', async () => {
+            it('calls the call function', async () => {
               const tx = await task.call(token, amount)
-              await assertIndirectEvent(tx, smartVault.interface, 'Unwrapped', { amount })
+
+              const data = relayer.interface.encodeFunctionData('deposit', [smartVault.address, amount])
+              await assertIndirectEvent(tx, smartVault.interface, 'Called', {
+                target: relayer,
+                value: amount,
+                data,
+                result: '0x',
+              })
+
+              await assertIndirectEvent(tx, relayer.interface, 'Deposited', { smartVault: smartVault.address, amount })
             })
 
             it('emits an Executed event', async () => {
               const tx = await task.call(token, amount)
               await assertEvent(tx, 'Executed')
-            })
-
-            it('updates the balance connectors properly', async () => {
-              const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
-              const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
-              await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
-              await task.connect(owner).setBalanceConnectors(ZERO_BYTES32, nextConnectorId)
-
-              const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-              await authorizer
-                .connect(owner)
-                .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
-
-              const tx = await task.call(token, amount)
-
-              await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
-                id: nextConnectorId,
-                token: NATIVE_TOKEN_ADDRESS,
-                amount,
-                added: true,
-              })
             })
           })
 
@@ -120,6 +126,10 @@ describe('Unwrapper', () => {
               const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
               await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
               await task.connect(owner).setDefaultTokenThreshold(NATIVE_TOKEN_ADDRESS, threshold, 0)
+            })
+
+            beforeEach('fund smart vault', async () => {
+              await owner.sendTransaction({ to: smartVault.address, value: amount })
             })
 
             it('reverts', async () => {
@@ -137,11 +147,11 @@ describe('Unwrapper', () => {
         })
       })
 
-      context('when the given token is not the wrapped native token', () => {
+      context('when the given token is not the native token', () => {
         const token = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(token, 0)).to.be.revertedWith('TASK_TOKEN_NOT_WRAPPED')
+          await expect(task.call(token, 0)).to.be.revertedWith('TASK_TOKEN_NOT_NATIVE')
         })
       })
     })

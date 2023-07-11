@@ -17,11 +17,11 @@ pragma solidity >=0.8.0;
 import '../ITask.sol';
 
 /**
- * @dev Unwrapper task interface
+ * @dev RelayerDepositor task interface
  */
-interface IUnwrapper is ITask {
+interface IRelayerDepositor is ITask {
     /**
-     * @dev Executes the unwrapper task
+     * @dev Executes the relayer depositor task
      */
     function call(address token, uint256 amount) external;
 }

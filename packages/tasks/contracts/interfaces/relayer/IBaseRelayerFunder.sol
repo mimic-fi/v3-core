@@ -14,19 +14,11 @@
 
 pragma solidity >=0.8.0;
 
-import '../../ITask.sol';
+import '../ITask.sol';
 
 /**
- * @dev Depositor task interface
+ * @dev BaseRelayerFunder task interface
  */
-interface IDepositor is ITask {
-    /**
-     * @dev Tells the contract to be funded
-     */
-    function recipient() external view returns (address);
-
-    /**
-     * @dev Executes the depositor task
-     */
-    function call(uint256 amount) external;
+interface IBaseRelayerFunder is ITask {
+    // solhint-disable-previous-line no-empty-blocks
 }

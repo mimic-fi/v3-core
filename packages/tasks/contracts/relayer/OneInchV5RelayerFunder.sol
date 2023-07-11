@@ -23,23 +23,57 @@ contract OneInchV5RelayerFunder is BaseRelayerFunder, OneInchV5Swapper {
      */
     struct OneInchV5RelayerFunderConfig {
         BaseRelayerFunderConfig baseRelayerFunderConfig;
-        OneInchV5SwapperConfig oneInchV5SwapperConfig;
+        OneInchV5SwapConfig oneInchV5SwapConfig;
     }
 
     /**
-     * @dev Creates a OneInchV5RelayerFunder task
-     * @param config OneInchV5RelayerFunder task config
+     * @dev Initializes the 1inch v5 relayer funder
+     * @param config OneInchV5RelayerFunder config
      */
-    function initialize(OneInchV5RelayerFunderConfig memory config) external initializer {
-        _initialize(config.baseRelayerFunderConfig);
-        initialize(config.oneInchV5SwapperConfig);
+    function initialize(OneInchV5RelayerFunderConfig memory config) external virtual initializer {
+        __OneInchV5RelayerFunder_init(config);
     }
 
     /**
-     * @dev Hook to be called before the task call starts. It calls the base relayer funder hook.
-     * It ignores the task hook, since it is already considered in the base relayer funder.
+     * @dev Initializes the 1inch v5 relayer funder. It does call upper contracts initializers.
+     * @param config OneInchV5RelayerFunder config
      */
-    function _beforeTask(address token, uint256 amount) internal override(BaseRelayerFunder, Task) {
-        BaseRelayerFunder._beforeTask(token, amount);
+    function __OneInchV5RelayerFunder_init(OneInchV5RelayerFunderConfig memory config) internal onlyInitializing {
+        __OneInchV5Swapper_init(config.oneInchV5SwapConfig);
+        __OneInchV5RelayerFunder_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the 1inch v5 relayer funder. It does not call upper contracts initializers.
+     * @param config OneInchV5RelayerFunder config
+     */
+    function __OneInchV5RelayerFunder_init_unchained(OneInchV5RelayerFunderConfig memory config)
+        internal
+        onlyInitializing
+    {
+        __BaseRelayerFunder_init_unchained(config.baseRelayerFunderConfig);
+    }
+
+    /**
+     * @dev Tells the amount in `token` to be funded
+     * @param token Address of the token to be used for funding
+     */
+    function getTaskAmount(address token)
+        public
+        view
+        override(BaseRelayerFunder, IBaseTask, BaseTask)
+        returns (uint256)
+    {
+        return BaseRelayerFunder.getTaskAmount(token);
+    }
+
+    /**
+     * @dev Before token threshold task hook
+     */
+    function _beforeTokenThresholdTask(address token, uint256 amount)
+        internal
+        override(BaseRelayerFunder, TokenThresholdTask)
+    {
+        BaseRelayerFunder._beforeTokenThresholdTask(token, amount);
     }
 }

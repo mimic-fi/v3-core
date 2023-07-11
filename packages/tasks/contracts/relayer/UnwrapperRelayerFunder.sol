@@ -23,26 +23,57 @@ contract UnwrapperRelayerFunder is BaseRelayerFunder, Unwrapper {
      */
     struct UnwrapperRelayerFunderConfig {
         BaseRelayerFunderConfig baseRelayerFunderConfig;
-        UnwrapperConfig unwrapperConfig;
+        UnwrapConfig unwrapConfig;
     }
 
     /**
-     * @dev Creates a UnwrapperRelayerFunder task
-     * @param config UnwrapperRelayerFunder task config
+     * @dev Initializes the unwrapper relayer funder
+     * @param config UnwrapperRelayerFunder config
      */
-    function initialize(UnwrapperRelayerFunderConfig memory config) external initializer {
-        _initialize(config.baseRelayerFunderConfig);
-        initialize(config.unwrapperConfig);
+    function initialize(UnwrapperRelayerFunderConfig memory config) external virtual initializer {
+        __UnwrapperRelayerFunder_init(config);
     }
 
     /**
-     * @dev Hook to be called before the task call starts. It calls the base relayer funder hook.
-     * It ignores the task hook, since it is already considered in the base relayer funder.
+     * @dev Initializes the unwrapper relayer funder. It does call upper contracts initializers.
+     * @param config UnwrapperRelayerFunder config
      */
-    function _beforeTask(address token, uint256 amount) internal override(BaseRelayerFunder, Unwrapper) {
-        BaseRelayerFunder._beforeTask(token, amount);
-        // TODO: refactor, copy-paste from Unwrapper
-        require(token == _wrappedNativeToken(), 'TASK_NOT_NATIVE_TOKEN');
-        require(amount > 0, 'TASK_AMOUNT_ZERO');
+    function __UnwrapperRelayerFunder_init(UnwrapperRelayerFunderConfig memory config) internal onlyInitializing {
+        __Unwrapper_init(config.unwrapConfig);
+        __UnwrapperRelayerFunder_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the unwrapper relayer funder. It does not call upper contracts initializers.
+     * @param config UnwrapperRelayerFunder config
+     */
+    function __UnwrapperRelayerFunder_init_unchained(UnwrapperRelayerFunderConfig memory config)
+        internal
+        onlyInitializing
+    {
+        __BaseRelayerFunder_init_unchained(config.baseRelayerFunderConfig);
+    }
+
+    /**
+     * @dev Tells the amount in `token` to be funded
+     * @param token Address of the token to be used for funding
+     */
+    function getTaskAmount(address token)
+        public
+        view
+        override(BaseRelayerFunder, IBaseTask, BaseTask)
+        returns (uint256)
+    {
+        return BaseRelayerFunder.getTaskAmount(token);
+    }
+
+    /**
+     * @dev Before token threshold task hook
+     */
+    function _beforeTokenThresholdTask(address token, uint256 amount)
+        internal
+        override(BaseRelayerFunder, TokenThresholdTask)
+    {
+        BaseRelayerFunder._beforeTokenThresholdTask(token, amount);
     }
 }

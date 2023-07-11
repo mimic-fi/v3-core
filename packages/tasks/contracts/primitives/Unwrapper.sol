@@ -15,45 +15,71 @@
 pragma solidity ^0.8.0;
 
 import '../Task.sol';
-import './interfaces/IUnwrapper.sol';
+import '../interfaces/primitives/IUnwrapper.sol';
 
 /**
  * @title Unwrapper task
  */
 contract Unwrapper is IUnwrapper, Task {
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('UNWRAPPER');
+
     /**
-     * @dev Unwrapper task config. Only used in the initializer.
+     * @dev Unwrap config. Only used in the initializer.
      * @param taskConfig Task config params
      */
-    struct UnwrapperConfig {
+    struct UnwrapConfig {
         TaskConfig taskConfig;
     }
 
     /**
-     * @dev Initializes a unwrapper task
+     * @dev Initializes the unwrapper
+     * @param config Unwrap config
      */
-    function initialize(UnwrapperConfig memory config) public initializer {
-        _initialize(config.taskConfig);
+    function initialize(UnwrapConfig memory config) external virtual initializer {
+        __Unwrapper_init(config);
     }
 
     /**
-     * @dev Executes the unwrapper task
+     * @dev Initializes the unwrapper. It does call upper contracts initializers.
+     * @param config Unwrap config
      */
-    function call(uint256 amount)
-        external
-        override
-        authP(authParams(amount))
-        baseTaskCall(_wrappedNativeToken(), amount)
-    {
+    function __Unwrapper_init(UnwrapConfig memory config) internal onlyInitializing {
+        __Task_init(config.taskConfig);
+        __Unwrapper_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the unwrapper. It does not call upper contracts initializers.
+     * @param config Unwrap config
+     */
+    function __Unwrapper_init_unchained(UnwrapConfig memory config) internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
+    }
+
+    /**
+     * @dev Execute Unwrapper
+     */
+    function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        _beforeUnwrapper(token, amount);
         ISmartVault(smartVault).unwrap(amount);
+        _afterUnwrapper(token, amount);
     }
 
     /**
-     * @dev Reverts if the token or the amount are zero
+     * @dev Before unwrapper hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override {
-        super._beforeTask(token, amount);
-        require(token == _wrappedNativeToken(), 'TASK_NOT_NATIVE_TOKEN');
+    function _beforeUnwrapper(address token, uint256 amount) internal virtual {
+        _beforeTask(token, amount);
+        require(token == _wrappedNativeToken(), 'TASK_TOKEN_NOT_WRAPPED');
         require(amount > 0, 'TASK_AMOUNT_ZERO');
+    }
+
+    /**
+     * @dev After unwrapper hook
+     */
+    function _afterUnwrapper(address token, uint256 amount) internal virtual {
+        _increaseBalanceConnector(Denominations.NATIVE_TOKEN, amount);
+        _afterTask(token, amount);
     }
 }
