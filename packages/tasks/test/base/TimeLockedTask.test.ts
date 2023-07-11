@@ -41,6 +41,7 @@ describe('TimeLockedTask', () => {
           timeLockConfig: {
             delay: 0,
             nextExecutionTimestamp: 0,
+            executionPeriod: 0,
           },
         },
       ]
@@ -57,19 +58,46 @@ describe('TimeLockedTask', () => {
         task = task.connect(owner)
       })
 
-      it('sets the time lock delay', async () => {
-        const previousExpiration = await task.timeLockExpiration()
+      context('when the delay is larger than the execution period', () => {
+        const period = 0
 
-        await task.setTimeLockDelay(delay)
+        beforeEach('set execution period', async () => {
+          const setTimeLockExecutionPeriodRole = task.interface.getSighash('setTimeLockExecutionPeriod')
+          await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockExecutionPeriodRole, [])
+          await task.setTimeLockExecutionPeriod(period)
+        })
 
-        expect(await task.timeLockDelay()).to.be.equal(delay)
-        expect(await task.timeLockExpiration()).to.be.equal(previousExpiration)
+        it('sets the time lock delay', async () => {
+          const previousExpiration = await task.timeLockExpiration()
+          const previousTimeLockExecutionPeriod = await task.timeLockExecutionPeriod()
+
+          await task.setTimeLockDelay(delay)
+
+          expect(await task.timeLockDelay()).to.be.equal(delay)
+          expect(await task.timeLockExpiration()).to.be.equal(previousExpiration)
+          expect(await task.timeLockExecutionPeriod()).to.be.equal(previousTimeLockExecutionPeriod)
+        })
+
+        it('emits an event', async () => {
+          const tx = await task.setTimeLockDelay(delay)
+
+          await assertEvent(tx, 'TimeLockDelaySet', { delay })
+        })
       })
 
-      it('emits an event', async () => {
-        const tx = await task.setTimeLockDelay(delay)
+      context('when the delay is shorter than the execution period', () => {
+        const period = delay * 2
 
-        await assertEvent(tx, 'TimeLockDelaySet', { delay })
+        beforeEach('set execution period', async () => {
+          await task.setTimeLockDelay(period)
+          const setTimeLockExecutionPeriodRole = task.interface.getSighash('setTimeLockExecutionPeriod')
+          await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockExecutionPeriodRole, [])
+          await task.setTimeLockExecutionPeriod(period)
+        })
+
+        it('reverts', async () => {
+          await expect(task.setTimeLockDelay(delay)).to.be.revertedWith('TASK_DELAY_GT_EXECUTION_PERIOD')
+        })
       })
     })
 
@@ -92,11 +120,13 @@ describe('TimeLockedTask', () => {
 
       it('sets the time lock expiration', async () => {
         const previousTimeLockDelay = await task.timeLockDelay()
+        const previousTimeLockExecutionPeriod = await task.timeLockExecutionPeriod()
 
         await task.setTimeLockExpiration(expiration)
 
         expect(await task.timeLockDelay()).to.be.equal(previousTimeLockDelay)
         expect(await task.timeLockExpiration()).to.be.equal(expiration)
+        expect(await task.timeLockExecutionPeriod()).to.be.equal(previousTimeLockExecutionPeriod)
       })
 
       it('emits an event', async () => {
@@ -113,12 +143,73 @@ describe('TimeLockedTask', () => {
     })
   })
 
+  describe('setTimeLockExecutionPeriod', () => {
+    const period = MONTH
+
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async () => {
+        const setTimeLockExecutionPeriodRole = task.interface.getSighash('setTimeLockExecutionPeriod')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockExecutionPeriodRole, [])
+        task = task.connect(owner)
+      })
+
+      context('when the period is shorter than the delay', () => {
+        const delay = period * 2
+
+        beforeEach('set delay', async () => {
+          const setTimeLockDelayRole = task.interface.getSighash('setTimeLockDelay')
+          await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockDelayRole, [])
+          await task.connect(owner).setTimeLockDelay(delay)
+        })
+
+        it('sets the time lock execution period', async () => {
+          const previousTimeLockDelay = await task.timeLockDelay()
+          const previousTimeLockExpiration = await task.timeLockExpiration()
+
+          await task.setTimeLockExecutionPeriod(period)
+
+          expect(await task.timeLockDelay()).to.be.equal(previousTimeLockDelay)
+          expect(await task.timeLockExpiration()).to.be.equal(previousTimeLockExpiration)
+          expect(await task.timeLockExecutionPeriod()).to.be.equal(period)
+        })
+
+        it('emits an event', async () => {
+          const tx = await task.setTimeLockExecutionPeriod(period)
+
+          await assertEvent(tx, 'TimeLockExecutionPeriodSet', { period })
+        })
+      })
+
+      context('when the period is larger than the delay', () => {
+        const delay = period / 2
+
+        beforeEach('set delay', async () => {
+          const setTimeLockDelayRole = task.interface.getSighash('setTimeLockDelay')
+          await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockDelayRole, [])
+          await task.connect(owner).setTimeLockDelay(delay)
+        })
+
+        it('reverts', async () => {
+          await expect(task.setTimeLockExecutionPeriod(period)).to.be.revertedWith('TASK_EXECUTION_PERIOD_GT_DELAY')
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async () => {
+        await expect(task.setTimeLockExecutionPeriod(0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
+    })
+  })
+
   describe('call', () => {
     beforeEach('authorize sender', async () => {
       const setTimeLockDelayRole = task.interface.getSighash('setTimeLockDelay')
       await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockDelayRole, [])
       const setTimeLockExpirationRole = task.interface.getSighash('setTimeLockExpiration')
       await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockExpirationRole, [])
+      const setTimeLockExecutionPeriodRole = task.interface.getSighash('setTimeLockExecutionPeriod')
+      await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockExecutionPeriodRole, [])
     })
 
     context('when no initial expiration timestamp is set', () => {
@@ -150,16 +241,16 @@ describe('TimeLockedTask', () => {
 
           expect(await task.timeLockDelay()).to.be.equal(0)
           expect(await task.timeLockExpiration()).to.be.equal(0)
+          expect(await task.timeLockExecutionPeriod()).to.be.equal(0)
         })
 
         it('can be updated at any time in the future', async () => {
           const newTimeLockDelay = DAY
-          const setTimeLockDelayRole = task.interface.getSighash('setTimeLockDelay')
-          await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockDelayRole, [])
           await task.connect(owner).setTimeLockDelay(newTimeLockDelay)
 
           expect(await task.timeLockDelay()).to.be.equal(newTimeLockDelay)
           expect(await task.timeLockExpiration()).to.be.equal(0)
+          expect(await task.timeLockExecutionPeriod()).to.be.equal(0)
 
           const tx = await task.call()
           await assertEvent(tx, 'TimeLockExpirationSet')
@@ -172,6 +263,7 @@ describe('TimeLockedTask', () => {
 
           expect(await task.timeLockDelay()).to.be.equal(newTimeLockDelay)
           expect(await task.timeLockExpiration()).to.be.equal(previousExpiration.add(newTimeLockDelay))
+          expect(await task.timeLockExecutionPeriod()).to.be.equal(0)
         })
       })
 
@@ -299,14 +391,17 @@ describe('TimeLockedTask', () => {
 
       context('with a time-lock delay', () => {
         const delay = MONTH
+        const executionPeriod = DAY
 
-        beforeEach('set time-lock delay', async () => {
+        beforeEach('set time-lock delay and execution period', async () => {
           await task.connect(owner).setTimeLockDelay(delay)
+          await task.connect(owner).setTimeLockExecutionPeriod(executionPeriod)
         })
 
         it('has a time-lock with an initial delay', async () => {
           expect(await task.timeLockDelay()).to.be.equal(delay)
           expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp)
+          expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
         })
 
         it('can be validated once right after the initial delay', async () => {
@@ -318,6 +413,32 @@ describe('TimeLockedTask', () => {
 
           expect(await task.timeLockDelay()).to.be.equal(delay)
           expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp.add(delay))
+          expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
+
+          await expect(task.call()).to.be.revertedWith('TASK_TIME_LOCK_NOT_EXPIRED')
+
+          await setNextBlockTimestamp(initialExpirationTimestamp.add(delay * 2).add(executionPeriod))
+          const tx2 = await task.call()
+          await assertEvent(tx2, 'TimeLockExpirationSet')
+
+          expect(await task.timeLockDelay()).to.be.equal(delay)
+          expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp.add(delay * 3))
+          expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
+        })
+
+        it('cannot be validated after the execution period', async () => {
+          await expect(task.call()).to.be.revertedWith('TASK_TIME_LOCK_NOT_EXPIRED')
+
+          await setNextBlockTimestamp(initialExpirationTimestamp.add(executionPeriod).add(1))
+          await expect(task.call()).to.be.revertedWith('TASK_TIME_LOCK_WAIT_NEXT_PERIOD')
+
+          await setNextBlockTimestamp(initialExpirationTimestamp.add(delay))
+          const tx = await task.call()
+          await assertEvent(tx, 'TimeLockExpirationSet')
+
+          expect(await task.timeLockDelay()).to.be.equal(delay)
+          expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp.add(delay * 2))
+          expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
 
           await expect(task.call()).to.be.revertedWith('TASK_TIME_LOCK_NOT_EXPIRED')
         })
@@ -328,6 +449,7 @@ describe('TimeLockedTask', () => {
 
           expect(await task.timeLockDelay()).to.be.equal(newTimeLockDelay)
           expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp)
+          expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
 
           await setNextBlockTimestamp(initialExpirationTimestamp)
           const tx = await task.call()
@@ -335,9 +457,11 @@ describe('TimeLockedTask', () => {
 
           expect(await task.timeLockDelay()).to.be.equal(newTimeLockDelay)
           expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp.add(newTimeLockDelay))
+          expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
         })
 
         it('can be unset at any time in the future without affecting the previous expiration date', async () => {
+          await task.connect(owner).setTimeLockExecutionPeriod(0)
           await task.connect(owner).setTimeLockDelay(0)
 
           expect(await task.timeLockDelay()).to.be.equal(0)
