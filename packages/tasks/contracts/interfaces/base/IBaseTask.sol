@@ -40,9 +40,9 @@ interface IBaseTask is IAuthorized {
     event Unpaused();
 
     /**
-     * @dev Emitted every time the tokens source is set
+     * @dev Emitted every time the balance connectors are set
      */
-    event TokensSourceSet(address indexed source);
+    event BalanceConnectorsSet(bytes32 indexed previous, bytes32 indexed next);
 
     /**
      * @dev Tells the address of the Smart Vault tied to it, it cannot be changed
@@ -55,9 +55,20 @@ interface IBaseTask is IAuthorized {
     function isPaused() external view returns (bool);
 
     /**
-     * @dev Tells the address from where the token amounts to execute this task are calculated
+     * @dev Tells the balance connector id of the previous task in the workflow
      */
-    function tokensSource() external view returns (address);
+    function previousBalanceConnectorId() external view returns (bytes32);
+
+    /**
+     * @dev Tells the balance connector id of the next task in the workflow
+     */
+    function nextBalanceConnectorId() external view returns (bytes32);
+
+    /**
+     * @dev Tells the address from where the token amounts to execute this task are fetched.
+     * This address must the the Smart Vault in case the previous balance connector is set.
+     */
+    function getTokensSource() external view returns (address);
 
     /**
      * @dev Tells the amount a task should use for a token
@@ -76,8 +87,9 @@ interface IBaseTask is IAuthorized {
     function unpause() external;
 
     /**
-     * @dev Sets the tokens source of the task
-     * @param source Address of the new tokens source to be set
+     * @dev Sets the balance connector IDs
+     * @param previous Balance connector id of the previous task in the workflow
+     * @param next Balance connector id of the next task in the workflow
      */
-    function setTokensSource(address source) external;
+    function setBalanceConnectors(bytes32 previous, bytes32 next) external;
 }

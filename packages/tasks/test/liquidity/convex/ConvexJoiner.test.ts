@@ -7,6 +7,7 @@ import {
   fp,
   getSigners,
   ZERO_ADDRESS,
+  ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
@@ -74,10 +75,16 @@ describe('ConvexJoiner', () => {
       })
 
       context('when the token is not zero', () => {
-        let token: Contract
+        let token: Contract, tokenOut: Contract
 
         beforeEach('deploy token', async () => {
           token = await deploy('TokenMock', ['2CRV'])
+        })
+
+        beforeEach('set connector tokens', async () => {
+          tokenOut = await deploy('TokenMock', ['cvx2CRV'])
+          await connector.setCvxPool(token.address, tokenOut.address)
+          await connector.setCurvePool(tokenOut.address, token.address)
         })
 
         context('when the amount is not zero', () => {
@@ -107,6 +114,27 @@ describe('ConvexJoiner', () => {
             it('emits an Executed event', async () => {
               const tx = await task.call(token.address, amount)
               await assertEvent(tx, 'Executed')
+            })
+
+            it('updates the balance connectors properly', async () => {
+              const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
+              const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+              await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+              await task.connect(owner).setBalanceConnectors(ZERO_BYTES32, nextConnectorId)
+
+              const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+              await authorizer
+                .connect(owner)
+                .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+
+              const tx = await task.call(token.address, amount)
+
+              await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+                id: nextConnectorId,
+                token: tokenOut.address,
+                amount,
+                added: true,
+              })
             })
           })
 

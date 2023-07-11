@@ -17,7 +17,6 @@ pragma solidity ^0.8.0;
 import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
-import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 import '@mimic-fi/v3-price-oracle/contracts/interfaces/IPriceOracle.sol';
 import '@mimic-fi/v3-smart-vault/contracts/interfaces/ISmartVault.sol';
 
@@ -34,8 +33,11 @@ abstract contract BaseTask is IBaseTask, Authorized {
     // Whether the task is paused or not
     bool public override isPaused;
 
-    // Source from where the token amounts to execute each task must be calculated
-    address public override tokensSource;
+    // Optional balance connector id for the previous task in the workflow
+    bytes32 public override previousBalanceConnectorId;
+
+    // Optional balance connector id for the next task in the workflow
+    bytes32 public override nextBalanceConnectorId;
 
     /**
      * @dev Modifier to tag the execution function of an task to trigger before and after hooks automatically
@@ -49,11 +51,13 @@ abstract contract BaseTask is IBaseTask, Authorized {
     /**
      * @dev Base task config. Only used in the initializer.
      * @param smartVault Address of the smart vault this task will reference, it cannot be changed once set
-     * @param tokensSource Address of the tokens source to be set
+     * @param previousBalanceConnectorId Balance connector id for the previous task in the workflow
+     * @param nextBalanceConnectorId Balance connector id for the next task in the workflow
      */
     struct BaseConfig {
         address smartVault;
-        address tokensSource;
+        bytes32 previousBalanceConnectorId;
+        bytes32 nextBalanceConnectorId;
     }
 
     /**
@@ -69,16 +73,27 @@ abstract contract BaseTask is IBaseTask, Authorized {
      */
     function _initialize(BaseConfig memory config) internal onlyInitializing {
         _initialize(ISmartVault(config.smartVault).authorizer());
-        _setTokensSource(config.tokensSource);
         smartVault = config.smartVault;
+        _setBalanceConnectors(config.previousBalanceConnectorId, config.nextBalanceConnectorId);
     }
 
     /**
-     * @dev Tells the amount a task should use for a token
+     * @dev Tells the address from where the token amounts to execute this task are fetched.
+     * Since by default tasks are supposed to use balance connectors, the tokens source has to be the smart vault.
+     * In case a task does not need to rely on a previous balance connector, it must override this function to specify
+     * where it is getting its tokens from.
+     */
+    function getTokensSource() external view virtual override returns (address) {
+        return smartVault;
+    }
+
+    /**
+     * @dev Tells the amount a task should use for a token. By default tasks are expected to use balance connectors.
+     * In case a task relies on an external tokens source, it must override how the task amount is calculated.
      * @param token Address of the token being queried
      */
     function getTaskAmount(address token) external view virtual override returns (uint256) {
-        return ERC20Helpers.balanceOf(token, tokensSource);
+        return ISmartVault(smartVault).getBalanceConnector(previousBalanceConnectorId, token);
     }
 
     /**
@@ -100,19 +115,21 @@ abstract contract BaseTask is IBaseTask, Authorized {
     }
 
     /**
-     * @dev Sets the tokens source of the task
-     * @param source Address of the new tokens source to be set
+     * @dev Sets the balance connectors
+     * @param previous Balance connector id of the previous task in the workflow
+     * @param next Balance connector id of the next task in the workflow
      */
-    function setTokensSource(address source) external override authP(authParams(source)) {
-        _setTokensSource(source);
+    function setBalanceConnectors(bytes32 previous, bytes32 next) external override authP(authParams(previous, next)) {
+        _setBalanceConnectors(previous, next);
     }
 
     /**
      * @dev Hook to be called before the task call starts. This implementation only adds a not-paused guard.
      * It should be overwritten to add any extra logic that must run before the task is executed.
      */
-    function _beforeTask(address, uint256) internal virtual {
+    function _beforeTask(address token, uint256 amount) internal virtual {
         require(!isPaused, 'TASK_PAUSED');
+        _decreaseBalanceConnector(token, amount);
     }
 
     /**
@@ -124,13 +141,37 @@ abstract contract BaseTask is IBaseTask, Authorized {
     }
 
     /**
-     * @dev Sets the tokens source of the task
-     * @param source Address of the new tokens source to be set
+     * @dev Decreases the previous balance connector in the smart vault if defined
+     * @param token Address of the token to update the previous balance connector of
+     * @param amount Amount to be updated
      */
-    function _setTokensSource(address source) internal {
-        require(source != address(0), 'TASK_TOKENS_SOURCE_ZERO');
-        tokensSource = source;
-        emit TokensSourceSet(source);
+    function _decreaseBalanceConnector(address token, uint256 amount) internal {
+        if (previousBalanceConnectorId != bytes32(0)) {
+            ISmartVault(smartVault).updateBalanceConnector(previousBalanceConnectorId, token, amount, false);
+        }
+    }
+
+    /**
+     * @dev Increases the next balance connector in the smart vault if defined
+     * @param token Address of the token to update the next balance connector of
+     * @param amount Amount to be updated
+     */
+    function _increaseBalanceConnector(address token, uint256 amount) internal {
+        if (nextBalanceConnectorId != bytes32(0)) {
+            ISmartVault(smartVault).updateBalanceConnector(nextBalanceConnectorId, token, amount, true);
+        }
+    }
+
+    /**
+     * @dev Sets the balance connectors
+     * @param previous Balance connector id of the previous task in the workflow
+     * @param next Balance connector id of the next task in the workflow
+     */
+    function _setBalanceConnectors(bytes32 previous, bytes32 next) internal virtual {
+        require(previous != next || previous == bytes32(0), 'TASK_SAME_BALANCE_CONNECTORS');
+        previousBalanceConnectorId = previous;
+        nextBalanceConnectorId = next;
+        emit BalanceConnectorsSet(previous, next);
     }
 
     /**

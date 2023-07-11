@@ -14,6 +14,7 @@
 
 pragma solidity ^0.8.0;
 
+import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-connectors/contracts/liquidity/curve/Curve2CrvConnector.sol';
 
 import './BaseCurveTask.sol';
@@ -23,6 +24,8 @@ import '../../interfaces/liquidity/curve/ICurve2CrvExiter.sol';
  * @title Curve 2CRV exiter task
  */
 contract Curve2CrvExiter is ICurve2CrvExiter, BaseCurveTask {
+    using BytesHelpers for bytes;
+
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('CURVE_2CRV_EXITER');
 
@@ -60,6 +63,7 @@ contract Curve2CrvExiter is ICurve2CrvExiter, BaseCurveTask {
             slippage
         );
 
-        ISmartVault(smartVault).execute(connector, connectorData);
+        bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
+        _increaseBalanceConnector(tokenOut, result.toUint256());
     }
 }

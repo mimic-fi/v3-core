@@ -7,8 +7,10 @@ import {
   getSigner,
   getSigners,
   instanceAt,
-  NATIVE_TOKEN_ADDRESS, ONES_BYTES32,
-  ZERO_ADDRESS, ZERO_BYTES32,
+  NATIVE_TOKEN_ADDRESS,
+  ONES_BYTES32,
+  ZERO_ADDRESS,
+  ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
@@ -346,7 +348,9 @@ describe('SmartVault', () => {
 
             context('when there is not enough balance in the connector', () => {
               it('reverts', async () => {
-                await expect(smartVault.updateBalanceConnector(connector, token.address, amount, add)).to.be.revertedWith('SMART_VAULT_CONNECTOR_NO_BALANCE')
+                await expect(
+                  smartVault.updateBalanceConnector(connector, token.address, amount, add)
+                ).to.be.revertedWith('SMART_VAULT_CONNECTOR_NO_BALANCE')
               })
             })
           })
@@ -356,7 +360,9 @@ describe('SmartVault', () => {
           const token = ZERO_ADDRESS
 
           it('reverts', async () => {
-            await expect(smartVault.updateBalanceConnector(connector, token, amount, true)).to.be.revertedWith('SMART_VAULT_CONNECTOR_TOKEN_ZERO')
+            await expect(smartVault.updateBalanceConnector(connector, token, amount, true)).to.be.revertedWith(
+              'SMART_VAULT_CONNECTOR_TOKEN_ZERO'
+            )
           })
         })
       })
@@ -365,14 +371,18 @@ describe('SmartVault', () => {
         const connector = ZERO_BYTES32
 
         it('reverts', async () => {
-          await expect(smartVault.updateBalanceConnector(connector, ZERO_ADDRESS, amount, true)).to.be.revertedWith('SMART_VAULT_CONNECTOR_ID_ZERO')
+          await expect(smartVault.updateBalanceConnector(connector, ZERO_ADDRESS, amount, true)).to.be.revertedWith(
+            'SMART_VAULT_CONNECTOR_ID_ZERO'
+          )
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.updateBalanceConnector(ZERO_BYTES32, ZERO_ADDRESS, amount, true)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(smartVault.updateBalanceConnector(ZERO_BYTES32, ZERO_ADDRESS, amount, true)).to.be.revertedWith(
+          'AUTH_SENDER_NOT_ALLOWED'
+        )
       })
     })
   })

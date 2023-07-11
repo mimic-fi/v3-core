@@ -1,4 +1,4 @@
-import { BigNumberish, deploy, deployProxy, fp, getSigner, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { BigNumberish, deploy, deployProxy, fp, getSigner, ZERO_ADDRESS, ZERO_BYTES32 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { Contract } from 'ethers'
 
@@ -61,7 +61,8 @@ export type TaskConfig = {
   baseConfig: {
     owner: string
     smartVault: string
-    tokensSource: string
+    previousBalanceConnectorId: string
+    nextBalanceConnectorId: string
   }
   gasLimitConfig: {
     gasPriceLimit: BigNumberish
@@ -92,7 +93,8 @@ export function buildEmptyTaskConfig(owner: SignerWithAddress, smartVault: Contr
     baseConfig: {
       owner: owner.address,
       smartVault: smartVault.address,
-      tokensSource: smartVault.address,
+      previousBalanceConnectorId: ZERO_BYTES32,
+      nextBalanceConnectorId: ZERO_BYTES32,
     },
     gasLimitConfig: {
       gasPriceLimit: 0,

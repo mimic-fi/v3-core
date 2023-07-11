@@ -28,15 +28,15 @@ contract Collector is ICollector, Task {
     bytes32 public constant override EXECUTION_TYPE = keccak256('COLLECTOR');
 
     // Address from where the tokens will be pulled
-    address public override source;
+    address internal _tokensSource;
 
     /**
      * @dev Collector task config. Only used in the initializer.
-     * @param source Address of the allowed source
+     * @param tokensSource Address from where tokens will be fetched
      * @param taskConfig Task config params
      */
     struct CollectorConfig {
-        address source;
+        address tokensSource;
         TaskConfig taskConfig;
     }
 
@@ -45,15 +45,22 @@ contract Collector is ICollector, Task {
      */
     function initialize(CollectorConfig memory config) external initializer {
         _initialize(config.taskConfig);
-        _setSource(config.source);
+        _setTokensSource(config.tokensSource);
     }
 
     /**
-     * @dev Sets the source address. Sender must be authorized.
-     * @param newSource Address of the new source to be set
+     * @dev Tells the address from where the token amounts to execute this task are fetched
      */
-    function setSource(address newSource) external override authP(authParams(newSource)) {
-        _setSource(newSource);
+    function getTokensSource() external view virtual override(IBaseTask, BaseTask) returns (address) {
+        return _tokensSource;
+    }
+
+    /**
+     * @dev Sets the tokens source address. Sender must be authorized.
+     * @param tokensSource Address of the tokens source to be set
+     */
+    function setTokensSource(address tokensSource) external override authP(authParams(tokensSource)) {
+        _setTokensSource(tokensSource);
     }
 
     /**
@@ -65,7 +72,8 @@ contract Collector is ICollector, Task {
         authP(authParams(token, amount))
         baseTaskCall(token, amount)
     {
-        ISmartVault(smartVault).collect(token, source, amount);
+        ISmartVault(smartVault).collect(token, _tokensSource, amount);
+        _increaseBalanceConnector(token, amount);
     }
 
     /**
@@ -78,12 +86,22 @@ contract Collector is ICollector, Task {
     }
 
     /**
-     * @dev Sets the source address
-     * @param newSource Address of the new source to be set
+     * @dev Sets the balance connectors. Previous balance connector must be unset.
+     * @param previous Balance connector id of the previous task in the workflow
+     * @param next Balance connector id of the next task in the workflow
      */
-    function _setSource(address newSource) internal virtual {
-        require(newSource != address(0), 'TASK_SOURCE_ZERO');
-        source = newSource;
-        emit SourceSet(newSource);
+    function _setBalanceConnectors(bytes32 previous, bytes32 next) internal virtual override {
+        require(previous == bytes32(0), 'TASK_PREVIOUS_CONNECTOR_NOT_ZERO');
+        super._setBalanceConnectors(previous, next);
+    }
+
+    /**
+     * @dev Sets the source address
+     * @param tokensSource Address of the tokens source to be set
+     */
+    function _setTokensSource(address tokensSource) internal virtual {
+        require(tokensSource != address(0), 'TASK_TOKENS_SOURCE_ZERO');
+        _tokensSource = tokensSource;
+        emit TokensSourceSet(tokensSource);
     }
 }

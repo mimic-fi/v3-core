@@ -8,6 +8,7 @@ import {
   getSigners,
   MONTH,
   setNextBlockTimestamp,
+  ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
@@ -34,7 +35,8 @@ describe('TimeLockedTask', () => {
           baseConfig: {
             owner: owner.address,
             smartVault: smartVault.address,
-            tokensSource: smartVault.address,
+            previousBalanceConnectorId: ZERO_BYTES32,
+            nextBalanceConnectorId: ZERO_BYTES32,
           },
           timeLockConfig: {
             delay: 0,

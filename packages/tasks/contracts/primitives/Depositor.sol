@@ -17,6 +17,7 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
+import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
 
 import './Collector.sol';
@@ -37,6 +38,14 @@ contract Depositor is ICollector, Collector {
     }
 
     /**
+     * @dev Tells the balance of the depositor for a given token
+     * @param token Address of the token being queried
+     */
+    function getTaskAmount(address token) external view virtual override(IBaseTask, BaseTask) returns (uint256) {
+        return ERC20Helpers.balanceOf(address(this), token);
+    }
+
+    /**
      * @dev Approves the requested amount of tokens to the smart vault in case it's not the native token
      */
     function _beforeTask(address token, uint256 amount) internal virtual override {
@@ -47,11 +56,11 @@ contract Depositor is ICollector, Collector {
     }
 
     /**
-     * @dev Sets the source address
-     * @param newSource Address of the new source to be set
+     * @dev Sets the tokens source address
+     * @param tokensSource Address of the tokens source to be set
      */
-    function _setSource(address newSource) internal override {
-        require(newSource == address(this), 'TASK_DEPOSITOR_BAD_SOURCE');
-        super._setSource(newSource);
+    function _setTokensSource(address tokensSource) internal override {
+        require(tokensSource == address(this), 'TASK_DEPOSITOR_BAD_TOKENS_SOURCE');
+        super._setTokensSource(tokensSource);
     }
 }

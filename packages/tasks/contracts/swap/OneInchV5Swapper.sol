@@ -15,6 +15,7 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
+import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-connectors/contracts/swap/1inch-v5/OneInchV5Connector.sol';
 
 import './BaseSwapTask.sol';
@@ -22,6 +23,7 @@ import '../interfaces/swap/IOneInchV5Swapper.sol';
 
 contract OneInchV5Swapper is IOnceInchV5Swapper, BaseSwapTask {
     using FixedPoint for uint256;
+    using BytesHelpers for bytes;
 
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('1INCH_V5_SWAPPER');
@@ -62,6 +64,7 @@ contract OneInchV5Swapper is IOnceInchV5Swapper, BaseSwapTask {
             data
         );
 
-        ISmartVault(smartVault).execute(connector, connectorData);
+        bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
+        _increaseBalanceConnector(tokenOut, result.toUint256());
     }
 }

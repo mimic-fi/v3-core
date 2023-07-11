@@ -1,4 +1,13 @@
-import { assertEvent, BigNumberish, deploy, deployProxy, fp, getSigners, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import {
+  assertEvent,
+  BigNumberish,
+  deploy,
+  deployProxy,
+  fp,
+  getSigners,
+  ZERO_ADDRESS,
+  ZERO_BYTES32,
+} from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
@@ -29,7 +38,8 @@ describe('TokenThresholdTask', () => {
           baseConfig: {
             owner: owner.address,
             smartVault: smartVault.address,
-            tokensSource: smartVault.address,
+            previousBalanceConnectorId: ZERO_BYTES32,
+            nextBalanceConnectorId: ZERO_BYTES32,
           },
           tokenThresholdConfig: {
             customThresholds: [],

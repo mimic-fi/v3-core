@@ -1,4 +1,4 @@
-import { assertEvent, deploy, fp, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { assertEvent, deploy, fp, ZERO_ADDRESS, ZERO_BYTES32 } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
@@ -8,6 +8,64 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
     it('defines it correctly', async function () {
       const expectedType = ethers.utils.solidityKeccak256(['string'], [executionType])
       expect(await this.task.EXECUTION_TYPE()).to.be.equal(expectedType)
+    })
+  })
+
+  describe('setBalanceConnectors', () => {
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async function () {
+        const setBalanceConnectorsRole = this.task.interface.getSighash('setBalanceConnectors')
+        await this.authorizer
+          .connect(this.owner)
+          .authorize(this.owner.address, this.task.address, setBalanceConnectorsRole, [])
+        this.task = this.task.connect(this.owner)
+      })
+
+      const itCanBeSet = (previous: string, next: string) => {
+        it('can be set', async function () {
+          const tx = await this.task.setBalanceConnectors(previous, next)
+
+          expect(await this.task.previousBalanceConnectorId()).to.be.equal(previous)
+          expect(await this.task.nextBalanceConnectorId()).to.be.equal(next)
+
+          await assertEvent(tx, 'BalanceConnectorsSet', { previous, next })
+        })
+      }
+
+      context('when setting to non-zero', () => {
+        const previous = '0x0000000000000000000000000000000000000000000000000000000000000001'
+
+        context('when setting next to zero', () => {
+          const next = ZERO_BYTES32
+
+          itCanBeSet(previous, next)
+        })
+
+        context('when setting next to non-zero', () => {
+          const next = '0x0000000000000000000000000000000000000000000000000000000000000002'
+
+          it('reverts', async function () {
+            await expect(this.task.setBalanceConnectors(previous, next)).to.be.revertedWith(
+              'TASK_NEXT_CONNECTOR_NOT_ZERO'
+            )
+          })
+        })
+      })
+
+      context('when setting to zero', () => {
+        const previous = ZERO_BYTES32
+        const next = ZERO_BYTES32
+
+        itCanBeSet(previous, next)
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(this.task.setBalanceConnectors(ZERO_BYTES32, ZERO_BYTES32)).to.be.revertedWith(
+          'AUTH_SENDER_NOT_ALLOWED'
+        )
+      })
     })
   })
 

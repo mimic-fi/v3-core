@@ -7,6 +7,7 @@ import {
   fp,
   getSigners,
   ZERO_ADDRESS,
+  ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
@@ -164,6 +165,27 @@ describe('OneInchV5Swapper', () => {
                     const tx = await task.call(tokenIn.address, amountIn, slippage, data)
 
                     await assertEvent(tx, 'Executed')
+                  })
+
+                  it('updates the balance connectors properly', async () => {
+                    const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
+                    const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+                    await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+                    await task.connect(owner).setBalanceConnectors(ZERO_BYTES32, nextConnectorId)
+
+                    const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                    await authorizer
+                      .connect(owner)
+                      .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+
+                    const tx = await task.call(tokenIn.address, amountIn, slippage, data)
+
+                    await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+                      id: nextConnectorId,
+                      token: tokenOut.address,
+                      amount: minAmountOut,
+                      added: true,
+                    })
                   })
                 })
 
