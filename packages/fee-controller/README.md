@@ -2,11 +2,14 @@
   <a href="https://mimic.fi"><img src="https://www.mimic.fi/logo.png" alt="Mimic Finance" width="200"></a> 
 </h1>
 
-<h4 align="center">A DeFi automation platform</h4>
+<h4 align="center">DeFi automation platform</h4>
 
 <p align="center">
-  <a href="https://github.com/mimic-fi/v3-core/actions/workflows/build.yml">
-    <img src="https://github.com/mimic-fi/v3-core/actions/workflows/build.yml/badge.svg" alt="Build">
+  <a href="https://badge.fury.io/js/@mimic-fi%2Fv3-fee-controller">
+    <img src="https://badge.fury.io/js/@mimic-fi%2Fv3-fee-controller.svg" alt="NPM">
+  </a>
+  <a href="https://github.com/mimic-fi/v3-core/actions/workflows/ci-fee-controller.yml">
+    <img src="https://github.com/mimic-fi/v3-core/actions/workflows/ci-fee-controller.yml/badge.svg" alt="CI Fee Controller">
   </a>
   <a href="https://discord.mimic.fi">
     <img alt="Discord" src="https://img.shields.io/discord/989984112397922325">
@@ -25,35 +28,29 @@
 
 ---
 
-## Content
+## Content 
 
-This monorepo holds the key components of the Mimic protocol:
-
-- [Authorizer](./packages/authorizer)
-- [Connectors](./packages/connectors)
-- [Deployer](./packages/deployer)
-- [Fee controller](./packages/fee-controller)
-- [Helpers](./packages/helpers)
-- [Price oracle](./packages/price-oracle)
-- [Registry](./packages/registry)
-- [Relayer](./packages/relayer)
-- [Smart vault](./packages/smart-vault)
-- [Tasks](./packages/tasks)
+The Fee Controller serves as an isolated and independent component within the Mimic protocol. It is designed to enforce 
+the fee structure and ensure that users are charged in alignment with the expected percentage based on the volume of 
+transactions processed through the protocol.
 
 ## Setup
 
-To set up this project you'll need [git](https://git-scm.com) and [yarn](https://classic.yarnpkg.com) installed.
+To set up this project you'll need [git](https://git-scm.com) and [yarn](https://classic.yarnpkg.com) installed. 
 From your command line:
 
 ```bash
 # Clone this repository
 $ git clone https://github.com/mimic-fi/v3-core
 
-# Go into the repository
-$ cd v3-core
+# Go into the repository's package
+$ cd v3-core/packages/fee-controller
 
 # Install dependencies
 $ yarn
+
+# Run tests to make sure everything is set up correctly
+$ yarn test
 ```
 
 ## Security
