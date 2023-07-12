@@ -26,7 +26,6 @@ import '../interfaces/bridge/IConnextBridger.sol';
  */
 contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     using FixedPoint for uint256;
-    using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('CONNEXT_BRIDGER');
@@ -35,7 +34,7 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     uint256 public override defaultRelayerFee;
 
     // Relayer fee per token address
-    EnumerableMap.AddressToUintMap private _customRelayerFees;
+    mapping (address => uint256) public override customRelayerFee;
 
     /**
      * @dev Custom relayer fee config
@@ -64,13 +63,6 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
         for (uint256 i = 0; i < config.customRelayerFees.length; i++) {
             _setCustomRelayerFee(config.customRelayerFees[i].token, config.customRelayerFees[i].relayerFee);
         }
-    }
-
-    /**
-     * @dev Tells the relayer fee for a token
-     */
-    function customRelayerFee(address token) external view override returns (uint256 fee) {
-        (, fee) = _customRelayerFees.tryGet(token);
     }
 
     /**
@@ -120,21 +112,15 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
      * @dev Tells the relayer fee that should be used for a token
      */
     function _getApplicableRelayerFee(address token) internal view returns (uint256) {
-        return _customRelayerFees.contains(token) ? _customRelayerFees.get(token) : defaultRelayerFee;
-    }
-
-    /**
-     * @dev Tells if the requested fee is valid based on the relayer fee configured for a token
-     */
-    function _isFeeValid(address token, uint256 amount, uint256 fee) internal view returns (bool) {
-        return fee.divUp(amount) <= _getApplicableRelayerFee(token);
+        uint256 relayerFee = customRelayerFee[token];
+        return relayerFee == 0 ? defaultRelayerFee : relayerFee;
     }
 
     /**
      * @dev Reverts if the requested fee is above the relayer fee configured for a token
      */
     function _validateFee(address token, uint256 amount, uint256 fee) internal view {
-        require(_isFeeValid(token, amount, fee), 'TASK_FEE_TOO_HIGH');
+        require(fee.divUp(amount) <= _getApplicableRelayerFee(token), 'TASK_FEE_TOO_HIGH');
     }
 
     /**
@@ -152,7 +138,8 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
      * @param relayerFee Relayer fee to be set
      */
     function _setCustomRelayerFee(address token, uint256 relayerFee) internal {
-        relayerFee == 0 ? _customRelayerFees.remove(token) : _customRelayerFees.set(token, relayerFee);
+        require(token != address(0), 'TASK_TOKEN_ZERO');
+        customRelayerFee[token] = relayerFee;
         emit CustomRelayerFeeSet(token, relayerFee);
     }
 }

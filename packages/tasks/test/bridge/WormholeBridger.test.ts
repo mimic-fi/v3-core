@@ -108,7 +108,7 @@ describe('WormholeBridger', () => {
                   await authorizer
                     .connect(owner)
                     .authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-                  await task.connect(owner).setDefaultTokenThreshold({ token: token.address, min: threshold, max: 0 })
+                  await task.connect(owner).setDefaultTokenThreshold(token.address, threshold, 0)
                 })
 
                 beforeEach('fund smart vault', async () => {
@@ -172,7 +172,7 @@ describe('WormholeBridger', () => {
                   await authorizer
                     .connect(owner)
                     .authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-                  await task.connect(owner).setDefaultTokenThreshold({ token: token.address, min: threshold, max: 0 })
+                  await task.connect(owner).setDefaultTokenThreshold(token.address, threshold, 0)
                 })
 
                 it('reverts', async () => {

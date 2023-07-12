@@ -15,7 +15,6 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-helpers/contracts/utils/EnumerableMap.sol';
 import '@mimic-fi/v3-connectors/contracts/swap/hop/IHopL2Amm.sol';
 import '@mimic-fi/v3-connectors/contracts/swap/hop/HopSwapConnector.sol';
 
@@ -25,13 +24,12 @@ import '../interfaces/swap/IHopL2Swapper.sol';
 contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
     using FixedPoint for uint256;
     using BytesHelpers for bytes;
-    using EnumerableMap for EnumerableMap.AddressToAddressMap;
 
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('HOP_L2_SWAPPER');
 
     // List of AMMs per token
-    EnumerableMap.AddressToAddressMap private _tokenAmms;
+    mapping (address => address) public override tokenAmm;
 
     /**
      * @dev Token amm config. Only used in the initializer.
@@ -61,13 +59,6 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev Tells AMM set for a token
-     */
-    function getTokenAmm(address token) public view override returns (address amm) {
-        (, amm) = _tokenAmms.tryGet(token);
-    }
-
-    /**
      * @dev Sets an AMM for a hToken
      * @param hToken Address of the hToken to be set
      * @param amm AMM address to be set for the hToken
@@ -86,7 +77,7 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
         baseSwapTaskCall(hToken, amount, slippage)
     {
         address tokenOut = _getApplicableTokenOut(hToken);
-        address dexAddress = IHopL2Amm(getTokenAmm(hToken)).exchangeAddress();
+        address dexAddress = IHopL2Amm(tokenAmm[hToken]).exchangeAddress();
         uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
 
         bytes memory connectorData = abi.encodeWithSelector(
@@ -108,7 +99,7 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
      */
     function _beforeSwapTask(address token, uint256 amount, uint256 slippage) internal virtual override {
         super._beforeSwapTask(token, amount, slippage);
-        require(_tokenAmms.contains(token), 'TASK_MISSING_HOP_TOKEN_AMM');
+        require(tokenAmm[token] != address(0), 'TASK_MISSING_HOP_TOKEN_AMM');
     }
 
     /**
@@ -120,7 +111,7 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
         require(hToken != address(0), 'TASK_HOP_TOKEN_ZERO');
         require(amm == address(0) || hToken == IHopL2Amm(amm).hToken(), 'TASK_HOP_TOKEN_AMM_MISMATCH');
 
-        amm == address(0) ? _tokenAmms.remove(hToken) : _tokenAmms.set(hToken, amm);
+        tokenAmm[hToken] = amm;
         emit TokenAmmSet(hToken, amm);
     }
 }

@@ -15,7 +15,6 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-helpers/contracts/utils/EnumerableMap.sol';
 
 import '../Task.sol';
 import '../interfaces/bridge/IBaseBridgeTask.sol';
@@ -26,7 +25,6 @@ import '../interfaces/bridge/IBaseBridgeTask.sol';
  */
 abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     using FixedPoint for uint256;
-    using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     // Connector address
     address public override connector;
@@ -41,10 +39,10 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     uint256 public override defaultMaxSlippage;
 
     // Destination chain per token address
-    EnumerableMap.AddressToUintMap private _customDestinationChains;
+    mapping (address => uint256) public override customDestinationChain;
 
     // Maximum slippage per token address
-    EnumerableMap.AddressToUintMap private _customMaxSlippages;
+    mapping (address => uint256) public override customMaxSlippage;
 
     /**
      * @dev Modifier to tag the execution function of a task to trigger before and after hooks automatically
@@ -106,23 +104,6 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
         for (uint256 i = 0; i < config.customMaxSlippages.length; i++) {
             _setCustomMaxSlippage(config.customMaxSlippages[i].token, config.customMaxSlippages[i].maxSlippage);
         }
-    }
-
-    /**
-     * @dev Tells the destination chain defined for a specific token
-     * @param token Address of the token querying the custom destination chain for
-     * @return chainId Destination chain set for the given token
-     */
-    function customDestinationChain(address token) public view override returns (uint256 chainId) {
-        (, chainId) = _customDestinationChains.tryGet(token);
-    }
-
-    /**
-     * @dev Tells the max slippage defined for a specific token
-     * @param token Address of the token querying the custom max slippage for
-     */
-    function customMaxSlippage(address token) public view override returns (uint256 maxSlippage) {
-        (, maxSlippage) = _customMaxSlippages.tryGet(token);
     }
 
     /**
@@ -193,7 +174,8 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @return destinationChain Destination chain to be used
      */
     function _getApplicableDestinationChain(address token) internal view returns (uint256) {
-        return _customDestinationChains.contains(token) ? _customDestinationChains.get(token) : defaultDestinationChain;
+        uint256 chain = customDestinationChain[token];
+        return chain == 0 ? defaultDestinationChain : chain;
     }
 
     /**
@@ -202,7 +184,8 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @return maxSlippage Max slippage to be used
      */
     function _getApplicableMaxSlippage(address token) internal view returns (uint256) {
-        return _customMaxSlippages.contains(token) ? _customMaxSlippages.get(token) : defaultMaxSlippage;
+        uint256 maxSlippage = customMaxSlippage[token];
+        return maxSlippage == 0 ? defaultMaxSlippage : maxSlippage;
     }
 
     /**
@@ -286,12 +269,9 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @param destinationChain Destination chain to be set
      */
     function _setCustomDestinationChain(address token, uint256 destinationChain) internal {
+        require(token != address(0), 'TASK_TOKEN_ZERO');
         require(destinationChain != block.chainid, 'TASK_BRIDGE_CURRENT_CHAIN_ID');
-
-        destinationChain == 0
-            ? _customDestinationChains.remove(token)
-            : _customDestinationChains.set(token, destinationChain);
-
+        customDestinationChain[token] = destinationChain;
         emit CustomDestinationChainSet(token, destinationChain);
     }
 
@@ -301,8 +281,9 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @param maxSlippage Max slippage to be set
      */
     function _setCustomMaxSlippage(address token, uint256 maxSlippage) internal {
+        require(token != address(0), 'TASK_TOKEN_ZERO');
         require(maxSlippage <= FixedPoint.ONE, 'TASK_SLIPPAGE_ABOVE_ONE');
-        maxSlippage == 0 ? _customMaxSlippages.remove(token) : _customMaxSlippages.set(token, maxSlippage);
+        customMaxSlippage[token] = maxSlippage;
         emit CustomMaxSlippageSet(token, maxSlippage);
     }
 }

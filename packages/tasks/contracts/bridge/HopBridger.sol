@@ -16,15 +16,12 @@ pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-connectors/contracts/bridge/hop/HopConnector.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-helpers/contracts/utils/EnumerableMap.sol';
 
 import './BaseBridgeTask.sol';
 import '../interfaces/bridge/IHopBridger.sol';
 
 contract HopBridger is IHopBridger, BaseBridgeTask {
     using FixedPoint for uint256;
-    using EnumerableMap for EnumerableMap.AddressToUintMap;
-    using EnumerableMap for EnumerableMap.AddressToAddressMap;
 
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('HOP_BRIDGER');
@@ -39,10 +36,10 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     uint256 public override defaultMaxFeePct;
 
     // Max fee percentage per token
-    EnumerableMap.AddressToUintMap private _customMaxFeePcts;
+    mapping (address => uint256) public override customMaxFeePct;
 
     // List of Hop entrypoints per token
-    EnumerableMap.AddressToAddressMap private _tokenHopEntrypoints;
+    mapping (address => address) public override tokenHopEntrypoint;
 
     /**
      * @dev Custom max fee percentage config
@@ -90,20 +87,6 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
             TokenHopEntrypoint memory customConfig = config.tokenHopEntrypoints[i];
             _setTokenHopEntrypoint(customConfig.token, customConfig.entrypoint);
         }
-    }
-
-    /**
-     * @dev Tells the max fee percentage defined for a specific token
-     */
-    function customMaxFeePct(address token) public view override returns (uint256 maxFeePct) {
-        (, maxFeePct) = _customMaxFeePcts.tryGet(token);
-    }
-
-    /**
-     * @dev Tells Hop entrypoint set for a token
-     */
-    function tokenHopEntrypoint(address token) public view override returns (address entrypoint) {
-        (, entrypoint) = _tokenHopEntrypoints.tryGet(token);
     }
 
     /**
@@ -159,28 +142,54 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     /**
      * @dev Execution function
      */
-    function call(address token, uint256 amountIn, uint256 slippage, uint256 fee)
+    function call(address token, uint256 amount, uint256 slippage, uint256 fee)
         external
         override
-        authP(authParams(token, amountIn, slippage, fee))
-        baseBridgeTaskCall(token, amountIn, slippage)
+        authP(authParams(token, amount, slippage, fee))
+        baseBridgeTaskCall(token, amount, slippage)
     {
-        require(fee.divUp(amountIn) <= _getApplicableMaxFeePct(token), 'TASK_FEE_TOO_HIGH');
-
-        bytes memory connectorData = abi.encodeWithSelector(
-            HopConnector.execute.selector,
-            _getApplicableDestinationChain(token),
-            token,
-            amountIn,
-            amountIn.mulUp(FixedPoint.ONE - slippage), // minAmountOut
-            recipient,
-            _tokenHopEntrypoints.get(token),
-            block.timestamp + maxDeadline,
-            relayer,
-            fee
-        );
-
+        _validateFee(token, amount, fee);
+        bytes memory connectorData = _buildConnectorData(token, amount, slippage, fee);
         ISmartVault(smartVault).execute(connector, connectorData);
+    }
+
+    /**
+     * @dev Build Hop bridger connector data
+     */
+    function _buildConnectorData(address token, uint256 amount, uint256 slippage, uint256 fee)
+        internal
+        view
+        returns (bytes memory)
+    {
+        uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
+        return
+            abi.encodeWithSelector(
+                HopConnector.execute.selector,
+                _getApplicableDestinationChain(token),
+                token,
+                amount,
+                minAmountOut,
+                recipient,
+                tokenHopEntrypoint[token],
+                block.timestamp + maxDeadline,
+                relayer,
+                fee
+            );
+    }
+
+    /**
+     * @dev Tells the max fee percentage that should be used for a token
+     */
+    function _getApplicableMaxFeePct(address token) internal view returns (uint256) {
+        uint256 maxFeePct = customMaxFeePct[token];
+        return maxFeePct == 0 ? defaultMaxFeePct : maxFeePct;
+    }
+
+    /**
+     * @dev Reverts if the requested fee is above the relayer fee configured for a token
+     */
+    function _validateFee(address token, uint256 amount, uint256 fee) internal view {
+        require(fee.divUp(amount) <= _getApplicableMaxFeePct(token), 'TASK_FEE_TOO_HIGH');
     }
 
     /**
@@ -189,14 +198,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      */
     function _beforeBridgeTask(address token, uint256 amount, uint256 slippage) internal virtual override {
         super._beforeBridgeTask(token, amount, slippage);
-        require(_tokenHopEntrypoints.contains(token), 'TASK_MISSING_HOP_ENTRYPOINT');
-    }
-
-    /**
-     * @dev Tells the max fee percentage that should be used for a token
-     */
-    function _getApplicableMaxFeePct(address token) internal view returns (uint256) {
-        return _customMaxFeePcts.contains(token) ? _customMaxFeePcts.get(token) : defaultMaxFeePct;
+        require(tokenHopEntrypoint[token] != address(0), 'TASK_MISSING_HOP_ENTRYPOINT');
     }
 
     /**
@@ -232,8 +234,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      */
     function _setTokenHopEntrypoint(address token, address entrypoint) internal {
         require(token != address(0), 'TASK_HOP_TOKEN_ZERO');
-        bool isZero = entrypoint == address(0);
-        isZero ? _tokenHopEntrypoints.remove(token) : _tokenHopEntrypoints.set(token, entrypoint);
+        tokenHopEntrypoint[token] = entrypoint;
         emit TokenHopEntrypointSet(token, entrypoint);
     }
 
@@ -243,7 +244,8 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      * @param maxFeePct Max fee percentage to be set for the given token
      */
     function _setCustomMaxFeePct(address token, uint256 maxFeePct) internal {
-        maxFeePct == 0 ? _customMaxFeePcts.remove(token) : _customMaxFeePcts.set(token, maxFeePct);
+        require(token != address(0), 'TASK_HOP_TOKEN_ZERO');
+        customMaxFeePct[token] = maxFeePct;
         emit CustomMaxFeePctSet(token, maxFeePct);
     }
 }

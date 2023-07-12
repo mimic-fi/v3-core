@@ -28,7 +28,7 @@ interface IHopL2Swapper is IBaseSwapTask {
     /**
      * @dev Tells AMM set for a token
      */
-    function getTokenAmm(address token) external view returns (address amm);
+    function tokenAmm(address token) external view returns (address);
 
     /**
      * @dev Sets an AMM for a hToken

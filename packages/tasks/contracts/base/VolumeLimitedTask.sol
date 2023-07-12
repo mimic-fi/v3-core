@@ -107,7 +107,7 @@ abstract contract VolumeLimitedTask is IVolumeLimitedTask, BaseTask {
     }
 
     /**
-     * @dev Tells the volume applicable for a token, it prioritizes custom limits over the default one
+     * @dev Tells the volume limit applicable for a token, it prioritizes custom limits over the default one
      * @param token Address of the token being queried
      */
     function _getApplicableVolumeLimit(address token) internal view returns (VolumeLimit storage) {
@@ -184,7 +184,7 @@ abstract contract VolumeLimitedTask is IVolumeLimitedTask, BaseTask {
      * @param amount Amount of tokens to be applied for the volume limit
      * @param period Frequency to Amount of tokens to be applied for the volume limit
      */
-    function _setVolumeLimit(VolumeLimit storage limit, address token, uint256 amount, uint256 period) internal {
+    function _setVolumeLimit(VolumeLimit storage limit, address token, uint256 amount, uint256 period) private {
         // If there is no limit, all values must be zero
         bool isZeroLimit = token == address(0) && amount == 0 && period == 0;
         bool isNonZeroLimit = token != address(0) && amount > 0 && period > 0;

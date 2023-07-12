@@ -85,7 +85,7 @@ describe('HopL2Swapper', () => {
             it('sets the token amm', async () => {
               await task.setTokenAmm(hToken.address, amm.address)
 
-              expect(await task.getTokenAmm(hToken.address)).to.be.equal(amm.address)
+              expect(await task.tokenAmm(hToken.address)).to.be.equal(amm.address)
             })
 
             it('emits an event', async () => {
@@ -117,7 +117,7 @@ describe('HopL2Swapper', () => {
             it('unsets the token amm', async () => {
               await task.setTokenAmm(hToken.address, ZERO_ADDRESS)
 
-              expect(await task.getTokenAmm(hToken.address)).to.be.equal(ZERO_ADDRESS)
+              expect(await task.tokenAmm(hToken.address)).to.be.equal(ZERO_ADDRESS)
             })
 
             it('emits an event', async () => {
@@ -206,11 +206,7 @@ describe('HopL2Swapper', () => {
               beforeEach('set threshold', async () => {
                 const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
                 await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-                await task.connect(owner).setDefaultTokenThreshold({
-                  token: tokenOut.address,
-                  min: amountIn,
-                  max: 0,
-                })
+                await task.connect(owner).setDefaultTokenThreshold(tokenOut.address, amountIn, 0)
               })
 
               context('when the given token has an AMM set', () => {

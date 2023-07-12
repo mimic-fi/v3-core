@@ -42,7 +42,7 @@ describe('TokenThresholdTask', () => {
             nextBalanceConnectorId: ZERO_BYTES32,
           },
           tokenThresholdConfig: {
-            customThresholds: [],
+            customThresholdConfigs: [],
             defaultThreshold: {
               token: ZERO_ADDRESS,
               min: 0,
@@ -66,7 +66,7 @@ describe('TokenThresholdTask', () => {
 
       const itCanBeSet = (token: string, min: BigNumberish, max: BigNumberish) => {
         it('sets the default correctly', async () => {
-          await task.setDefaultTokenThreshold({ token, min, max })
+          await task.setDefaultTokenThreshold(token, min, max)
 
           const threshold = await task.defaultTokenThreshold()
           expect(threshold.token).to.be.equal(token)
@@ -75,7 +75,7 @@ describe('TokenThresholdTask', () => {
         })
 
         it('emits an event', async () => {
-          const tx = await task.setDefaultTokenThreshold({ token, min, max })
+          const tx = await task.setDefaultTokenThreshold(token, min, max)
           assertEvent(tx, 'DefaultThresholdSet', { threshold: { token, min, max } })
         })
       }
@@ -122,8 +122,8 @@ describe('TokenThresholdTask', () => {
             const min = max.add(1)
 
             it('reverts', async () => {
-              await expect(task.setDefaultTokenThreshold({ token, min, max })).to.be.revertedWith(
-                'TASK_BAD_THRESHOLD_MAX_LT_MIN'
+              await expect(task.setDefaultTokenThreshold(token, min, max)).to.be.revertedWith(
+                'TASK_INVALID_THRESHOLD_INPUT'
               )
             })
           })
@@ -133,9 +133,7 @@ describe('TokenThresholdTask', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setDefaultTokenThreshold({ token, min: 0, max: 0 })).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
-        )
+        await expect(task.setDefaultTokenThreshold(token, 0, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })
@@ -150,7 +148,7 @@ describe('TokenThresholdTask', () => {
 
       const itCanBeSet = (token: string, thresholdToken: string, min: BigNumberish, max: BigNumberish) => {
         it('sets the custom token threshold correctly', async () => {
-          await task.setCustomTokenThreshold(token, { token: thresholdToken, min, max })
+          await task.setCustomTokenThreshold(token, thresholdToken, min, max)
 
           const threshold = await task.customTokenThreshold(token)
           expect(threshold.token).to.be.equal(thresholdToken)
@@ -159,9 +157,9 @@ describe('TokenThresholdTask', () => {
         })
 
         it('emits an event', async () => {
-          const tx = await task.setCustomTokenThreshold(token, { token: thresholdToken, min, max })
+          const tx = await task.setCustomTokenThreshold(token, thresholdToken, min, max)
 
-          assertEvent(tx, 'TokenThresholdSet', { token, threshold: { token: thresholdToken, min, max } })
+          assertEvent(tx, 'TokenThresholdSet', { token, thresholdToken, min, max })
         })
       }
 
@@ -211,9 +209,9 @@ describe('TokenThresholdTask', () => {
               const min = max.add(1)
 
               it('reverts', async () => {
-                await expect(
-                  task.setCustomTokenThreshold(token, { token: thresholdToken, min, max })
-                ).to.be.revertedWith('TASK_BAD_THRESHOLD_MAX_LT_MIN')
+                await expect(task.setCustomTokenThreshold(token, thresholdToken, min, max)).to.be.revertedWith(
+                  'TASK_INVALID_THRESHOLD_INPUT'
+                )
               })
             })
           })
@@ -224,7 +222,7 @@ describe('TokenThresholdTask', () => {
         const token = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.setCustomTokenThreshold(token, { token: ZERO_ADDRESS, min: 0, max: 0 })).to.be.revertedWith(
+          await expect(task.setCustomTokenThreshold(token, ZERO_ADDRESS, 0, 0)).to.be.revertedWith(
             'TASK_THRESHOLD_TOKEN_ZERO'
           )
         })
@@ -233,9 +231,9 @@ describe('TokenThresholdTask', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(
-          task.setCustomTokenThreshold(ZERO_ADDRESS, { token: ZERO_ADDRESS, min: 0, max: 0 })
-        ).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setCustomTokenThreshold(ZERO_ADDRESS, ZERO_ADDRESS, 0, 0)).to.be.revertedWith(
+          'AUTH_SENDER_NOT_ALLOWED'
+        )
       })
     })
   })
@@ -282,7 +280,7 @@ describe('TokenThresholdTask', () => {
         beforeEach('set threshold', async () => {
           const setCustomTokenThresholdRole = task.interface.getSighash('setCustomTokenThreshold')
           await authorizer.connect(owner).authorize(owner.address, task.address, setCustomTokenThresholdRole, [])
-          await task.connect(owner).setCustomTokenThreshold(WETH, { token: USDT, min: fp(3200), max: fp(6400) })
+          await task.connect(owner).setCustomTokenThreshold(WETH, USDT, fp(3200), fp(6400))
         })
 
         it('applies only for when the requested token matches', async () => {
@@ -317,7 +315,7 @@ describe('TokenThresholdTask', () => {
       beforeEach('set default', async () => {
         const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
         await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-        await task.connect(owner).setDefaultTokenThreshold({ token: USDC, min: fp(400), max: fp(800) })
+        await task.connect(owner).setDefaultTokenThreshold(USDC, fp(400), fp(800))
       })
 
       context('when there are no custom thresholds set', () => {
@@ -353,7 +351,7 @@ describe('TokenThresholdTask', () => {
         beforeEach('set threshold', async () => {
           const setCustomTokenThresholdRole = task.interface.getSighash('setCustomTokenThreshold')
           await authorizer.connect(owner).authorize(owner.address, task.address, setCustomTokenThresholdRole, [])
-          await task.connect(owner).setCustomTokenThreshold(WETH, { token: USDT, min: fp(3300), max: fp(6600) })
+          await task.connect(owner).setCustomTokenThreshold(WETH, USDT, fp(3300), fp(6600))
         })
 
         it('applies the custom threshold only when the requested token matches', async () => {

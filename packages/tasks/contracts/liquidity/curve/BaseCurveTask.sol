@@ -15,7 +15,6 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-helpers/contracts/utils/EnumerableMap.sol';
 
 import '../../Task.sol';
 import '../../interfaces/liquidity/curve/IBaseCurveTask.sol';
@@ -26,8 +25,6 @@ import '../../interfaces/liquidity/curve/IBaseCurveTask.sol';
  */
 abstract contract BaseCurveTask is IBaseCurveTask, Task {
     using FixedPoint for uint256;
-    using EnumerableMap for EnumerableMap.AddressToUintMap;
-    using EnumerableMap for EnumerableMap.AddressToAddressMap;
 
     // Task connector address
     address public override connector;
@@ -39,10 +36,10 @@ abstract contract BaseCurveTask is IBaseCurveTask, Task {
     uint256 public override defaultMaxSlippage;
 
     // Token out per token
-    EnumerableMap.AddressToAddressMap private _customTokensOut;
+    mapping (address => address) public override customTokenOut;
 
     // Maximum slippage per token address
-    EnumerableMap.AddressToUintMap private _customMaxSlippages;
+    mapping (address => uint256) public override customMaxSlippage;
 
     /**
      * @dev Modifier to tag the execution function of a task to trigger before and after hooks automatically
@@ -98,20 +95,6 @@ abstract contract BaseCurveTask is IBaseCurveTask, Task {
     }
 
     /**
-     * @dev Tells the token out defined for a specific token
-     */
-    function customTokenOut(address token) public view override returns (address tokenOut) {
-        (, tokenOut) = _customTokensOut.tryGet(token);
-    }
-
-    /**
-     * @dev Tells the max slippage defined for a specific token
-     */
-    function customMaxSlippage(address token) public view override returns (uint256 maxSlippage) {
-        (, maxSlippage) = _customMaxSlippages.tryGet(token);
-    }
-
-    /**
      * @dev Sets the task connector
      * @param newConnector Address of the new connector to be set
      */
@@ -160,14 +143,16 @@ abstract contract BaseCurveTask is IBaseCurveTask, Task {
      * @dev Tells the token out that should be used for a token
      */
     function _getApplicableTokenOut(address token) internal view returns (address) {
-        return _customTokensOut.contains(token) ? _customTokensOut.get(token) : defaultTokenOut;
+        address tokenOut = customTokenOut[token];
+        return tokenOut == address(0) ? defaultTokenOut : tokenOut;
     }
 
     /**
      * @dev Tells the max slippage that should be used for a token
      */
     function _getApplicableMaxSlippage(address token) internal view returns (uint256) {
-        return _customMaxSlippages.contains(token) ? _customMaxSlippages.get(token) : defaultMaxSlippage;
+        uint256 maxSlippage = customMaxSlippage[token];
+        return maxSlippage == 0 ? defaultMaxSlippage : maxSlippage;
     }
 
     /**
@@ -225,7 +210,8 @@ abstract contract BaseCurveTask is IBaseCurveTask, Task {
      * @param tokenOut Address of the token out to be set
      */
     function _setCustomTokenOut(address token, address tokenOut) internal {
-        tokenOut == address(0) ? _customTokensOut.remove(token) : _customTokensOut.set(token, tokenOut);
+        require(token != address(0), 'TASK_TOKEN_ZERO');
+        customTokenOut[token] = tokenOut;
         emit CustomTokenOutSet(token, tokenOut);
     }
 
@@ -235,8 +221,9 @@ abstract contract BaseCurveTask is IBaseCurveTask, Task {
      * @param maxSlippage Max slippage to be set
      */
     function _setCustomMaxSlippage(address token, uint256 maxSlippage) internal {
+        require(token != address(0), 'TASK_TOKEN_ZERO');
         require(maxSlippage <= FixedPoint.ONE, 'TASK_SLIPPAGE_ABOVE_ONE');
-        maxSlippage == 0 ? _customMaxSlippages.remove(token) : _customMaxSlippages.set(token, maxSlippage);
+        customMaxSlippage[token] = maxSlippage;
         emit CustomMaxSlippageSet(token, maxSlippage);
     }
 }

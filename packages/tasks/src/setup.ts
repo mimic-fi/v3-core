@@ -80,12 +80,12 @@ export type TaskConfig = {
     tokens: string[]
   }
   tokenThresholdConfig: {
-    customThresholds: { token: string; min: BigNumberish; max: BigNumberish }[]
     defaultThreshold: {
       token: string
       min: BigNumberish
       max: BigNumberish
     }
+    customThresholdConfigs: { token: string; min: BigNumberish; max: BigNumberish }[]
   }
   volumeLimitConfig: {
     defaultLimitToken: string
@@ -124,7 +124,7 @@ export function buildEmptyTaskConfig(owner: SignerWithAddress, smartVault: Contr
       tokens: [],
     },
     tokenThresholdConfig: {
-      customThresholds: [],
+      customThresholdConfigs: [],
       defaultThreshold: {
         token: ZERO_ADDRESS,
         min: 0,
