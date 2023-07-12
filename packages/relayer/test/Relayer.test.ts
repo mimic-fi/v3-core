@@ -19,6 +19,12 @@ describe('Relayer', () => {
     relayer = await deploy('Relayer', [executor.address, collector.address, owner.address])
   })
 
+  context('when an account tries to send ETH', () => {
+    it('reverts', async () => {
+      await expect(owner.sendTransaction({ to: relayer.address, value: 1 })).to.be.reverted
+    })
+  })
+
   describe('setExecutor', () => {
     context('when the sender is allowed', () => {
       beforeEach('set sender', () => {
