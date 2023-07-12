@@ -17,6 +17,7 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
 
+import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 import '@mimic-fi/v3-smart-vault/contracts/interfaces/ISmartVault.sol';
 import '@mimic-fi/v3-tasks/contracts/interfaces/ITask.sol';
 
@@ -143,6 +144,21 @@ contract Relayer is IRelayer, Ownable {
     }
 
     /**
+     * @dev Withdraw tokens to an external account
+     * @param token Address of the token to be withdrawn
+     * @param recipient Address where the tokens will be transferred to
+     * @param amount Amount of tokens to withdraw
+     */
+    function externalWithdraw(address token, address recipient, uint256 amount) external override onlyOwner {
+        require(amount > 0, 'RELAYER_EXT_WITHDRAW_AMOUNT_ZERO');
+        require(recipient != address(0), 'RELAYER_EXT_WITHDRAW_DEST_ZERO');
+        require(token != address(0), 'RELAYER_EXT_WITHDRAW_TOKEN_ZERO');
+
+        _safeTransfer(token, recipient, amount);
+        emit ExternalWithdrawn(token, recipient, amount);
+    }
+
+    /**
      * @dev Configures an external executor
      * @param executor Address of the executor to be set
      * @param allowed Whether the given executor should be allowed or not
@@ -173,5 +189,16 @@ contract Relayer is IRelayer, Ownable {
         require(amount <= balance, 'RELAYER_SMART_VAULT_NO_BALANCE');
         getSmartVaultBalance[smartVault] = balance - amount;
         emit Withdrawn(smartVault, amount);
+    }
+
+    /**
+     * @dev Transfers ERC20 or native tokens from the Relayer to an external account
+     * @param token Address of the ERC20 token to transfer
+     * @param to Address transferring the tokens to
+     * @param amount Amount of tokens to transfer
+     */
+    function _safeTransfer(address token, address to, uint256 amount) internal {
+        if (amount == 0) return;
+        ERC20Helpers.transfer(token, to, amount);
     }
 }

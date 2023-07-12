@@ -49,6 +49,11 @@ interface IRelayer {
     event Withdrawn(address indexed smartVault, uint256 amount);
 
     /**
+     * @dev Emitted every time some tokens are withdrawn from the relayer's balance to an external account
+     */
+    event ExternalWithdrawn(address indexed token, address indexed recipient, uint256 amount);
+
+    /**
      * @dev Tells the default collector address
      */
     function defaultCollector() external view returns (address);
@@ -116,4 +121,12 @@ interface IRelayer {
      * @param data Calldata to execute on the given task
      */
     function execute(address task, bytes calldata data) external;
+
+    /**
+     * @dev Withdraw tokens to an external account
+     * @param token Address of the token to be withdrawn
+     * @param recipient Address where the tokens will be transferred to
+     * @param amount Amount of tokens to withdraw
+     */
+    function externalWithdraw(address token, address recipient, uint256 amount) external;
 }
