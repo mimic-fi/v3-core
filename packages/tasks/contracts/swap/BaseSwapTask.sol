@@ -43,15 +43,6 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
     mapping (address => uint256) public override customMaxSlippage;
 
     /**
-     * @dev Modifier to tag the execution function of a task to trigger before and after hooks automatically
-     */
-    modifier baseSwapTaskCall(address token, uint256 amount, uint256 slippage) {
-        _beforeSwapTask(token, amount, slippage);
-        _;
-        _afterSwapTask(token, amount, slippage);
-    }
-
-    /**
      * @dev Custom token out config. Only used in the initializer.
      */
     struct CustomTokenOut {
@@ -68,7 +59,7 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
     }
 
     /**
-     * @dev Base swap task config. Only used in the initializer.
+     * @dev Base swap config. Only used in the initializer.
      */
     struct BaseSwapConfig {
         address connector;
@@ -80,10 +71,19 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
     }
 
     /**
-     * @dev Initializes a base swap task
+     * @dev Initializes the base swap task. It does call upper contracts initializers.
+     * @param config Base swap config
      */
-    function _initialize(BaseSwapConfig memory config) internal onlyInitializing {
-        _initialize(config.taskConfig);
+    function __BaseSwapTask_init(BaseSwapConfig memory config) internal onlyInitializing {
+        __Task_init(config.taskConfig);
+        __BaseSwapTask_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the base swap task. It does not call upper contracts initializers.
+     * @param config Base swap config
+     */
+    function __BaseSwapTask_init_unchained(BaseSwapConfig memory config) internal onlyInitializing {
         _setConnector(config.connector);
         _setDefaultTokenOut(config.tokenOut);
         _setDefaultMaxSlippage(config.maxSlippage);
@@ -95,6 +95,22 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
         for (uint256 i = 0; i < config.customMaxSlippages.length; i++) {
             _setCustomMaxSlippage(config.customMaxSlippages[i].token, config.customMaxSlippages[i].maxSlippage);
         }
+    }
+
+    /**
+     * @dev Tells the token out that should be used for a token
+     */
+    function getTokenOut(address token) public view virtual override returns (address) {
+        address tokenOut = customTokenOut[token];
+        return tokenOut == address(0) ? defaultTokenOut : tokenOut;
+    }
+
+    /**
+     * @dev Tells the max slippage that should be used for a token
+     */
+    function getMaxSlippage(address token) public view virtual override returns (uint256) {
+        uint256 maxSlippage = customMaxSlippage[token];
+        return maxSlippage == 0 ? defaultMaxSlippage : maxSlippage;
     }
 
     /**
@@ -144,39 +160,25 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
     }
 
     /**
-     * @dev Tells the token out that should be used for a token
+     * @dev Before base swap task hook
      */
-    function _getApplicableTokenOut(address token) internal view returns (address) {
-        address tokenOut = customTokenOut[token];
-        return tokenOut == address(0) ? defaultTokenOut : tokenOut;
-    }
-
-    /**
-     * @dev Tells the max slippage that should be used for a token
-     */
-    function _getApplicableMaxSlippage(address token) internal view returns (uint256) {
-        uint256 maxSlippage = customMaxSlippage[token];
-        return maxSlippage == 0 ? defaultMaxSlippage : maxSlippage;
-    }
-
-    /**
-     * @dev Hook to be called before the swap task call starts. This implementation calls the base task `_beforeTask`
-     * hook and finally adds some trivial token, amount, and max slippage validations.
-     */
-    function _beforeSwapTask(address token, uint256 amount, uint256 slippage) internal virtual {
+    function _beforeBaseSwapTask(address token, uint256 amount, uint256 slippage) internal virtual {
         _beforeTask(token, amount);
         require(token != address(0), 'TASK_TOKEN_ZERO');
         require(amount > 0, 'TASK_AMOUNT_ZERO');
-        require(_getApplicableTokenOut(token) != address(0), 'TASK_TOKEN_OUT_NOT_SET');
-        require(slippage <= _getApplicableMaxSlippage(token), 'TASK_SLIPPAGE_TOO_HIGH');
+        require(getTokenOut(token) != address(0), 'TASK_TOKEN_OUT_NOT_SET');
+        require(slippage <= getMaxSlippage(token), 'TASK_SLIPPAGE_TOO_HIGH');
     }
 
     /**
-     * @dev Hook to be called after the swap task call has finished. This implementation simply calls the base task
-     * `_afterTask` hook.
+     * @dev After base swap task hook
      */
-    function _afterSwapTask(address token, uint256 amount, uint256) internal virtual {
-        _afterTask(token, amount);
+    function _afterBaseSwapTask(address tokenIn, uint256 amountIn, uint256, address tokenOut, uint256 amountOut)
+        internal
+        virtual
+    {
+        _increaseBalanceConnector(tokenOut, amountOut);
+        _afterTask(tokenIn, amountIn);
     }
 
     /**

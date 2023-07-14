@@ -38,18 +38,35 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
     address public override quoteSigner;
 
     /**
-     * @dev Paraswap v5 swapper task config
+     * @dev Paraswap v5 swap config
      */
-    struct Paraswap5SwapperConfig {
+    struct Paraswap5SwapConfig {
         address quoteSigner;
         BaseSwapConfig baseSwapConfig;
     }
 
     /**
-     * @dev Creates a paraswap v5 swapper task
+     * @dev Initializes the Paraswap v5 swapper
+     * @param config Paraswap v5 swap config
      */
-    function initialize(Paraswap5SwapperConfig memory config) external initializer {
-        _initialize(config.baseSwapConfig);
+    function initialize(Paraswap5SwapConfig memory config) external virtual initializer {
+        __ParaswapV5Swapper_init(config);
+    }
+
+    /**
+     * @dev Initializes the Paraswap v5 swapper. It does call upper contracts initializers.
+     * @param config Paraswap v5 swap config
+     */
+    function __ParaswapV5Swapper_init(Paraswap5SwapConfig memory config) internal onlyInitializing {
+        __BaseSwapTask_init(config.baseSwapConfig);
+        __ParaswapV5Swapper_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the Paraswap v5 swapper. It does not call upper contracts initializers.
+     * @param config Paraswap v5 swap config
+     */
+    function __ParaswapV5Swapper_init_unchained(Paraswap5SwapConfig memory config) internal onlyInitializing {
         _setQuoteSigner(config.quoteSigner);
     }
 
@@ -72,14 +89,20 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
         uint256 deadline,
         bytes memory data,
         bytes memory sig
-    )
-        external
-        override
-        authP(authParams(tokenIn, amountIn))
-        baseSwapTaskCall(tokenIn, amountIn, FixedPoint.ONE - minAmountOut.divUp(expectedAmountOut))
-    {
-        address tokenOut = _getApplicableTokenOut(tokenIn);
-        _validateQuoteSigner(tokenIn, tokenOut, amountIn, minAmountOut, expectedAmountOut, deadline, data, sig);
+    ) external override authP(authParams(tokenIn, amountIn, minAmountOut, expectedAmountOut, deadline)) {
+        address tokenOut = getTokenOut(tokenIn);
+        uint256 slippage = FixedPoint.ONE - minAmountOut.divUp(expectedAmountOut);
+        _beforeParaswapV5Swapper(
+            tokenIn,
+            tokenOut,
+            amountIn,
+            slippage,
+            minAmountOut,
+            expectedAmountOut,
+            deadline,
+            data,
+            sig
+        );
 
         bytes memory connectorData = abi.encodeWithSelector(
             ParaswapV5Connector.execute.selector,
@@ -91,26 +114,44 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
         );
 
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
-        _increaseBalanceConnector(tokenOut, result.toUint256());
+        _afterParaswapV5Swapper(tokenIn, amountIn, slippage, tokenOut, result.toUint256());
     }
 
     /**
-     * @dev Reverts if the quote was signed by someone else than the quote signer or if its expired
+     * @dev Before Paraswap v5 swapper hook
      */
-    function _validateQuoteSigner(
+    function _beforeParaswapV5Swapper(
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
+        uint256 slippage,
         uint256 minAmountOut,
         uint256 expectedAmountOut,
         uint256 deadline,
         bytes memory data,
         bytes memory sig
-    ) internal view {
-        bytes32 message = _hash(tokenIn, tokenOut, amountIn, minAmountOut, expectedAmountOut, deadline, data);
+    ) internal virtual {
+        _beforeBaseSwapTask(tokenIn, amountIn, slippage);
+        bool isBuy = false;
+        bytes32 message = keccak256(
+            abi.encodePacked(tokenIn, tokenOut, isBuy, amountIn, minAmountOut, expectedAmountOut, deadline, data)
+        );
         address signer = ECDSA.recover(ECDSA.toEthSignedMessageHash(message), sig);
         require(signer == quoteSigner, 'TASK_INVALID_QUOTE_SIGNER');
         require(block.timestamp <= deadline, 'TASK_QUOTE_SIGNER_DEADLINE');
+    }
+
+    /**
+     * @dev After Paraswap v5 swapper hook
+     */
+    function _afterParaswapV5Swapper(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 slippage,
+        address tokenOut,
+        uint256 amountOut
+    ) internal virtual {
+        _afterBaseSwapTask(tokenIn, amountIn, slippage, tokenOut, amountOut);
     }
 
     /**
@@ -121,24 +162,5 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
         require(newQuoteSigner != address(0), 'TASK_QUOTE_SIGNER_ZERO');
         quoteSigner = newQuoteSigner;
         emit QuoteSignerSet(newQuoteSigner);
-    }
-
-    /**
-     * @dev Builds the quote message to check the signature of the quote signer
-     */
-    function _hash(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        uint256 expectedAmountOut,
-        uint256 deadline,
-        bytes memory data
-    ) private pure returns (bytes32) {
-        bool isBuy = false;
-        return
-            keccak256(
-                abi.encodePacked(tokenIn, tokenOut, isBuy, amountIn, minAmountOut, expectedAmountOut, deadline, data)
-            );
     }
 }

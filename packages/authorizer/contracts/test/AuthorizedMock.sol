@@ -9,8 +9,8 @@ contract AuthorizedMock is Authorized {
     event LogBytes32(bytes32 x);
     event LogAddress(address x);
 
-    function initialize(address _authorizer) external initializer {
-        _initialize(_authorizer);
+    function initialize(address _authorizer) external virtual initializer {
+        __Authorized_init(_authorizer);
     }
 
     function setUint256(uint256 x) external authP(authParams(x)) {

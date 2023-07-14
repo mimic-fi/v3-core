@@ -83,6 +83,18 @@ interface IBaseBridgeTask is ITask {
     function customMaxSlippage(address token) external view returns (uint256);
 
     /**
+     * @dev Tells the destination chain that should be used for a token
+     * @param token Address of the token to get the destination chain for
+     */
+    function getDestinationChain(address token) external view returns (uint256);
+
+    /**
+     * @dev Tells the max slippage that should be used for a token
+     * @param token Address of the token to get the max slippage for
+     */
+    function getMaxSlippage(address token) external view returns (uint256);
+
+    /**
      * @dev Sets a new connector
      * @param newConnector Address of the connector to be set
      */

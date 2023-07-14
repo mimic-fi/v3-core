@@ -21,7 +21,8 @@ import './BaseConvexTask.sol';
 import '../../interfaces/liquidity/convex/IConvexExiter.sol';
 
 /**
- * @title Convex exiter task
+ * @title Convex exiter
+ * @dev Task that extends the base Convex task to exit Convex pools
  */
 contract ConvexExiter is IConvexExiter, BaseConvexTask {
     using BytesHelpers for bytes;
@@ -30,17 +31,35 @@ contract ConvexExiter is IConvexExiter, BaseConvexTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('CONVEX_EXITER');
 
     /**
-     * @dev Convex exiter task config. Only used in the initializer.
+     * @dev Convex exit config. Only used in the initializer.
      */
-    struct ConvexConfig {
+    struct ConvexExitConfig {
         BaseConvexConfig baseConvexConfig;
     }
 
     /**
-     * @dev Initializes a Convex exiter task
+     * @dev Initializes a Convex exiter
+     * @param config Convex exit config
      */
-    function initialize(ConvexConfig memory config) external initializer {
-        _initialize(config.baseConvexConfig);
+    function initialize(ConvexExitConfig memory config) external virtual initializer {
+        __ConvexExiter_init(config);
+    }
+
+    /**
+     * @dev Initializes the Convex exiter. It does call upper contracts initializers.
+     * @param config Convex exit config
+     */
+    function __ConvexExiter_init(ConvexExitConfig memory config) internal onlyInitializing {
+        __BaseConvexTask_init(config.baseConvexConfig);
+        __ConvexExiter_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the Convex exiter. It does not call upper contracts initializers.
+     * @param config Convex exit config
+     */
+    function __ConvexExiter_init_unchained(ConvexExitConfig memory config) internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     /**
@@ -48,22 +67,29 @@ contract ConvexExiter is IConvexExiter, BaseConvexTask {
      * @param token Address of the Convex pool token to be exited with
      * @param amount Amount of Convex pool tokens to be exited with
      */
-    function call(address token, uint256 amount)
-        external
-        override
-        authP(authParams(token, amount))
-        baseTaskCall(token, amount)
-    {
+    function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        _beforeConvexExiter(token, amount);
         bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.exit.selector, token, amount);
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
-        _increaseBalanceConnector(ConvexConnector(connector).getCurvePool(token), result.toUint256());
+        _afterConvexExiter(token, amount, ConvexConnector(connector).getCurvePool(token), result.toUint256());
     }
 
     /**
-     * @dev Hook to be called before the Convex task call starts. Adds simple validations to avoid zeroed amounts.
+     * @dev Before Convex exiter hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override {
-        super._beforeTask(token, amount);
+    function _beforeConvexExiter(address token, uint256 amount) internal virtual {
+        _beforeBaseConvexTask(token, amount);
         require(amount > 0, 'TASK_AMOUNT_ZERO');
+    }
+
+    /**
+     * @dev After Convex exiter hook
+     */
+    function _afterConvexExiter(address tokenIn, uint256 amountIn, address tokenOut, uint256 amountOut)
+        internal
+        virtual
+    {
+        _increaseBalanceConnector(tokenOut, amountOut);
+        _afterBaseConvexTask(tokenIn, amountIn);
     }
 }

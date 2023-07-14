@@ -18,15 +18,15 @@ import '../../Task.sol';
 import '../../interfaces/liquidity/convex/IBaseConvexTask.sol';
 
 /**
- * @title Base convex task
- * @dev Task that offers the basic components for more detailed Convex related tasks.
+ * @title Base Convex task
+ * @dev Task that offers the basic components for more detailed Convex related tasks
  */
 abstract contract BaseConvexTask is IBaseConvexTask, Task {
     // Task connector address
     address public override connector;
 
     /**
-     * @dev Base Convex task config. Only used in the initializer.
+     * @dev Base Convex config. Only used in the initializer.
      */
     struct BaseConvexConfig {
         address connector;
@@ -34,10 +34,19 @@ abstract contract BaseConvexTask is IBaseConvexTask, Task {
     }
 
     /**
-     * @dev Initializes a base Convex task
+     * @dev Initializes the base Convex task. It does call upper contracts initializers.
+     * @param config Base Convex config
      */
-    function _initialize(BaseConvexConfig memory config) internal onlyInitializing {
-        _initialize(config.taskConfig);
+    function __BaseConvexTask_init(BaseConvexConfig memory config) internal onlyInitializing {
+        __Task_init(config.taskConfig);
+        __BaseConvexTask_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the base Convex task. It does not call upper contracts initializers.
+     * @param config Base Convex config
+     */
+    function __BaseConvexTask_init_unchained(BaseConvexConfig memory config) internal onlyInitializing {
         _setConnector(config.connector);
     }
 
@@ -50,11 +59,18 @@ abstract contract BaseConvexTask is IBaseConvexTask, Task {
     }
 
     /**
-     * @dev Hook to be called before the Convex task call starts. Adds simple validations to avoid a zeroed token.
+     * @dev Before base Convex task hook
      */
-    function _beforeTask(address token, uint256 amount) internal virtual override {
-        super._beforeTask(token, amount);
+    function _beforeBaseConvexTask(address token, uint256 amount) internal virtual {
+        _beforeTask(token, amount);
         require(token != address(0), 'TASK_TOKEN_ZERO');
+    }
+
+    /**
+     * @dev After base Convex task hook
+     */
+    function _afterBaseConvexTask(address token, uint256 amount) internal virtual {
+        _afterTask(token, amount);
     }
 
     /**

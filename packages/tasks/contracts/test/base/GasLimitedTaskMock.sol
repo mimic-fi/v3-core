@@ -8,33 +8,41 @@ import '../../base/GasLimitedTask.sol';
 contract GasLimitedTaskMock is BaseTask, GasLimitedTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('GAS_LIMITED_TASK');
 
-    struct Config {
+    struct GasLimitMockConfig {
         BaseConfig baseConfig;
         GasLimitConfig gasLimitConfig;
     }
 
-    function initialize(Config memory config) external initializer {
-        _initialize(config.baseConfig);
-        _initialize(config.gasLimitConfig);
+    function initialize(GasLimitMockConfig memory config) external virtual initializer {
+        __BaseTask_init(config.baseConfig);
+        __GasLimitedTask_init(config.gasLimitConfig);
     }
 
-    function call(address token, uint256 amount) external baseTaskCall(token, amount) {
-        // solhint-disable-previous-line no-empty-blocks
-    }
-
-    /**
-     * @dev Hook to be called before the task call starts.
-     */
-    function _beforeTask(address token, uint256 amount) internal virtual override(BaseTask, GasLimitedTask) {
-        BaseTask._beforeTask(token, amount);
-        GasLimitedTask._beforeTask(token, amount);
+    function call(address token, uint256 amount) external {
+        _beforeGasLimitedTaskMock(token, amount);
+        _afterGasLimitedTaskMock(token, amount);
     }
 
     /**
-     * @dev Hook to be called after the task call has finished.
+     * @dev Fetches a base/quote price
      */
-    function _afterTask(address token, uint256 amount) internal virtual override(BaseTask, GasLimitedTask) {
-        GasLimitedTask._afterTask(token, amount);
-        BaseTask._afterTask(token, amount);
+    function _getPrice(address base, address quote) internal view override(BaseTask, GasLimitedTask) returns (uint256) {
+        return BaseTask._getPrice(base, quote);
+    }
+
+    /**
+     * @dev Before gas limited task mock hook
+     */
+    function _beforeGasLimitedTaskMock(address token, uint256 amount) internal virtual {
+        _beforeBaseTask(token, amount);
+        _beforeGasLimitedTask(token, amount);
+    }
+
+    /**
+     * @dev After gas limited task mock hook
+     */
+    function _afterGasLimitedTaskMock(address token, uint256 amount) internal virtual {
+        _afterGasLimitedTask(token, amount);
+        _afterBaseTask(token, amount);
     }
 }

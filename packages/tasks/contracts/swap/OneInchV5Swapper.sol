@@ -21,6 +21,10 @@ import '@mimic-fi/v3-connectors/contracts/swap/1inch-v5/OneInchV5Connector.sol';
 import './BaseSwapTask.sol';
 import '../interfaces/swap/IOneInchV5Swapper.sol';
 
+/**
+ * @title 1inch v5 swapper
+ * @dev Task that extends the base swap task to use 1inch v5
+ */
 contract OneInchV5Swapper is IOnceInchV5Swapper, BaseSwapTask {
     using FixedPoint for uint256;
     using BytesHelpers for bytes;
@@ -29,18 +33,35 @@ contract OneInchV5Swapper is IOnceInchV5Swapper, BaseSwapTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('1INCH_V5_SWAPPER');
 
     /**
-     * @dev 1inch v5 swapper task config. Only used in the initializer.
-     * @param baseSwapConfig Base swap task config params
+     * @dev 1inch v5 swap config. Only used in the initializer.
      */
-    struct OneInchV5SwapperConfig {
+    struct OneInchV5SwapConfig {
         BaseSwapConfig baseSwapConfig;
     }
 
     /**
-     * @dev Creates a 1inch v5 swapper task
+     * @dev Initializes the 1inch v5 swapper
+     * @param config 1inch v5 swap config
      */
-    function initialize(OneInchV5SwapperConfig memory config) external initializer {
-        _initialize(config.baseSwapConfig);
+    function initialize(OneInchV5SwapConfig memory config) external virtual initializer {
+        __OneInchV5Swapper_init(config);
+    }
+
+    /**
+     * @dev Initializes the 1inch v5 swapper. It does call upper contracts initializers.
+     * @param config 1inch v5 swap config
+     */
+    function __OneInchV5Swapper_init(OneInchV5SwapConfig memory config) internal onlyInitializing {
+        __BaseSwapTask_init(config.baseSwapConfig);
+        __OneInchV5Swapper_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the 1inch v5 swapper. It does not call upper contracts initializers.
+     * @param config 1inch v5 swap config
+     */
+    function __OneInchV5Swapper_init_unchained(OneInchV5SwapConfig memory config) internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     /**
@@ -48,10 +69,11 @@ contract OneInchV5Swapper is IOnceInchV5Swapper, BaseSwapTask {
      */
     function call(address tokenIn, uint256 amountIn, uint256 slippage, bytes memory data)
         external
+        override
         authP(authParams(tokenIn, amountIn, slippage))
-        baseSwapTaskCall(tokenIn, amountIn, slippage)
     {
-        address tokenOut = _getApplicableTokenOut(tokenIn);
+        _beforeOneInchV5Swapper(tokenIn, amountIn, slippage);
+        address tokenOut = getTokenOut(tokenIn);
         uint256 price = _getPrice(tokenIn, tokenOut);
         uint256 minAmountOut = amountIn.mulUp(price).mulUp(FixedPoint.ONE - slippage);
 
@@ -65,6 +87,26 @@ contract OneInchV5Swapper is IOnceInchV5Swapper, BaseSwapTask {
         );
 
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
-        _increaseBalanceConnector(tokenOut, result.toUint256());
+        _afterOneInchV5Swapper(tokenIn, amountIn, slippage, tokenOut, result.toUint256());
+    }
+
+    /**
+     * @dev Before 1inch v5 swapper hook
+     */
+    function _beforeOneInchV5Swapper(address token, uint256 amount, uint256 slippage) internal virtual {
+        _beforeBaseSwapTask(token, amount, slippage);
+    }
+
+    /**
+     * @dev After 1inch v5 swapper hook
+     */
+    function _afterOneInchV5Swapper(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 slippage,
+        address tokenOut,
+        uint256 amountOut
+    ) internal virtual {
+        _afterBaseSwapTask(tokenIn, amountIn, slippage, tokenOut, amountOut);
     }
 }
