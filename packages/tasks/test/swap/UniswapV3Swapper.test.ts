@@ -15,7 +15,7 @@ import { Contract } from 'ethers'
 import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
 import { itBehavesLikeBaseSwapTask } from './BaseSwapTask.behavior'
 
-describe('UniswapV2Swapper', () => {
+describe('UniswapV3Swapper', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, priceOracle: Contract, connector: Contract, owner: SignerWithAddress
 
@@ -26,15 +26,15 @@ describe('UniswapV2Swapper', () => {
   })
 
   before('deploy connector', async () => {
-    connector = await deploy('UniswapV2ConnectorMock')
+    connector = await deploy('UniswapV3ConnectorMock')
     const overrideConnectorCheckRole = smartVault.interface.getSighash('overrideConnectorCheck')
-    await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideConnectorCheckRole, [])
+    await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideConnectorCheckRole, [], [])
     await smartVault.connect(owner).overrideConnectorCheck(connector.address, true)
   })
 
   beforeEach('deploy task', async () => {
     task = await deployProxy(
-      'UniswapV2Swapper',
+      'UniswapV3Swapper',
       [],
       [
         {
@@ -71,7 +71,7 @@ describe('UniswapV2Swapper', () => {
     context('when the sender is authorized', () => {
       beforeEach('set sender', async () => {
         const callRole = task.interface.getSighash('call')
-        await authorizer.connect(owner).authorize(owner.address, task.address, callRole, [])
+        await authorizer.connect(owner).authorize(owner.address, task.address, callRole, [], [])
         task = task.connect(owner)
       })
 
@@ -95,20 +95,22 @@ describe('UniswapV2Swapper', () => {
               beforeEach('set default token out', async () => {
                 tokenOut = await deploy('TokenMock', ['TKN'])
                 const setDefaultTokenOutRole = task.interface.getSighash('setDefaultTokenOut')
-                await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenOutRole, [])
+                await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenOutRole, [], [])
                 await task.connect(owner).setDefaultTokenOut(tokenOut.address)
               })
 
               beforeEach('set price feed', async () => {
                 const feed = await deploy('FeedMock', [fp(tokenRate), 18])
                 const setFeedRole = priceOracle.interface.getSighash('setFeed')
-                await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
+                await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [], [])
                 await priceOracle.connect(owner).setFeed(tokenIn.address, tokenOut.address, feed.address)
               })
 
               beforeEach('set threshold', async () => {
                 const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
-                await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
+                await authorizer
+                  .connect(owner)
+                  .authorize(owner.address, task.address, setDefaultTokenThresholdRole, [], [])
                 await task.connect(owner).setDefaultTokenThreshold({
                   token: tokenOut.address,
                   min: thresholdAmount,
@@ -130,18 +132,21 @@ describe('UniswapV2Swapper', () => {
                     const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
                     await authorizer
                       .connect(owner)
-                      .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
+                      .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [], [])
                     await task.connect(owner).setDefaultMaxSlippage(slippage)
                   })
 
                   it('executes the expected connector', async () => {
-                    const tx = await task.call(tokenIn.address, amountIn, slippage, [])
+                    const FEE = 1
+                    const tx = await task.call(tokenIn.address, amountIn, slippage, FEE, [], [])
 
                     const connectorData = connector.interface.encodeFunctionData('execute', [
                       tokenIn.address,
                       tokenOut.address,
                       amountIn,
                       minAmountOut,
+                      FEE,
+                      [],
                       [],
                     ])
 
@@ -159,7 +164,8 @@ describe('UniswapV2Swapper', () => {
                   })
 
                   it('emits an Executed event', async () => {
-                    const tx = await task.call(tokenIn.address, amountIn, slippage, [])
+                    const FEE = 1
+                    const tx = await task.call(tokenIn.address, amountIn, slippage, FEE, [], [])
 
                     await assertEvent(tx, 'Executed')
                   })
@@ -167,9 +173,10 @@ describe('UniswapV2Swapper', () => {
 
                 context('when the slippage is above the limit', () => {
                   const slippage = fp(0.01)
+                  const FEE = 1
 
                   it('reverts', async () => {
-                    await expect(task.call(tokenIn.address, amountIn, slippage, [])).to.be.revertedWith(
+                    await expect(task.call(tokenIn.address, amountIn, slippage, FEE, [], [])).to.be.revertedWith(
                       'TASK_SLIPPAGE_TOO_HIGH'
                     )
                   })
@@ -178,13 +185,14 @@ describe('UniswapV2Swapper', () => {
 
               context('when the smart vault balance does not pass the threshold', () => {
                 const amountIn = thresholdAmountInTokenIn.div(2)
+                const FEE = 1
 
                 beforeEach('fund smart vault', async () => {
                   await tokenIn.mint(smartVault.address, amountIn)
                 })
 
                 it('reverts', async () => {
-                  await expect(task.call(tokenIn.address, amountIn, 0, [])).to.be.revertedWith(
+                  await expect(task.call(tokenIn.address, amountIn, 0, FEE, [], [])).to.be.revertedWith(
                     'TASK_TOKEN_THRESHOLD_NOT_MET'
                   )
                 })
@@ -192,8 +200,11 @@ describe('UniswapV2Swapper', () => {
             })
 
             context('when the token out is not set', () => {
+              const FEE = 1
               it('reverts', async () => {
-                await expect(task.call(tokenIn.address, amountIn, 0, [])).to.be.revertedWith('TASK_TOKEN_OUT_NOT_SET')
+                await expect(task.call(tokenIn.address, amountIn, 0, FEE, [], [])).to.be.revertedWith(
+                  'TASK_TOKEN_OUT_NOT_SET'
+                )
               })
             })
           })
@@ -206,32 +217,36 @@ describe('UniswapV2Swapper', () => {
             })
 
             it('reverts', async () => {
-              await expect(task.call(tokenIn.address, 0, 0, [])).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+              const FEE = 1
+              await expect(task.call(tokenIn.address, 0, 0, FEE, [], [])).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
             })
           })
         })
 
         context('when the amount in is zero', () => {
           const amountIn = 0
+          const FEE = 1
 
           it('reverts', async () => {
-            await expect(task.call(tokenIn.address, amountIn, 0, [])).to.be.revertedWith('TASK_AMOUNT_ZERO')
+            await expect(task.call(tokenIn.address, amountIn, 0, FEE, [], [])).to.be.revertedWith('TASK_AMOUNT_ZERO')
           })
         })
       })
 
       context('when the token in is the zero address', () => {
         const tokenIn = ZERO_ADDRESS
+        const FEE = 1
 
         it('reverts', async () => {
-          await expect(task.call(tokenIn, 0, 0, [])).to.be.revertedWith('TASK_TOKEN_ZERO')
+          await expect(task.call(tokenIn, 0, 0, FEE, [], [])).to.be.revertedWith('TASK_TOKEN_ZERO')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
+      const FEE = 1
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 0, [])).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0, 0, FEE, [], [])).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })

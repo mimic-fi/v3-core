@@ -12,18 +12,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
-contract UniswapV2ConnectorMock {
-    event LogExecute(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, address[] hopTokens);
+import './IBaseSwapTask.sol';
 
-    function execute(
+/**
+ * @dev UniSwap v3 swapper action interface
+ */
+interface IUniswapV3Swapper is IBaseSwapTask {
+    /**
+     * @dev Execution function
+     */
+    function call(
         address tokenIn,
-        address tokenOut,
         uint256 amountIn,
         uint256 minAmountOut,
-        address[] memory hopTokens
-    ) external {
-        emit LogExecute(tokenIn, tokenOut, amountIn, minAmountOut, hopTokens);
-    }
+        uint24 fee,
+        address[] memory hopTokens,
+        uint24[] memory hopFees
+    ) external;
 }

@@ -14,16 +14,26 @@
 
 pragma solidity ^0.8.0;
 
-contract UniswapV2ConnectorMock {
-    event LogExecute(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, address[] hopTokens);
+contract UniswapV3ConnectorMock {
+    event LogExecute(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        uint24 fee,
+        address[] hopTokens,
+        uint24[] hopFees
+    );
 
     function execute(
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
         uint256 minAmountOut,
-        address[] memory hopTokens
+        uint24 fee,
+        address[] memory hopTokens,
+        uint24[] memory hopFees
     ) external {
-        emit LogExecute(tokenIn, tokenOut, amountIn, minAmountOut, hopTokens);
+        emit LogExecute(tokenIn, tokenOut, amountIn, minAmountOut, fee, hopTokens, hopFees);
     }
 }

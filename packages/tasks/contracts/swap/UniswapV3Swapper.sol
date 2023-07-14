@@ -15,35 +15,42 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-connectors/contracts/swap/uniswap-v2/UniswapV2Connector.sol';
+import '@mimic-fi/v3-connectors/contracts/swap/uniswap-v3/UniswapV3Connector.sol';
 
 import './BaseSwapTask.sol';
-import './interfaces/IUniSwapV2Swapper.sol';
+import './interfaces/IUniSwapV3Swapper.sol';
 
-contract UniswapV2Swapper is IUniswapV2Swapper, BaseSwapTask {
+contract UniswapV3Swapper is IUniswapV3Swapper, BaseSwapTask {
     using FixedPoint for uint256;
 
     /**
-     * @dev Uniswap v2 swapper task config. Only used in the initializer.
+     * @dev Uniswap v3 swapper task config. Only used in the initializer.
      * @param baseSwapConfig Base swap task config params
      */
-    struct UniswapV2SwapperConfig {
+    struct UniswapV3SwapperConfig {
         BaseSwapConfig baseSwapConfig;
     }
 
     /**
-     * @dev Creates a Uniswap v2 swapper action
+     * @dev Creates a Uniswap v3 swapper action
      */
-    function initialize(UniswapV2SwapperConfig memory _config) external initializer {
+    function initialize(UniswapV3SwapperConfig memory _config) external initializer {
         _initialize(_config.baseSwapConfig);
     }
 
     /**
-     * @dev Executes the Uniswap v2 swapper task
+     * @dev Executes the Uniswap v3 swapper task
      */
-    function call(address tokenIn, uint256 amountIn, uint256 slippage, address[] memory hopTokens)
+    function call(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 slippage,
+        uint24 fee,
+        address[] memory hopTokens,
+        uint24[] memory hopFees
+    )
         external
-        authP(authParams(tokenIn, amountIn, slippage, hopTokens))
+        authP(authParams(tokenIn, amountIn, slippage, fee, hopTokens, hopFees))
         baseSwapTaskCall(tokenIn, amountIn, slippage)
     {
         address tokenOut = _getApplicableTokenOut(tokenIn);
@@ -51,12 +58,14 @@ contract UniswapV2Swapper is IUniswapV2Swapper, BaseSwapTask {
         uint256 minAmountOut = amountIn.mulUp(price).mulUp(FixedPoint.ONE - slippage);
 
         bytes memory connectorData = abi.encodeWithSelector(
-            UniswapV2Connector.execute.selector,
+            UniswapV3Connector.execute.selector,
             tokenIn,
             tokenOut,
             amountIn,
             minAmountOut,
-            hopTokens
+            fee,
+            hopTokens,
+            hopFees
         );
 
         ISmartVault(smartVault).execute(connector, connectorData);
