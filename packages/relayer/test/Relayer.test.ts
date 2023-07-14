@@ -427,17 +427,17 @@ describe('Relayer', () => {
         relayer = relayer.connect(owner)
       })
 
-      context('when the amount is greater than zero', () => {
+      context('when the token is not the zero address', () => {
+        let token: Contract
+
+        before('deploy token', async () => {
+          token = await deploy('TokenMock', ['TKN'])
+        })
+
         context('when the recipient is not the zero address', () => {
-          context('when the token is not the zero address', () => {
+          context('when the amount is greater than zero', () => {
             context('when withdrawing ERC20 tokens', async () => {
-              let token: Contract
-
-              before('deploy token', async () => {
-                token = await deploy('TokenMock', ['TKN'])
-              })
-
-              context('when the relayer enough balance', async () => {
+              context('when the relayer has enough balance', async () => {
                 beforeEach('mint tokens', async () => {
                   await token.mint(relayer.address, amount)
                 })
@@ -486,51 +486,24 @@ describe('Relayer', () => {
                 smartVault = await getSigner()
               })
 
-              context('when the relayer has enough balance', async () => {
-                beforeEach('deposit native tokens', async () => {
-                  const value = amount
-                  await relayer.deposit(smartVault.address, amount, { value })
-                })
-
-                it('transfers the tokens to the recipient', async () => {
-                  const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
-                  const previousRecipientBalance = await ethers.provider.getBalance(recipient.address)
-
-                  await relayer.externalWithdraw(token, recipient.address, amount)
-
-                  const currentRelayertBalance = await ethers.provider.getBalance(relayer.address)
-                  expect(currentRelayertBalance).to.be.equal(previousRelayerBalance.sub(amount))
-
-                  const currentRecipientBalance = await ethers.provider.getBalance(recipient.address)
-                  expect(currentRecipientBalance).to.be.equal(previousRecipientBalance.add(amount))
-                })
-
-                it('emits an event', async () => {
-                  const tx = await relayer.externalWithdraw(token, recipient.address, amount)
-
-                  await assertEvent(tx, 'ExternalWithdrawn', {
-                    token,
-                    amount,
-                    recipient,
-                  })
-                })
+              beforeEach('deposit native tokens', async () => {
+                const value = amount
+                await relayer.deposit(smartVault.address, amount, { value })
               })
 
-              context('when the relayer does not have enough balance', async () => {
-                it('reverts', async () => {
-                  await expect(relayer.externalWithdraw(token, recipient.address, amount)).to.be.revertedWith(
-                    'Address: insufficient balance'
-                  )
-                })
+              it('reverts', async () => {
+                await expect(relayer.externalWithdraw(token, recipient.address, amount)).to.be.revertedWith(
+                  'RELAYER_EXT_WITHDRAW_NATIVE_TKN'
+                )
               })
             })
           })
 
-          context('when the token is the zero address', () => {
-            const tokenAddr = ZERO_ADDRESS
+          context('when the amount is zero', () => {
+            const amount = 0
             it('reverts', async () => {
-              await expect(relayer.externalWithdraw(tokenAddr, recipient.address, amount)).to.be.revertedWith(
-                'RELAYER_EXT_WITHDRAW_TOKEN_ZERO'
+              await expect(relayer.externalWithdraw(token.address, recipient.address, amount)).to.be.revertedWith(
+                'RELAYER_EXT_WITHDRAW_AMOUNT_ZERO'
               )
             })
           })
@@ -539,18 +512,18 @@ describe('Relayer', () => {
         context('when the recipient is the zero address', () => {
           const recipientAddr = ZERO_ADDRESS
           it('reverts', async () => {
-            await expect(relayer.externalWithdraw(ZERO_ADDRESS, recipientAddr, amount)).to.be.revertedWith(
+            await expect(relayer.externalWithdraw(token.address, recipientAddr, amount)).to.be.revertedWith(
               'RELAYER_EXT_WITHDRAW_DEST_ZERO'
             )
           })
         })
       })
 
-      context('when the amount is zero', () => {
-        const amount = 0
+      context('when the token is the zero address', () => {
+        const tokenAddr = ZERO_ADDRESS
         it('reverts', async () => {
-          await expect(relayer.externalWithdraw(ZERO_ADDRESS, recipient.address, amount)).to.be.revertedWith(
-            'RELAYER_EXT_WITHDRAW_AMOUNT_ZERO'
+          await expect(relayer.externalWithdraw(tokenAddr, recipient.address, amount)).to.be.revertedWith(
+            'RELAYER_EXT_WITHDRAW_TOKEN_ZERO'
           )
         })
       })

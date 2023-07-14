@@ -16,6 +16,8 @@ pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 import '@mimic-fi/v3-smart-vault/contracts/interfaces/ISmartVault.sol';
@@ -28,6 +30,8 @@ import './interfaces/IRelayer.sol';
  * @dev Relayer used to execute relayed tasks
  */
 contract Relayer is IRelayer, Ownable {
+    using SafeERC20 for IERC20;
+
     // Gas amount charged to cover base costs
     uint256 public constant BASE_GAS = 28e3;
 
@@ -150,11 +154,12 @@ contract Relayer is IRelayer, Ownable {
      * @param amount Amount of tokens to withdraw
      */
     function externalWithdraw(address token, address recipient, uint256 amount) external override onlyOwner {
-        require(amount > 0, 'RELAYER_EXT_WITHDRAW_AMOUNT_ZERO');
-        require(recipient != address(0), 'RELAYER_EXT_WITHDRAW_DEST_ZERO');
         require(token != address(0), 'RELAYER_EXT_WITHDRAW_TOKEN_ZERO');
+        require(!Denominations.isNativeToken(token), 'RELAYER_EXT_WITHDRAW_NATIVE_TKN');
+        require(recipient != address(0), 'RELAYER_EXT_WITHDRAW_DEST_ZERO');
+        require(amount > 0, 'RELAYER_EXT_WITHDRAW_AMOUNT_ZERO');
 
-        _safeTransfer(token, recipient, amount);
+        IERC20(token).safeTransfer(recipient, amount);
         emit ExternalWithdrawn(token, recipient, amount);
     }
 
