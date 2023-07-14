@@ -413,7 +413,7 @@ describe('Relayer', () => {
     })
   })
 
-  describe('externalWithdraw', () => {
+  describe('rescueFunds', () => {
     let recipient: SignerWithAddress
 
     const amount = fp(10)
@@ -446,7 +446,7 @@ describe('Relayer', () => {
                   const previousRelayerBalance = await token.balanceOf(relayer.address)
                   const previousRecipientBalance = await token.balanceOf(recipient.address)
 
-                  await relayer.externalWithdraw(token.address, recipient.address, amount)
+                  await relayer.rescueFunds(token.address, recipient.address, amount)
 
                   const currentRelayerBalance = await token.balanceOf(relayer.address)
                   expect(currentRelayerBalance).to.be.equal(previousRelayerBalance.sub(amount))
@@ -456,9 +456,9 @@ describe('Relayer', () => {
                 })
 
                 it('emits an event', async () => {
-                  const tx = await relayer.externalWithdraw(token.address, recipient.address, amount)
+                  const tx = await relayer.rescueFunds(token.address, recipient.address, amount)
 
-                  await assertEvent(tx, 'ExternalWithdrawn', {
+                  await assertEvent(tx, 'FundsRescued', {
                     token,
                     amount,
                     recipient,
@@ -468,7 +468,7 @@ describe('Relayer', () => {
 
               context('when the relayer does not have enough balance', async () => {
                 it('reverts', async () => {
-                  await expect(relayer.externalWithdraw(token.address, recipient.address, amount)).to.be.revertedWith(
+                  await expect(relayer.rescueFunds(token.address, recipient.address, amount)).to.be.revertedWith(
                     'ERC20: transfer amount exceeds balance'
                   )
                 })
@@ -492,8 +492,8 @@ describe('Relayer', () => {
               })
 
               it('reverts', async () => {
-                await expect(relayer.externalWithdraw(token, recipient.address, amount)).to.be.revertedWith(
-                  'RELAYER_EXT_WITHDRAW_NATIVE_TKN'
+                await expect(relayer.rescueFunds(token, recipient.address, amount)).to.be.revertedWith(
+                  'Address: call to non-contract'
                 )
               })
             })
@@ -502,7 +502,7 @@ describe('Relayer', () => {
           context('when the amount is zero', () => {
             const amount = 0
             it('reverts', async () => {
-              await expect(relayer.externalWithdraw(token.address, recipient.address, amount)).to.be.revertedWith(
+              await expect(relayer.rescueFunds(token.address, recipient.address, amount)).to.be.revertedWith(
                 'RELAYER_EXT_WITHDRAW_AMOUNT_ZERO'
               )
             })
@@ -512,7 +512,7 @@ describe('Relayer', () => {
         context('when the recipient is the zero address', () => {
           const recipientAddr = ZERO_ADDRESS
           it('reverts', async () => {
-            await expect(relayer.externalWithdraw(token.address, recipientAddr, amount)).to.be.revertedWith(
+            await expect(relayer.rescueFunds(token.address, recipientAddr, amount)).to.be.revertedWith(
               'RELAYER_EXT_WITHDRAW_DEST_ZERO'
             )
           })
@@ -522,7 +522,7 @@ describe('Relayer', () => {
       context('when the token is the zero address', () => {
         const tokenAddr = ZERO_ADDRESS
         it('reverts', async () => {
-          await expect(relayer.externalWithdraw(tokenAddr, recipient.address, amount)).to.be.revertedWith(
+          await expect(relayer.rescueFunds(tokenAddr, recipient.address, amount)).to.be.revertedWith(
             'RELAYER_EXT_WITHDRAW_TOKEN_ZERO'
           )
         })
@@ -531,7 +531,7 @@ describe('Relayer', () => {
 
     context('when the sender is not allowed', () => {
       it('reverts', async () => {
-        await expect(relayer.externalWithdraw(ZERO_ADDRESS, recipient.address, 0)).to.be.revertedWith(
+        await expect(relayer.rescueFunds(ZERO_ADDRESS, recipient.address, 0)).to.be.revertedWith(
           'Ownable: caller is not the owner'
         )
       })

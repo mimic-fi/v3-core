@@ -49,9 +49,9 @@ interface IRelayer {
     event Withdrawn(address indexed smartVault, uint256 amount);
 
     /**
-     * @dev Emitted every time some tokens are withdrawn from the relayer's balance to an external account
+     * @dev Emitted every time some ERC20 tokens are withdrawn from the relayer to an external account
      */
-    event ExternalWithdrawn(address indexed token, address indexed recipient, uint256 amount);
+    event FundsRescued(address indexed token, address indexed recipient, uint256 amount);
 
     /**
      * @dev Tells the default collector address
@@ -123,10 +123,10 @@ interface IRelayer {
     function execute(address task, bytes calldata data) external;
 
     /**
-     * @dev Withdraw tokens to an external account
+     * @dev Withdraw ERC20 tokens to an external account. To be used in case of accidental token transfers.
      * @param token Address of the token to be withdrawn
      * @param recipient Address where the tokens will be transferred to
      * @param amount Amount of tokens to withdraw
      */
-    function externalWithdraw(address token, address recipient, uint256 amount) external;
+    function rescueFunds(address token, address recipient, uint256 amount) external;
 }
