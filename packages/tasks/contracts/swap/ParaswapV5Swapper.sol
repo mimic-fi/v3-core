@@ -40,7 +40,7 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
     /**
      * @dev Paraswap v5 swap config
      */
-    struct Paraswap5SwapConfig {
+    struct ParaswapV5SwapConfig {
         address quoteSigner;
         BaseSwapConfig baseSwapConfig;
     }
@@ -49,7 +49,7 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
      * @dev Initializes the Paraswap v5 swapper
      * @param config Paraswap v5 swap config
      */
-    function initialize(Paraswap5SwapConfig memory config) external virtual initializer {
+    function initialize(ParaswapV5SwapConfig memory config) external virtual initializer {
         __ParaswapV5Swapper_init(config);
     }
 
@@ -57,7 +57,7 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
      * @dev Initializes the Paraswap v5 swapper. It does call upper contracts initializers.
      * @param config Paraswap v5 swap config
      */
-    function __ParaswapV5Swapper_init(Paraswap5SwapConfig memory config) internal onlyInitializing {
+    function __ParaswapV5Swapper_init(ParaswapV5SwapConfig memory config) internal onlyInitializing {
         __BaseSwapTask_init(config.baseSwapConfig);
         __ParaswapV5Swapper_init_unchained(config);
     }
@@ -66,7 +66,7 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
      * @dev Initializes the Paraswap v5 swapper. It does not call upper contracts initializers.
      * @param config Paraswap v5 swap config
      */
-    function __ParaswapV5Swapper_init_unchained(Paraswap5SwapConfig memory config) internal onlyInitializing {
+    function __ParaswapV5Swapper_init_unchained(ParaswapV5SwapConfig memory config) internal onlyInitializing {
         _setQuoteSigner(config.quoteSigner);
     }
 
