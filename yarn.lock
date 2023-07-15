@@ -903,6 +903,34 @@
     tweetnacl "^1.0.3"
     tweetnacl-util "^0.15.1"
 
+"@mimic-fi/v3-helpers@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-helpers/-/v3-helpers-0.0.1.tgz#27a9aa67e07cfe87a37de47733569fe7a2891bf9"
+  integrity sha512-71n/j9FDf5NMZVazAFNcbmp/FBif7geo8cdEmm/Pd6u/ikbPAvWD45mKaA8WaSfxxBEbwTrc3F+3Xe5FjbM7pQ==
+  dependencies:
+    "@nomiclabs/hardhat-ethers" "^2.2.3"
+    "@nomiclabs/hardhat-waffle" "2.0.3"
+    "@types/chai" "^4.3.5"
+    "@types/mocha" "^10.0.1"
+    "@types/sinon-chai" "^3.2.3"
+    chai "^4.3.7"
+    decimal.js "~10.4.3"
+    ethers "~5.6.0"
+    hardhat "^2.14.1"
+    mocha "^6.2.3"
+
+"@mimic-fi/v3-tasks@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-tasks/-/v3-tasks-0.0.1.tgz#acfe247504ddd4e6c71ab1d1adb2922a249540b5"
+  integrity sha512-76CqsPw8UkMEPFcvlIeuQpaRFcljQviR2GolKEoVM6TbblHVSZVuNxOvWw4l9GQOD3/PmMkOnkzT0n9mzAJIvQ==
+  dependencies:
+    "@mimic-fi/v3-authorizer" "0.0.1"
+    "@mimic-fi/v3-connectors" "0.0.1"
+    "@mimic-fi/v3-helpers" "0.0.1"
+    "@mimic-fi/v3-price-oracle" "0.0.1"
+    "@mimic-fi/v3-smart-vault" "0.0.1"
+    "@openzeppelin/contracts" "4.7.0"
+
 "@noble/hashes@1.2.0", "@noble/hashes@~1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.2.0.tgz#a3150eeb09cc7ab207ebf6d7b9ad311a9bdbed12"
