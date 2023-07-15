@@ -42,10 +42,12 @@ describe('VolumeLimitedTask', () => {
             nextBalanceConnectorId: ZERO_BYTES32,
           },
           volumeLimitConfig: {
-            defaultLimitToken: ZERO_ADDRESS,
-            defaultLimitAmount: 0,
-            defaultLimitPeriod: 0,
             customVolumeLimitConfigs: [],
+            defaultVolumeLimit: {
+              token: ZERO_ADDRESS,
+              amount: 0,
+              period: 0,
+            },
           },
         },
       ]
