@@ -2,7 +2,7 @@
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
+// (at you[r option) any later version.
 
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -177,6 +177,9 @@ contract Deployer {
         internal
         returns (address)
     {
+        require(bytes(namespace).length > 0, 'DEPLOYER_NAMESPACE_EMPTY');
+        require(bytes(name).length > 0, 'DEPLOYER_NAME_EMPTY');
+
         bytes memory bytecode = abi.encodePacked(
             hex'3d602d80600a3d3981f3363d3d373d3d3d363d73',
             implementation,
