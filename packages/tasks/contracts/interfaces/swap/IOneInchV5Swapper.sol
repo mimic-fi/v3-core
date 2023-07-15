@@ -19,7 +19,7 @@ import './IBaseSwapTask.sol';
 /**
  * @dev 1inch v5 swapper task interface
  */
-interface IOnceInchV5Swapper is IBaseSwapTask {
+interface IOneInchV5Swapper is IBaseSwapTask {
     /**
      * @dev Execution function
      */

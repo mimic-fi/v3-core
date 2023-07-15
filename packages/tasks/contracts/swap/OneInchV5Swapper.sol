@@ -25,7 +25,7 @@ import '../interfaces/swap/IOneInchV5Swapper.sol';
  * @title 1inch v5 swapper
  * @dev Task that extends the base swap task to use 1inch v5
  */
-contract OneInchV5Swapper is IOnceInchV5Swapper, BaseSwapTask {
+contract OneInchV5Swapper is IOneInchV5Swapper, BaseSwapTask {
     using FixedPoint for uint256;
     using BytesHelpers for bytes;
 
