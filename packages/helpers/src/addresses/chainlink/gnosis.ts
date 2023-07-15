@@ -1,0 +1,6 @@
+/* eslint-disable no-secrets/no-secrets */
+
+export const DAI_USD = '0x678df3415fc31947dA4324eC63212874be5a82f8'
+export const ETH_USD = '0xa767f745331D267c7751297D982b050c93985627'
+export const USDC_USD = '0x26C31ac71010aF62E6B486D1132E266D6298857D'
+export const USDT_USD = '0x68811D7DF835B1c33e6EEae8E7C141eF48d48cc7'
