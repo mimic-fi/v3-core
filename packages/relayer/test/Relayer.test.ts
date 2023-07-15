@@ -1,4 +1,14 @@
-import { assertEvent, decimal, deploy, fp, getSigner, getSigners, pct, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import {
+  assertEvent,
+  decimal,
+  deploy,
+  fp,
+  getSigner,
+  getSigners,
+  NATIVE_TOKEN_ADDRESS,
+  pct,
+  ZERO_ADDRESS,
+} from '@mimic-fi/v3-helpers'
 import { deployEnvironment } from '@mimic-fi/v3-tasks'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
@@ -405,6 +415,131 @@ describe('Relayer', () => {
     context('when the sender is not an executor', () => {
       it('reverts', async () => {
         await expect(relayer.execute(task.address, '0x')).to.be.revertedWith('RELAYER_EXECUTOR_NOT_ALLOWED')
+      })
+    })
+  })
+
+  describe('rescueFunds', () => {
+    let recipient: SignerWithAddress
+
+    const amount = fp(10)
+
+    before('set recipient', async () => {
+      recipient = await getSigner()
+    })
+
+    context('when the sender is allowed', () => {
+      beforeEach('set sender', () => {
+        relayer = relayer.connect(owner)
+      })
+
+      context('when the token is not the zero address', () => {
+        let token: Contract
+
+        before('deploy token', async () => {
+          token = await deploy('TokenMock', ['TKN'])
+        })
+
+        context('when the recipient is not the zero address', () => {
+          context('when the amount is greater than zero', () => {
+            context('when withdrawing ERC20 tokens', async () => {
+              context('when the relayer has enough balance', async () => {
+                beforeEach('mint tokens', async () => {
+                  await token.mint(relayer.address, amount)
+                })
+
+                it('transfers the tokens to the recipient', async () => {
+                  const previousRelayerBalance = await token.balanceOf(relayer.address)
+                  const previousRecipientBalance = await token.balanceOf(recipient.address)
+
+                  await relayer.rescueFunds(token.address, recipient.address, amount)
+
+                  const currentRelayerBalance = await token.balanceOf(relayer.address)
+                  expect(currentRelayerBalance).to.be.equal(previousRelayerBalance.sub(amount))
+
+                  const currentRecipientBalance = await token.balanceOf(recipient.address)
+                  expect(currentRecipientBalance).to.be.equal(previousRecipientBalance.add(amount))
+                })
+
+                it('emits an event', async () => {
+                  const tx = await relayer.rescueFunds(token.address, recipient.address, amount)
+
+                  await assertEvent(tx, 'FundsRescued', {
+                    token,
+                    amount,
+                    recipient,
+                  })
+                })
+              })
+
+              context('when the relayer does not have enough balance', async () => {
+                it('reverts', async () => {
+                  await expect(relayer.rescueFunds(token.address, recipient.address, amount)).to.be.revertedWith(
+                    'ERC20: transfer amount exceeds balance'
+                  )
+                })
+              })
+            })
+
+            context('when withdrawing native tokens', () => {
+              let token: string, smartVault: SignerWithAddress
+
+              beforeEach('set token address', async () => {
+                token = NATIVE_TOKEN_ADDRESS
+              })
+
+              beforeEach('load smart vault', async () => {
+                smartVault = await getSigner()
+              })
+
+              beforeEach('deposit native tokens', async () => {
+                const value = amount
+                await relayer.deposit(smartVault.address, amount, { value })
+              })
+
+              it('reverts', async () => {
+                await expect(relayer.rescueFunds(token, recipient.address, amount)).to.be.revertedWith(
+                  'Address: call to non-contract'
+                )
+              })
+            })
+          })
+
+          context('when the amount is zero', () => {
+            const amount = 0
+            it('reverts', async () => {
+              await expect(relayer.rescueFunds(token.address, recipient.address, amount)).to.be.revertedWith(
+                'RELAYER_EXT_WITHDRAW_AMOUNT_ZERO'
+              )
+            })
+          })
+        })
+
+        context('when the recipient is the zero address', () => {
+          const recipientAddr = ZERO_ADDRESS
+          it('reverts', async () => {
+            await expect(relayer.rescueFunds(token.address, recipientAddr, amount)).to.be.revertedWith(
+              'RELAYER_EXT_WITHDRAW_DEST_ZERO'
+            )
+          })
+        })
+      })
+
+      context('when the token is the zero address', () => {
+        const tokenAddr = ZERO_ADDRESS
+        it('reverts', async () => {
+          await expect(relayer.rescueFunds(tokenAddr, recipient.address, amount)).to.be.revertedWith(
+            'RELAYER_EXT_WITHDRAW_TOKEN_ZERO'
+          )
+        })
+      })
+    })
+
+    context('when the sender is not allowed', () => {
+      it('reverts', async () => {
+        await expect(relayer.rescueFunds(ZERO_ADDRESS, recipient.address, 0)).to.be.revertedWith(
+          'Ownable: caller is not the owner'
+        )
       })
     })
   })
