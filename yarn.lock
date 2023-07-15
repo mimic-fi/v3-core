@@ -7560,7 +7560,7 @@ prettier-linter-helpers@^1.0.0:
   dependencies:
     fast-diff "^1.1.2"
 
-"prettier-plugin-solidity@github:lkndjrt/prettier-plugin-solidity":
+prettier-plugin-solidity@lkndjrt/prettier-plugin-solidity:
   version "1.0.0-beta.18"
   resolved "https://codeload.github.com/lkndjrt/prettier-plugin-solidity/tar.gz/e7b6b2d7fb2cfd820f0cc98095dac00a60352010"
   dependencies:
