@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "declaration": true,
     "target": "es2019",
     "module": "commonjs",
     "rootDir": ".",
@@ -8,6 +9,7 @@
     "strict": true
   },
   "files": [
+    "index.ts",
     "hardhat.config.ts"
   ]
 }

@@ -32,22 +32,27 @@ abstract contract VolumeLimitedTask is IVolumeLimitedTask, Authorized {
     mapping (address => VolumeLimit) internal _customVolumeLimits;
 
     /**
+     * @dev Volume limit params. Only used in the initializer.
+     */
+    struct VolumeLimitParams {
+        address token;
+        uint256 amount;
+        uint256 period;
+    }
+
+    /**
      * @dev Custom token volume limit config. Only used in the initializer.
      */
     struct CustomVolumeLimitConfig {
         address token;
-        address limitToken;
-        uint256 limitAmount;
-        uint256 limitPeriod;
+        VolumeLimitParams volumeLimit;
     }
 
     /**
      * @dev Volume limit config. Only used in the initializer.
      */
     struct VolumeLimitConfig {
-        address defaultLimitToken;
-        uint256 defaultLimitAmount;
-        uint256 defaultLimitPeriod;
+        VolumeLimitParams defaultVolumeLimit;
         CustomVolumeLimitConfig[] customVolumeLimitConfigs;
     }
 
@@ -64,10 +69,13 @@ abstract contract VolumeLimitedTask is IVolumeLimitedTask, Authorized {
      * @param config Volume limited task config
      */
     function __VolumeLimitedTask_init_unchained(VolumeLimitConfig memory config) internal onlyInitializing {
-        _setDefaultVolumeLimit(config.defaultLimitToken, config.defaultLimitAmount, config.defaultLimitPeriod);
+        VolumeLimitParams memory defaultLimit = config.defaultVolumeLimit;
+        _setDefaultVolumeLimit(defaultLimit.token, defaultLimit.amount, defaultLimit.period);
+
         for (uint256 i = 0; i < config.customVolumeLimitConfigs.length; i++) {
-            CustomVolumeLimitConfig memory custom = config.customVolumeLimitConfigs[i];
-            _setCustomVolumeLimit(custom.token, custom.limitToken, custom.limitAmount, custom.limitPeriod);
+            CustomVolumeLimitConfig memory customVolumeLimitConfig = config.customVolumeLimitConfigs[i];
+            VolumeLimitParams memory custom = customVolumeLimitConfig.volumeLimit;
+            _setCustomVolumeLimit(customVolumeLimitConfig.token, custom.token, custom.amount, custom.period);
         }
     }
 

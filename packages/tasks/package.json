@@ -1,15 +1,18 @@
 {
   "name": "@mimic-fi/v3-tasks",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "license": "GPL-3.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
     "artifacts/contracts/**/*",
     "!artifacts/contracts/test/*",
     "contracts/**/*",
-    "!contracts/test/*"
+    "!contracts/test/*",
+    "dist"
   ],
   "scripts": {
-    "build": "yarn compile",
+    "build": "yarn compile && rm -rf dist && tsc",
     "compile": "hardhat compile",
     "lint": "yarn lint:solidity && yarn lint:typescript",
     "lint:solidity": "solhint 'contracts/**/*.sol' --config ../../node_modules/solhint-config-mimic/index.js",
@@ -20,7 +23,7 @@
   "dependencies": {
     "@mimic-fi/v3-authorizer": "0.0.1",
     "@mimic-fi/v3-connectors": "0.0.1",
-    "@mimic-fi/v3-helpers": "0.0.1",
+    "@mimic-fi/v3-helpers": "0.0.3",
     "@mimic-fi/v3-price-oracle": "0.0.1",
     "@mimic-fi/v3-smart-vault": "0.0.1",
     "@openzeppelin/contracts": "4.7.0"
@@ -43,6 +46,7 @@
     "typescript": "~4.3.4"
   },
   "eslintConfig": {
-    "extends": "eslint-config-mimic"
+    "extends": "eslint-config-mimic",
+    "ignorePatterns": ["dist"]
   }
 }
