@@ -20,7 +20,7 @@
   "dependencies": {
     "@mimic-fi/v3-authorizer": "0.0.1",
     "@mimic-fi/v3-fee-controller": "0.0.1",
-    "@mimic-fi/v3-helpers": "0.0.4",
+    "@mimic-fi/v3-helpers": "0.0.5",
     "@mimic-fi/v3-price-oracle": "0.0.1",
     "@mimic-fi/v3-registry": "0.0.1",
     "@openzeppelin/contracts": "4.7.0",
