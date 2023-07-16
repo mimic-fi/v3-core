@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@chainlink/contracts": "^0.2.1",
-    "@mimic-fi/v3-helpers": "0.0.5",
+    "@mimic-fi/v3-helpers": "0.0.6",
     "@openzeppelin/contracts": "4.7.0"
   },
   "devDependencies": {
