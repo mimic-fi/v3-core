@@ -5,6 +5,7 @@ import {
   currentTimestamp,
   deploy,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigners,
   MAX_UINT256,
@@ -173,7 +174,7 @@ describe('HopBridger', () => {
     let token: Contract
 
     beforeEach('deploy token', async function () {
-      token = await deploy('TokenMock', ['TKN'])
+      token = await deployTokenMock('TKN')
     })
 
     context('when the sender is authorized', () => {
@@ -216,7 +217,7 @@ describe('HopBridger', () => {
         let token: Contract
 
         beforeEach('deploy token', async () => {
-          token = await deploy('TokenMock', ['TKN'])
+          token = await deployTokenMock('TKN')
         })
 
         context('when setting the Hop entrypoint', () => {
@@ -324,7 +325,7 @@ describe('HopBridger', () => {
         let token: Contract
 
         beforeEach('deploy token', async () => {
-          token = await deploy('TokenMock', ['TKN'])
+          token = await deployTokenMock('TKN')
         })
 
         context('when the amount is not zero', () => {

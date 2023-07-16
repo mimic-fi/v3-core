@@ -3,7 +3,9 @@ import {
   assertEvent,
   assertIndirectEvent,
   deploy,
+  deployFeedMock,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigners,
   ZERO_ADDRESS,
@@ -67,8 +69,8 @@ describe('HopL2Swapper', () => {
     let token: Contract, hToken: Contract, amm: Contract
 
     before('deploy token and amm mock', async () => {
-      token = await deploy('TokenMock', ['TKN'])
-      hToken = await deploy('TokenMock', ['hTKN'])
+      token = await deployTokenMock('TKN')
+      hToken = await deployTokenMock('hTKN')
       amm = await deploy('HopL2AmmMock', [token.address, hToken.address])
     })
 
@@ -179,7 +181,7 @@ describe('HopL2Swapper', () => {
         let tokenIn: Contract
 
         beforeEach('set token in', async () => {
-          tokenIn = await deploy('TokenMock', ['IN'])
+          tokenIn = await deployTokenMock('IN')
         })
 
         context('when the amount in is not zero', () => {
@@ -190,14 +192,14 @@ describe('HopL2Swapper', () => {
               let tokenOut: Contract
 
               beforeEach('set default token out', async () => {
-                tokenOut = await deploy('TokenMock', ['OUT'])
+                tokenOut = await deployTokenMock('OUT')
                 const setDefaultTokenOutRole = task.interface.getSighash('setDefaultTokenOut')
                 await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenOutRole, [])
                 await task.connect(owner).setDefaultTokenOut(tokenOut.address)
               })
 
               beforeEach('set price feed', async () => {
-                const feed = await deploy('FeedMock', [fp(1), 18])
+                const feed = await deployFeedMock(fp(1), 18)
                 const setFeedRole = priceOracle.interface.getSighash('setFeed')
                 await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
                 await priceOracle.connect(owner).setFeed(tokenIn.address, tokenOut.address, feed.address)

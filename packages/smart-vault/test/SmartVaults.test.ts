@@ -3,6 +3,8 @@ import {
   assertIndirectEvent,
   deploy,
   deployProxy,
+  deployTokenMock,
+  deployWrappedNativeTokenMock,
   fp,
   getSigner,
   getSigners,
@@ -28,7 +30,7 @@ describe('SmartVault', () => {
   })
 
   before('create dependencies', async () => {
-    wrappedNT = await deploy('WrappedNativeTokenMock')
+    wrappedNT = await deployWrappedNativeTokenMock()
     registry = await deploy('@mimic-fi/v3-registry/artifacts/contracts/Registry.sol/Registry', [mimic.address])
     feeController = await deploy('@mimic-fi/v3-fee-controller/artifacts/contracts/FeeController.sol/FeeController', [
       feeCollector.address,
@@ -203,7 +205,7 @@ describe('SmartVault', () => {
     let connector: Contract
 
     beforeEach('deploy connector', async () => {
-      connector = await deploy('TokenMock', ['TKN'])
+      connector = await deployTokenMock('TKN')
     })
 
     it('is active by default', async () => {
@@ -295,7 +297,7 @@ describe('SmartVault', () => {
           let token: Contract
 
           beforeEach('deploy token', async () => {
-            token = await deploy('TokenMock', ['TKN'])
+            token = await deployTokenMock('TKN')
           })
 
           context('when increasing the connector balance', () => {
@@ -589,7 +591,7 @@ describe('SmartVault', () => {
 
     before('deploy token', async () => {
       from = await getSigner()
-      token = await deploy('TokenMock', ['USDC'])
+      token = await deployTokenMock('USDC')
     })
 
     context('when the sender is authorized', () => {
@@ -692,7 +694,7 @@ describe('SmartVault', () => {
             let token: Contract
 
             before('deploy token', async () => {
-              token = await deploy('TokenMock', ['USDC'])
+              token = await deployTokenMock('USDC')
             })
 
             context('when the smart vault has enough balance', async () => {

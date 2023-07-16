@@ -2,6 +2,7 @@ import {
   assertEvent,
   decimal,
   deploy,
+  deployTokenMock,
   fp,
   getSigner,
   getSigners,
@@ -437,7 +438,7 @@ describe('Relayer', () => {
         let token: Contract
 
         before('deploy token', async () => {
-          token = await deploy('TokenMock', ['TKN'])
+          token = await deployTokenMock('TKN')
         })
 
         context('when the recipient is not the zero address', () => {

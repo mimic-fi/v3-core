@@ -1,4 +1,4 @@
-import { assertEvent, deploy, fp, ONES_ADDRESS, ZERO_ADDRESS, ZERO_BYTES32 } from '@mimic-fi/v3-helpers'
+import { assertEvent, deployTokenMock, fp, ONES_ADDRESS, ZERO_ADDRESS, ZERO_BYTES32 } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
@@ -81,7 +81,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
         let connector: Contract
 
         beforeEach('deploy connector', async function () {
-          connector = await deploy('TokenMock', ['TKN'])
+          connector = await deployTokenMock('TKN')
         })
 
         it('sets the token out', async function () {
@@ -251,7 +251,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
     let token: Contract
 
     beforeEach('deploy token', async function () {
-      token = await deploy('TokenMock', ['TKN'])
+      token = await deployTokenMock('TKN')
     })
 
     context('when the sender is authorized', () => {
@@ -397,7 +397,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
     let token: Contract
 
     beforeEach('deploy token', async function () {
-      token = await deploy('TokenMock', ['TKN'])
+      token = await deployTokenMock('TKN')
     })
 
     context('when the sender is authorized', () => {

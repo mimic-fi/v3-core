@@ -1,8 +1,9 @@
 import {
   assertEvent,
   BigNumberish,
-  deploy,
+  deployFeedMock,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigners,
   ZERO_ADDRESS,
@@ -241,9 +242,9 @@ describe('TokenThresholdTask', () => {
     let USDC: string, USDT: string, WETH: string
 
     before('deploy tokens', async () => {
-      USDC = (await deploy('TokenMock', ['USDC'])).address
-      USDT = (await deploy('TokenMock', ['USDT'])).address
-      WETH = (await deploy('TokenMock', ['WETH'])).address
+      USDC = (await deployTokenMock('USDC')).address
+      USDT = (await deployTokenMock('USDT')).address
+      WETH = (await deployTokenMock('WETH')).address
     })
 
     const assertValid = async (token: string, amount: BigNumberish) => {
@@ -270,7 +271,7 @@ describe('TokenThresholdTask', () => {
 
       context('when there is a custom threshold set', () => {
         beforeEach('mock price feed', async () => {
-          const feed = await deploy('FeedMock', [fp(1600), 18])
+          const feed = await deployFeedMock(fp(1600), 18)
           const setFeedRole = await priceOracle.interface.getSighash('setFeed')
           await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
           await priceOracle.connect(owner).setFeed(WETH, USDT, feed.address)
@@ -305,7 +306,7 @@ describe('TokenThresholdTask', () => {
 
     context('when there is a default threshold set', () => {
       beforeEach('mock price feed', async () => {
-        const feed = await deploy('FeedMock', [fp(1600), 18])
+        const feed = await deployFeedMock(fp(1600), 18)
         const setFeedRole = await priceOracle.interface.getSighash('setFeed')
         await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
         await priceOracle.connect(owner).setFeed(WETH, USDC, feed.address)
@@ -341,7 +342,7 @@ describe('TokenThresholdTask', () => {
 
       context('when there is a custom threshold set', () => {
         beforeEach('mock price feed', async () => {
-          const feed = await deploy('FeedMock', [fp(1650), 18])
+          const feed = await deployFeedMock(fp(1650), 18)
           const setFeedRole = await priceOracle.interface.getSighash('setFeed')
           await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
           await priceOracle.connect(owner).setFeed(WETH, USDT, feed.address)

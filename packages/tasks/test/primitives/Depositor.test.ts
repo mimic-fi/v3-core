@@ -1,8 +1,8 @@
 import {
   assertEvent,
   assertIndirectEvent,
-  deploy,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigner,
   getSigners,
@@ -99,7 +99,7 @@ describe('Depositor', () => {
     const threshold = fp(2)
 
     beforeEach('set token', async () => {
-      token = await deploy('TokenMock', ['USDC'])
+      token = await deployTokenMock('USDC')
     })
 
     beforeEach('authorize task', async () => {

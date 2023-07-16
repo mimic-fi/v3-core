@@ -4,6 +4,7 @@ import {
   assertIndirectEvent,
   deploy,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigners,
   ZERO_ADDRESS,
@@ -80,7 +81,7 @@ describe('Curve2CrvExiter', () => {
         let token: Contract
 
         beforeEach('set token threshold', async () => {
-          token = await deploy('TokenMock', ['2CRV'])
+          token = await deployTokenMock('2CRV')
         })
 
         context('when the amount is not zero', () => {
@@ -94,7 +95,7 @@ describe('Curve2CrvExiter', () => {
             let tokenOut: Contract
 
             beforeEach('set token out', async () => {
-              tokenOut = await deploy('TokenMock', ['USDC'])
+              tokenOut = await deployTokenMock('USDC')
               const setDefaultTokenOutRole = task.interface.getSighash('setDefaultTokenOut')
               await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenOutRole, [])
               await task.connect(owner).setDefaultTokenOut(tokenOut.address)
