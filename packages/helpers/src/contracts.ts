@@ -33,6 +33,7 @@ export async function deployProxy(
   nameOrArtifact: string | ArtifactLike,
   args: Array<any> = [],
   initArgs: Array<any> = [],
+  initName = 'initialize',
   from?: SignerWithAddress,
   libraries?: Libraries
 ): Promise<Contract> {
@@ -43,7 +44,7 @@ export async function deployProxy(
   const addressQuery = { from: from.address, nonce: await from.getTransactionCount() }
   await from.sendTransaction({ data: proxyBytecode })
   const instance = await instanceAt(nameOrArtifact, await getContractAddress(addressQuery))
-  await instance.initialize(...initArgs)
+  await instance[initName](...initArgs)
   return instance
 }
 
