@@ -5,8 +5,9 @@ import {
   bn,
   currentTimestamp,
   DAY,
-  deploy,
+  deployFeedMock,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigner,
   getSigners,
@@ -188,8 +189,8 @@ describe('PriceOracle', () => {
 
     context('when there is no feed', () => {
       beforeEach('deploy tokens', async () => {
-        base = await deploy('TokenMock', ['BASE', 18])
-        quote = await deploy('TokenMock', ['QUOTE', 18])
+        base = await deployTokenMock('BASE', 18)
+        quote = await deployTokenMock('QUOTE', 18)
       })
 
       it('reverts', async () => {
@@ -202,8 +203,8 @@ describe('PriceOracle', () => {
 
       const itReverts = (baseDecimals: number, quoteDecimals: number) => {
         beforeEach('deploy tokens', async () => {
-          base = await deploy('TokenMock', ['BASE', baseDecimals])
-          quote = await deploy('TokenMock', ['QUOTE', quoteDecimals])
+          base = await deployTokenMock('BASE', baseDecimals)
+          quote = await deployTokenMock('QUOTE', quoteDecimals)
         })
 
         it('reverts', async () => {
@@ -217,12 +218,12 @@ describe('PriceOracle', () => {
         const expectedPrice = PRICE.mul(bn(10).pow(resultDecimals))
 
         beforeEach('deploy tokens', async () => {
-          base = await deploy('TokenMock', ['BASE', baseDecimals])
-          quote = await deploy('TokenMock', ['QUOTE', quoteDecimals])
+          base = await deployTokenMock('BASE', baseDecimals)
+          quote = await deployTokenMock('QUOTE', quoteDecimals)
         })
 
         beforeEach('set feed', async () => {
-          const feed = await deploy('FeedMock', [reportedPrice, feedDecimals])
+          const feed = await deployFeedMock(reportedPrice, feedDecimals)
           await priceOracle.setFeed(base.address, quote.address, feed.address)
         })
 
@@ -485,8 +486,8 @@ describe('PriceOracle', () => {
 
       const itReverts = (baseDecimals: number, quoteDecimals: number) => {
         beforeEach('deploy tokens', async () => {
-          base = await deploy('TokenMock', ['BASE', baseDecimals])
-          quote = await deploy('TokenMock', ['QUOTE', quoteDecimals])
+          base = await deployTokenMock('BASE', baseDecimals)
+          quote = await deployTokenMock('QUOTE', quoteDecimals)
         })
 
         it('reverts', async () => {
@@ -500,12 +501,12 @@ describe('PriceOracle', () => {
         const expectedPrice = PRICE.mul(bn(10).pow(resultDecimals))
 
         beforeEach('deploy tokens', async () => {
-          base = await deploy('TokenMock', ['BASE', baseDecimals])
-          quote = await deploy('TokenMock', ['QUOTE', quoteDecimals])
+          base = await deployTokenMock('BASE', baseDecimals)
+          quote = await deployTokenMock('QUOTE', quoteDecimals)
         })
 
         beforeEach('set inverse feed', async () => {
-          const feed = await deploy('FeedMock', [reportedInversePrice, feedDecimals])
+          const feed = await deployFeedMock(reportedInversePrice, feedDecimals)
           await priceOracle.setFeed(quote.address, base.address, feed.address)
         })
 
@@ -781,8 +782,8 @@ describe('PriceOracle', () => {
 
       const itReverts = (baseDecimals: number, quoteDecimals: number) => {
         beforeEach('deploy tokens', async () => {
-          base = await deploy('TokenMock', ['BASE', baseDecimals])
-          quote = await deploy('TokenMock', ['QUOTE', quoteDecimals])
+          base = await deployTokenMock('BASE', baseDecimals)
+          quote = await deployTokenMock('QUOTE', quoteDecimals)
         })
 
         it('reverts', async () => {
@@ -802,15 +803,15 @@ describe('PriceOracle', () => {
         const expectedPrice = BASE_ETH_PRICE.div(QUOTE_ETH_PRICE).mul(bn(10).pow(resultDecimals))
 
         beforeEach('deploy tokens', async () => {
-          base = await deploy('TokenMock', ['BASE', baseDecimals])
-          quote = await deploy('TokenMock', ['QUOTE', quoteDecimals])
+          base = await deployTokenMock('BASE', baseDecimals)
+          quote = await deployTokenMock('QUOTE', quoteDecimals)
         })
 
         beforeEach('set feed', async () => {
-          const baseFeed = await deploy('FeedMock', [reportedBasePrice, baseFeedDecimals])
+          const baseFeed = await deployFeedMock(reportedBasePrice, baseFeedDecimals)
           await priceOracle.setFeed(base.address, PIVOT, baseFeed.address)
 
-          const quoteFeed = await deploy('FeedMock', [reportedQuotePrice, quoteFeedDecimals])
+          const quoteFeed = await deployFeedMock(reportedQuotePrice, quoteFeedDecimals)
           await priceOracle.setFeed(quote.address, PIVOT, quoteFeed.address)
         })
 
@@ -1563,9 +1564,9 @@ describe('PriceOracle', () => {
     }
 
     beforeEach('deploy base and quote', async () => {
-      base = await deploy('TokenMock', ['BASE', 18])
-      quote = await deploy('TokenMock', ['QUOTE', 18])
-      feed = await deploy('FeedMock', [SMART_VAULT_ORACLE_PRICE, 18])
+      base = await deployTokenMock('BASE', 18)
+      quote = await deployTokenMock('QUOTE', 18)
+      feed = await deployFeedMock(SMART_VAULT_ORACLE_PRICE, 18)
     })
 
     const setUpSmartVaultOracleFeed = () => {
@@ -1735,8 +1736,8 @@ describe('PriceOracle', () => {
         let anotherBase: Contract, anotherQuote: Contract
 
         before('deploy another base and quote', async () => {
-          anotherBase = await deploy('TokenMock', ['BASE', 18])
-          anotherQuote = await deploy('TokenMock', ['QUOTE', 18])
+          anotherBase = await deployTokenMock('BASE', 18)
+          anotherQuote = await deployTokenMock('QUOTE', 18)
         })
 
         beforeEach('build feed data', async () => {

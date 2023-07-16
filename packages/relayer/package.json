@@ -18,7 +18,7 @@
     "prepare": "yarn build"
   },
   "dependencies": {
-    "@mimic-fi/v3-helpers": "0.0.3",
+    "@mimic-fi/v3-helpers": "0.0.4",
     "@mimic-fi/v3-tasks": "0.0.1",
     "@mimic-fi/v3-smart-vault": "0.0.1",
     "@openzeppelin/contracts": "4.7.0"

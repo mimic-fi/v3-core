@@ -2,8 +2,8 @@ import {
   assertEvent,
   assertIndirectEvent,
   assertNoIndirectEvent,
-  deploy,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigners,
   NATIVE_TOKEN_ADDRESS,
@@ -72,7 +72,7 @@ describe('BaseTask', () => {
         let token: Contract
 
         beforeEach('fund smart vault', async () => {
-          token = await deploy('TokenMock', ['USDC'])
+          token = await deployTokenMock('USDC')
           await token.mint(smartVault.address, balance)
         })
 
@@ -109,7 +109,7 @@ describe('BaseTask', () => {
         let token: Contract
 
         beforeEach('fund tokens source', async () => {
-          token = await deploy('TokenMock', ['USDC'])
+          token = await deployTokenMock('USDC')
         })
 
         beforeEach('set connector balance', async () => {

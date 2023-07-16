@@ -3,8 +3,9 @@ import {
   assertEvent,
   BigNumberish,
   currentTimestamp,
-  deploy,
+  deployFeedMock,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigners,
   MONTH,
@@ -197,7 +198,7 @@ describe('VolumeLimitedTask', () => {
         const period = MONTH * 2
 
         beforeEach('set volume limit', async () => {
-          token = await deploy('TokenMock', ['TKN'])
+          token = await deployTokenMock('TKN')
           await task.setDefaultVolumeLimit(token.address, amount, period)
         })
 
@@ -208,8 +209,8 @@ describe('VolumeLimitedTask', () => {
           let newToken: Contract
 
           beforeEach('deploy new token', async () => {
-            newToken = await deploy('TokenMock', ['TKN'])
-            const feed = await deploy('FeedMock', [fp(rate), 18])
+            newToken = await deployTokenMock('TKN')
+            const feed = await deployFeedMock(fp(rate), 18)
             const setFeedRole = priceOracle.interface.getSighash('setFeed')
             await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
             await priceOracle.connect(owner).setFeed(token.address, newToken.address, feed.address)
@@ -246,8 +247,8 @@ describe('VolumeLimitedTask', () => {
             let newToken: Contract
 
             beforeEach('deploy new token', async () => {
-              newToken = await deploy('TokenMock', ['TKN'])
-              const feed = await deploy('FeedMock', [fp(rate), 18])
+              newToken = await deployTokenMock('TKN')
+              const feed = await deployFeedMock(fp(rate), 18)
               const setFeedRole = priceOracle.interface.getSighash('setFeed')
               await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
               await priceOracle.connect(owner).setFeed(token.address, newToken.address, feed.address)
@@ -316,7 +317,7 @@ describe('VolumeLimitedTask', () => {
     let token: Contract
 
     beforeEach('deploy new token', async () => {
-      token = await deploy('TokenMock', ['TKN'])
+      token = await deployTokenMock('TKN')
     })
 
     context('when the sender is authorized', async () => {
@@ -461,7 +462,7 @@ describe('VolumeLimitedTask', () => {
         const period = MONTH * 2
 
         beforeEach('set volume limit', async () => {
-          limitToken = await deploy('TokenMock', ['TKN'])
+          limitToken = await deployTokenMock('TKN')
           await task.setCustomVolumeLimit(token.address, limitToken.address, amount, period)
         })
 
@@ -472,8 +473,8 @@ describe('VolumeLimitedTask', () => {
           let newLimitToken: Contract
 
           beforeEach('deploy new token', async () => {
-            newLimitToken = await deploy('TokenMock', ['TKN'])
-            const feed = await deploy('FeedMock', [fp(rate), 18])
+            newLimitToken = await deployTokenMock('TKN')
+            const feed = await deployFeedMock(fp(rate), 18)
             const setFeedRole = priceOracle.interface.getSighash('setFeed')
             await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
             await priceOracle.connect(owner).setFeed(limitToken.address, newLimitToken.address, feed.address)
@@ -505,7 +506,7 @@ describe('VolumeLimitedTask', () => {
 
         context('when there was some volume accrued', () => {
           beforeEach('accrue volume', async () => {
-            const feed = await deploy('FeedMock', [fp(1), 18])
+            const feed = await deployFeedMock(fp(1), 18)
             const setFeedRole = priceOracle.interface.getSighash('setFeed')
             await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
             await priceOracle.connect(owner).setFeed(token.address, limitToken.address, feed.address)
@@ -519,8 +520,8 @@ describe('VolumeLimitedTask', () => {
             let newLimitToken: Contract
 
             beforeEach('deploy new token', async () => {
-              newLimitToken = await deploy('TokenMock', ['TKN'])
-              const feed = await deploy('FeedMock', [fp(rate), 18])
+              newLimitToken = await deployTokenMock('TKN')
+              const feed = await deployFeedMock(fp(rate), 18)
               const setFeedRole = priceOracle.interface.getSighash('setFeed')
               await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
               await priceOracle.connect(owner).setFeed(limitToken.address, newLimitToken.address, feed.address)
@@ -594,7 +595,7 @@ describe('VolumeLimitedTask', () => {
     const amount = fp(10)
 
     beforeEach('deploy token', async () => {
-      token = await deploy('TokenMock', ['TKN'])
+      token = await deployTokenMock('TKN')
     })
 
     const itCanBeExecuted = () => {
@@ -679,8 +680,8 @@ describe('VolumeLimitedTask', () => {
       const period = MONTH
 
       beforeEach('deploy new token', async () => {
-        limitToken = await deploy('TokenMock', ['TKN'])
-        const feed = await deploy('FeedMock', [fp(limitRate), 18])
+        limitToken = await deployTokenMock('TKN')
+        const feed = await deployFeedMock(fp(limitRate), 18)
         const setFeedRole = priceOracle.interface.getSighash('setFeed')
         await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
         await priceOracle.connect(owner).setFeed(token.address, limitToken.address, feed.address)

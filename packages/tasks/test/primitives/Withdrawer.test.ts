@@ -1,8 +1,8 @@
 import {
   assertEvent,
   assertIndirectEvent,
-  deploy,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigners,
   NATIVE_TOKEN_ADDRESS,
@@ -162,7 +162,7 @@ describe('Withdrawer', () => {
     const threshold = fp(2)
 
     beforeEach('set token and recipient', async () => {
-      token = await deploy('TokenMock', ['USDC'])
+      token = await deployTokenMock('USDC')
     })
 
     beforeEach('authorize task', async () => {

@@ -4,6 +4,7 @@ import {
   assertIndirectEvent,
   deploy,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigners,
   ZERO_ADDRESS,
@@ -78,11 +79,11 @@ describe('ConvexExiter', () => {
         let token: Contract, tokenOut: Contract
 
         beforeEach('deploy token', async () => {
-          token = await deploy('TokenMock', ['cvx2CRV'])
+          token = await deployTokenMock('cvx2CRV')
         })
 
         beforeEach('set connector tokens', async () => {
-          tokenOut = await deploy('TokenMock', ['2CRV'])
+          tokenOut = await deployTokenMock('2CRV')
           await connector.setCvxPool(tokenOut.address, token.address)
           await connector.setCurvePool(token.address, tokenOut.address)
         })

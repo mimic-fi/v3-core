@@ -4,6 +4,7 @@ import { ethers } from 'hardhat'
 
 import { NATIVE_TOKEN_ADDRESS, ZERO_ADDRESS } from '../../../src/constants'
 import { deploy } from '../../../src/contracts'
+import { deployTokenMock } from '../../../src/mocks'
 import { getSigner } from '../../../src/signers'
 
 describe('ERC20Helpers', () => {
@@ -28,7 +29,7 @@ describe('ERC20Helpers', () => {
       let token: Contract
 
       beforeEach('deploy token', async () => {
-        token = await deploy('TokenMock', ['TKN'])
+        token = await deployTokenMock('TKN')
         await token.mint(someone, 10)
       })
 
@@ -68,7 +69,7 @@ describe('ERC20Helpers', () => {
       let token: Contract
 
       beforeEach('deploy token', async () => {
-        token = await deploy('TokenMock', ['TKN'])
+        token = await deployTokenMock('TKN')
       })
 
       beforeEach('fund library', async () => {
@@ -103,7 +104,7 @@ describe('ERC20Helpers', () => {
       let token: Contract
 
       beforeEach('deploy token', async () => {
-        token = await deploy('TokenMock', ['TKN'])
+        token = await deployTokenMock('TKN')
       })
 
       it('updates allowance correctly', async () => {
