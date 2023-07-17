@@ -72,7 +72,7 @@ abstract contract BaseRelayerFunder is IBaseRelayerFunder, Task {
     function _beforeTokenThresholdTask(address token, uint256) internal virtual override {
         Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
         uint256 depositedThresholdToken = _getDepositedThresholdToken(threshold.token);
-        require(depositedThresholdToken < threshold.min, 'TASK_THRESHOLD_NOT_MET');
+        require(depositedThresholdToken < threshold.min, 'TASK_TOKEN_THRESHOLD_NOT_MET');
     }
 
     /**
