@@ -32,13 +32,13 @@ contract Relayer is IRelayer, Ownable {
     using SafeERC20 for IERC20;
 
     // Gas amount charged to cover base costs
-    uint256 public constant BASE_GAS = 28e3;
+    uint256 public constant BASE_GAS = 29e3;
 
     // Variable used to allow a better developer experience to reimburse tx gas cost
     // solhint-disable-next-line var-name-mixedcase
     uint256 private __initialGas__;
 
-    // List of allowed executors
+    // Default collector address
     address public override defaultCollector;
 
     // List of allowed executors
@@ -49,6 +49,12 @@ contract Relayer is IRelayer, Ownable {
 
     // List of custom collector address per smart vault
     mapping (address => address) public override getSmartVaultCollector;
+
+    // List of maximum quota to be used per smart vault
+    mapping (address => uint256) public override getSmartVaultMaxQuota;
+
+    // List of used quota per smart vault
+    mapping (address => uint256) public override getSmartVaultUsedQuota;
 
     /**
      * @dev Creates a new Relayer contract
@@ -100,14 +106,26 @@ contract Relayer is IRelayer, Ownable {
     }
 
     /**
-     * @dev Deposits native tokens for a given smart vault
+     * @dev Sets a maximum quota for a smart vault
+     * @param smartVault Address of smart vault to set a maximum quota for
+     * @param maxQuota Maximum quota to be set for the given smart vault
+     */
+    function setSmartVaultMaxQuota(address smartVault, uint256 maxQuota) external override onlyOwner {
+        getSmartVaultMaxQuota[smartVault] = maxQuota;
+        emit SmartVaultMaxQuotaSet(smartVault, maxQuota);
+    }
+
+    /**
+     * @dev Deposits native tokens for a given smart vault. First, it will pay (part of) the quota, if any
      * @param smartVault Address of smart vault to deposit balance for
      * @param amount Amount of native tokens to be deposited, must match msg.value
      */
     function deposit(address smartVault, uint256 amount) external payable override {
         require(msg.value == amount, 'RELAYER_DEPOSIT_INVALID_AMOUNT');
-        getSmartVaultBalance[smartVault] += amount;
-        emit Deposited(smartVault, amount);
+        uint256 amountPaid = _payQuota(smartVault, amount);
+        uint256 toDeposit = amount - amountPaid;
+        getSmartVaultBalance[smartVault] += toDeposit;
+        emit Deposited(smartVault, toDeposit);
     }
 
     /**
@@ -115,7 +133,10 @@ contract Relayer is IRelayer, Ownable {
      * @param amount Amount of native tokens to be withdrawn
      */
     function withdraw(uint256 amount) external override {
-        _withdraw(msg.sender, amount);
+        uint256 balance = getSmartVaultBalance[msg.sender];
+        require(amount <= balance, 'RELAYER_SMART_VAULT_NO_BALANCE');
+        getSmartVaultBalance[msg.sender] = balance - amount;
+        emit Withdrawn(msg.sender, amount);
         (bool success, ) = payable(msg.sender).call{ value: amount }('');
         require(success, 'RELAYER_WITHDRAW_FAILED');
     }
@@ -138,7 +159,7 @@ contract Relayer is IRelayer, Ownable {
 
         uint256 gasUsed = BASE_GAS + __initialGas__ - gasleft();
         uint256 totalCost = gasUsed * tx.gasprice;
-        _withdraw(smartVault, totalCost);
+        _payTransactionGasToRelayer(smartVault, totalCost);
         delete __initialGas__;
 
         // solhint-disable-next-line avoid-low-level-calls
@@ -183,14 +204,44 @@ contract Relayer is IRelayer, Ownable {
     }
 
     /**
-     * @dev Withdraws native tokens from a given smart vault
+     * @dev Pays transaction gas to the relayer withdrawing native tokens from a given smart vault
      * @param smartVault Address of smart vault to withdraw balance of
      * @param amount Amount of native tokens to be withdrawn
      */
-    function _withdraw(address smartVault, uint256 amount) internal {
+    function _payTransactionGasToRelayer(address smartVault, uint256 amount) internal {
+        uint256 availableQuota = getSmartVaultMaxQuota[smartVault] - getSmartVaultUsedQuota[smartVault];
         uint256 balance = getSmartVaultBalance[smartVault];
-        require(amount <= balance, 'RELAYER_SMART_VAULT_NO_BALANCE');
-        getSmartVaultBalance[smartVault] = balance - amount;
-        emit Withdrawn(smartVault, amount);
+        require(amount <= balance + availableQuota, 'RELAYER_SMART_VAULT_NO_BALANCE');
+
+        if (balance >= amount) {
+            getSmartVaultBalance[smartVault] -= amount;
+        } else {
+            uint256 quota = amount - balance;
+            getSmartVaultBalance[smartVault] = 0;
+            getSmartVaultUsedQuota[smartVault] += quota;
+            emit QuotaUsed(smartVault, quota);
+        }
+        emit GasPaid(smartVault, amount);
+    }
+
+    /**
+     * @dev Pays (part of) the quota for a given smart vault, if applicable
+     * @param smartVault Address of smart vault to pay quota for
+     * @param amount Amount of native tokens to be deposited for the smart vault
+     * @return amountPaid Amount of native tokens used to pay the quota
+     */
+    function _payQuota(address smartVault, uint256 amount) internal returns (uint256 amountPaid) {
+        amountPaid = 0;
+        uint256 usedQuota = getSmartVaultUsedQuota[smartVault];
+        if (usedQuota > 0) {
+            if (amount > usedQuota) {
+                getSmartVaultUsedQuota[smartVault] = 0;
+                amountPaid = usedQuota;
+            } else {
+                getSmartVaultUsedQuota[smartVault] -= amount;
+                amountPaid = amount;
+            }
+        }
+        emit QuotaPaid(smartVault, amountPaid);
     }
 }

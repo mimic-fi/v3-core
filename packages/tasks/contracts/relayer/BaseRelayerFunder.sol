@@ -59,20 +59,27 @@ abstract contract BaseRelayerFunder is IBaseRelayerFunder, Task {
     function getTaskAmount(address token) public view virtual override(IBaseTask, BaseTask) returns (uint256) {
         Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
         uint256 depositedThresholdToken = _getDepositedThresholdToken(threshold.token);
+        uint256 usedQuotaThresholdToken = relayer.getSmartVaultUsedQuota(smartVault).mulUp(
+            _getPrice(_wrappedNativeToken(), threshold.token)
+        );
 
         if (depositedThresholdToken >= threshold.min) return 0;
 
-        uint256 diff = threshold.max - depositedThresholdToken;
+        uint256 diff = threshold.max - depositedThresholdToken + usedQuotaThresholdToken; // usedQuota > 0 implies deposited = 0
         return (token == threshold.token) ? diff : diff.mulUp(_getPrice(threshold.token, token));
     }
 
     /**
      * @dev Before token threshold task hook
      */
-    function _beforeTokenThresholdTask(address token, uint256) internal virtual override {
+    function _beforeTokenThresholdTask(address token, uint256 amount) internal virtual override {
         Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
         uint256 depositedThresholdToken = _getDepositedThresholdToken(threshold.token);
-        require(depositedThresholdToken < threshold.min, 'TASK_TOKEN_THRESHOLD_NOT_MET');
+        uint256 usedQuotaThresholdToken = relayer.getSmartVaultUsedQuota(smartVault).mulUp(
+            _getPrice(_wrappedNativeToken(), threshold.token)
+        );
+        require(depositedThresholdToken < threshold.min + usedQuotaThresholdToken, 'TASK_TOKEN_THRESHOLD_NOT_MET');
+        require(amount <= threshold.max + usedQuotaThresholdToken, 'TASK_TOKEN_THRESHOLD_MAX');
     }
 
     /**

@@ -34,6 +34,11 @@ interface IRelayer {
     event SmartVaultCollectorSet(address indexed smartVault, address indexed collector);
 
     /**
+     * @dev Emitted every time a smart vault's maximum quota is set
+     */
+    event SmartVaultMaxQuotaSet(address indexed smartVault, uint256 maxQuota);
+
+    /**
      * @dev Emitted every time a smart vault's task is executed
      */
     event TaskExecuted(address indexed smartVault, address indexed task, bytes data, bool success, bytes result);
@@ -52,6 +57,21 @@ interface IRelayer {
      * @dev Emitted every time some ERC20 tokens are withdrawn from the relayer to an external account
      */
     event FundsRescued(address indexed token, address indexed recipient, uint256 amount);
+
+    /**
+     * @dev Emitted every time a smart vault's quota is paid
+     */
+    event QuotaPaid(address indexed smartVault, uint256 amount);
+
+    /**
+     * @dev Emitted every time a smart vault uses (part of) its available quota
+     */
+    event QuotaUsed(address indexed smartVault, uint256 quota);
+
+    /**
+     * @dev Emitted every time a smart vault pays for transaction gas to the relayer
+     */
+    event GasPaid(address indexed smartVault, uint256 amount);
 
     /**
      * @dev Tells the default collector address
@@ -75,6 +95,18 @@ interface IRelayer {
      * @param smartVault Address of the smart vault being queried
      */
     function getSmartVaultCollector(address smartVault) external view returns (address);
+
+    /**
+     * @dev Tells the smart vault maximum quota to be used
+     * @param smartVault Address of the smart vault being queried
+     */
+    function getSmartVaultMaxQuota(address smartVault) external view returns (uint256);
+
+    /**
+     * @dev Tells the smart vault used quota
+     * @param smartVault Address of the smart vault being queried
+     */
+    function getSmartVaultUsedQuota(address smartVault) external view returns (uint256);
 
     /**
      * @dev Tells the collector address applicable for a smart vault
@@ -101,6 +133,13 @@ interface IRelayer {
      * @param collector Address of the collector to be set for the given smart vault
      */
     function setSmartVaultCollector(address smartVault, address collector) external;
+
+    /**
+     * @dev Sets a maximum quota for a smart vault
+     * @param smartVault Address of smart vault to set a maximum quota for
+     * @param maxQuota Maximum quota to be set for the given smart vault
+     */
+    function setSmartVaultMaxQuota(address smartVault, uint256 maxQuota) external;
 
     /**
      * @dev Deposits native tokens for a given smart vault
