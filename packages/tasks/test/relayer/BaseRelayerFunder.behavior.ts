@@ -1,9 +1,9 @@
-import { MAX_UINT256, deployFeedMock, deployTokenMock, fp } from '@mimic-fi/v3-helpers'
+import { deployFeedMock, deployTokenMock, fp, MAX_UINT256 } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 import { ethers } from 'hardhat'
 
-export function itBehavesLikeBaseRelayerFunder(executionType: string): void { 
+export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
   describe('execution type', () => {
     it('defines it correctly', async function () {
       const expectedType = ethers.utils.solidityKeccak256(['string'], [executionType])
@@ -13,10 +13,11 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
 
   describe('getTaskAmount', async function () {
     let wrappedNT: string
-    let fundingToken: Contract, thresholdToken: Contract 
+    let fundingToken: Contract, thresholdToken: Contract
     let fundingThresholdRate: number
 
-    const thresholdMin = fp(100), thresholdMax = fp(1000)
+    const thresholdMin = fp(100),
+      thresholdMax = fp(1000)
 
     before('set wrapped native token', async function () {
       wrappedNT = await this.smartVault.wrappedNativeToken()
@@ -24,9 +25,7 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
 
     beforeEach('authorize sender', async function () {
       const getTaskAmountRole = this.task.interface.getSighash('getTaskAmount')
-      await this.authorizer
-        .connect(this.owner)
-        .authorize(this.owner.address, this.task.address, getTaskAmountRole, [])
+      await this.authorizer.connect(this.owner).authorize(this.owner.address, this.task.address, getTaskAmountRole, [])
       this.task = this.task.connect(this.owner)
     })
 
@@ -45,14 +44,18 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
 
       beforeEach('set threshold', async function () {
         const setDefaultTokenThresholdRole = this.task.interface.getSighash('setDefaultTokenThreshold')
-        await this.authorizer.connect(this.owner).authorize(this.owner.address, this.task.address, setDefaultTokenThresholdRole, [])
+        await this.authorizer
+          .connect(this.owner)
+          .authorize(this.owner.address, this.task.address, setDefaultTokenThresholdRole, [])
         await this.task.connect(this.owner).setDefaultTokenThreshold(thresholdToken.address, thresholdMin, thresholdMax)
       })
 
       beforeEach('set price feed', async function () {
         const feed = await deployFeedMock(fp(thresholdNativeRate), 18)
         const setFeedRole = this.priceOracle.interface.getSighash('setFeed')
-        await this.authorizer.connect(this.owner).authorize(this.owner.address, this.priceOracle.address, setFeedRole, [])
+        await this.authorizer
+          .connect(this.owner)
+          .authorize(this.owner.address, this.priceOracle.address, setFeedRole, [])
         await this.priceOracle.connect(this.owner).setFeed(wrappedNT, thresholdToken.address, feed.address)
       })
 
@@ -60,7 +63,7 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
         beforeEach('set amount', async function () {
           amount = thresholdMin.div(2)
         })
-        
+
         beforeEach('set smart vault balance in relayer', async function () {
           const amountInNativeToken = amount.div(thresholdNativeRate)
           await this.relayer.setBalance(amountInNativeToken)
@@ -77,7 +80,7 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
           const diff = thresholdMax.sub(thresholdMin)
           amount = thresholdMin.add(diff.div(2))
         })
-        
+
         beforeEach('set smart vault balance in relayer', async function () {
           const amountInNativeToken = amount.div(thresholdNativeRate)
           await this.relayer.setBalance(amountInNativeToken)
@@ -101,7 +104,9 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
       beforeEach('set price feed', async function () {
         const feed = await deployFeedMock(fp(fundingThresholdRate), 18)
         const setFeedRole = this.priceOracle.interface.getSighash('setFeed')
-        await this.authorizer.connect(this.owner).authorize(this.owner.address, this.priceOracle.address, setFeedRole, [])
+        await this.authorizer
+          .connect(this.owner)
+          .authorize(this.owner.address, this.priceOracle.address, setFeedRole, [])
         await this.priceOracle.connect(this.owner).setFeed(thresholdToken.address, fundingToken.address, feed.address)
       })
 

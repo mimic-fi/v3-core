@@ -2,15 +2,15 @@ import {
   assertEvent,
   assertIndirectEvent,
   deploy,
+  deployFeedMock,
   deployProxy,
   deployTokenMock,
-  deployFeedMock,
   fp,
   getSigners,
+  MAX_UINT256,
+  NATIVE_TOKEN_ADDRESS,
   ZERO_ADDRESS,
   ZERO_BYTES32,
-  NATIVE_TOKEN_ADDRESS,
-  MAX_UINT256,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
@@ -177,7 +177,7 @@ describe('UnwrapperRelayerFunder', () => {
       })
 
       context('when the given token is not the wrapped native token', () => {
-        let token: Contract, wrappedNT: string
+        let token: Contract
         const threshold = MAX_UINT256
 
         beforeEach('set token in', async () => {

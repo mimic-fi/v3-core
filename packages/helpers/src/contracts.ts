@@ -35,7 +35,7 @@ export async function deployProxy(
   initArgs: Array<any> = [],
   initName = 'initialize',
   from?: SignerWithAddress,
-  libraries?: Libraries,
+  libraries?: Libraries
 ): Promise<Contract> {
   const implementation = await deploy(nameOrArtifact, args, from, libraries)
   const proxyBytecode = MINIMAL_PROXY_BYTECODE.replace('_IMP_', implementation.address.slice(2))

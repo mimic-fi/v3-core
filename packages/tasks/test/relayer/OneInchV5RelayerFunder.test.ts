@@ -3,9 +3,9 @@ import {
   assertEvent,
   assertIndirectEvent,
   deploy,
+  deployFeedMock,
   deployProxy,
   deployTokenMock,
-  deployFeedMock,
   fp,
   getSigners,
   MAX_UINT256,
@@ -96,7 +96,7 @@ describe('OneInchV5RelayerFunder', () => {
         await authorizer.connect(owner).authorize(owner.address, task.address, callRole, [])
         task = task.connect(owner)
       })
-      
+
       beforeEach('set token in', async () => {
         tokenIn = await deployTokenMock('TKN')
       })
@@ -108,7 +108,8 @@ describe('OneInchV5RelayerFunder', () => {
       context('when the token in is not the zero address', () => {
         context('when the amount in is not zero', () => {
           const tokenRate = 2 // 1 token in = 2 token out
-          const thresholdMin = fp(100), thresholdMax = fp(1000) // in token out
+          const thresholdMin = fp(100),
+            thresholdMax = fp(1000) // in token out
           const thresholdMinInTokenIn = thresholdMin.div(tokenRate)
           const thresholdMaxInTokenIn = thresholdMax.div(tokenRate)
           const amountIn = thresholdMinInTokenIn
