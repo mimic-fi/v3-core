@@ -4,6 +4,7 @@ import {
   assertIndirectEvent,
   deploy,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigners,
   ZERO_ADDRESS,
@@ -100,7 +101,7 @@ describe('ConnextBridger', () => {
     let token: Contract
 
     beforeEach('deploy token', async function () {
-      token = await deploy('TokenMock', ['TKN'])
+      token = await deployTokenMock('TKN')
     })
 
     context('when the sender is authorized', () => {
@@ -149,7 +150,7 @@ describe('ConnextBridger', () => {
         let token: Contract
 
         beforeEach('deploy token', async () => {
-          token = await deploy('TokenMock', ['TKN'])
+          token = await deployTokenMock('TKN')
         })
 
         context('when the amount is not zero', () => {

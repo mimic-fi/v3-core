@@ -4,6 +4,7 @@ import {
   assertIndirectEvent,
   deploy,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigners,
   ZERO_ADDRESS,
@@ -78,11 +79,11 @@ describe('ConvexJoiner', () => {
         let token: Contract, tokenOut: Contract
 
         beforeEach('deploy token', async () => {
-          token = await deploy('TokenMock', ['2CRV'])
+          token = await deployTokenMock('2CRV')
         })
 
         beforeEach('set connector tokens', async () => {
-          tokenOut = await deploy('TokenMock', ['cvx2CRV'])
+          tokenOut = await deployTokenMock('cvx2CRV')
           await connector.setCvxPool(token.address, tokenOut.address)
           await connector.setCurvePool(tokenOut.address, token.address)
         })

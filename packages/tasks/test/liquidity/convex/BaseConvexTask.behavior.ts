@@ -1,4 +1,4 @@
-import { assertEvent, deploy, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { assertEvent, deployTokenMock, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
@@ -23,7 +23,7 @@ export function itBehavesLikeBaseConvexTask(executionType: string): void {
         let connector: Contract
 
         beforeEach('deploy connector', async function () {
-          connector = await deploy('TokenMock', ['TKN'])
+          connector = await deployTokenMock('TKN')
         })
 
         it('sets the token out', async function () {

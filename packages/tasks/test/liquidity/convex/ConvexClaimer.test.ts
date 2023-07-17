@@ -1,5 +1,13 @@
 import { OP } from '@mimic-fi/v3-authorizer'
-import { assertEvent, assertIndirectEvent, deploy, deployProxy, getSigners, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import {
+  assertEvent,
+  assertIndirectEvent,
+  deploy,
+  deployProxy,
+  deployTokenMock,
+  getSigners,
+  ZERO_ADDRESS,
+} from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
@@ -67,7 +75,7 @@ describe('ConvexClaimer', () => {
         let token: Contract
 
         beforeEach('deploy token', async () => {
-          token = await deploy('TokenMock', ['TKN'])
+          token = await deployTokenMock('TKN')
         })
 
         context('when the amount is zero', () => {

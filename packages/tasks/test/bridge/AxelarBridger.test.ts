@@ -4,6 +4,7 @@ import {
   assertIndirectEvent,
   deploy,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigners,
   ZERO_ADDRESS,
@@ -81,7 +82,7 @@ describe('AxelarBridger', () => {
         let token: Contract
 
         beforeEach('deploy token', async () => {
-          token = await deploy('TokenMock', ['TKN'])
+          token = await deployTokenMock('TKN')
         })
 
         context('when the amount is not zero', () => {

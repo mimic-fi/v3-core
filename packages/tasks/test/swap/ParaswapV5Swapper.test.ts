@@ -5,7 +5,9 @@ import {
   BigNumberish,
   currentTimestamp,
   deploy,
+  deployFeedMock,
   deployProxy,
+  deployTokenMock,
   fp,
   getSigners,
   MINUTE,
@@ -115,7 +117,7 @@ describe('ParaswapV5Swapper', () => {
         let tokenIn: Contract
 
         beforeEach('set token in', async () => {
-          tokenIn = await deploy('TokenMock', ['IN'])
+          tokenIn = await deployTokenMock('IN')
         })
 
         context('when the amount in is not zero', () => {
@@ -129,14 +131,14 @@ describe('ParaswapV5Swapper', () => {
               let tokenOut: Contract
 
               beforeEach('set default token out', async () => {
-                tokenOut = await deploy('TokenMock', ['OUT'])
+                tokenOut = await deployTokenMock('OUT')
                 const setDefaultTokenOutRole = task.interface.getSighash('setDefaultTokenOut')
                 await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenOutRole, [])
                 await task.connect(owner).setDefaultTokenOut(tokenOut.address)
               })
 
               beforeEach('set price feed', async () => {
-                const feed = await deploy('FeedMock', [fp(tokenRate), 18])
+                const feed = await deployFeedMock(fp(tokenRate), 18)
                 const setFeedRole = priceOracle.interface.getSighash('setFeed')
                 await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
                 await priceOracle.connect(owner).setFeed(tokenIn.address, tokenOut.address, feed.address)

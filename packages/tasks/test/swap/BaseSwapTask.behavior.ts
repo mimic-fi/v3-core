@@ -1,4 +1,4 @@
-import { assertEvent, deploy, fp, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { assertEvent, deployTokenMock, fp, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
@@ -15,7 +15,7 @@ export function itBehavesLikeBaseSwapTask(executionType: string): void {
     let connector: Contract
 
     beforeEach('deploy connector', async function () {
-      connector = await deploy('TokenMock', ['TKN'])
+      connector = await deployTokenMock('TKN')
     })
 
     context('when the sender is authorized', () => {
@@ -49,7 +49,7 @@ export function itBehavesLikeBaseSwapTask(executionType: string): void {
     let token: Contract
 
     beforeEach('deploy token', async function () {
-      token = await deploy('TokenMock', ['TKN'])
+      token = await deployTokenMock('TKN')
     })
 
     context('when the sender is authorized', () => {
@@ -85,8 +85,8 @@ export function itBehavesLikeBaseSwapTask(executionType: string): void {
     let token: Contract, tokenOut: Contract
 
     beforeEach('deploy token', async function () {
-      token = await deploy('TokenMock', ['IN'])
-      tokenOut = await deploy('TokenMock', ['OUT'])
+      token = await deployTokenMock('IN')
+      tokenOut = await deployTokenMock('OUT')
     })
 
     context('when the sender is authorized', () => {
@@ -166,7 +166,7 @@ export function itBehavesLikeBaseSwapTask(executionType: string): void {
     let token: Contract
 
     beforeEach('deploy token', async function () {
-      token = await deploy('TokenMock', ['TKN'])
+      token = await deployTokenMock('TKN')
     })
 
     context('when the sender is authorized', () => {

@@ -1,4 +1,13 @@
-import { BigNumberish, deploy, deployProxy, fp, getSigner, ZERO_ADDRESS, ZERO_BYTES32 } from '@mimic-fi/v3-helpers'
+import {
+  BigNumberish,
+  deploy,
+  deployProxy,
+  deployWrappedNativeTokenMock,
+  fp,
+  getSigner,
+  ZERO_ADDRESS,
+  ZERO_BYTES32,
+} from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { Contract } from 'ethers'
 
@@ -19,7 +28,7 @@ export type Mimic = {
 }
 
 export async function setupMimic(feeCollector: SignerWithAddress, owner: SignerWithAddress): Promise<Mimic> {
-  const wrappedNativeToken = await deploy('WrappedNativeTokenMock')
+  const wrappedNativeToken = await deployWrappedNativeTokenMock()
   const registry = await deploy(ARTIFACTS.REGISTRY, [owner.address])
   const feeController = await deploy(ARTIFACTS.FEE_CONTROLLER, [feeCollector.address, owner.address])
 
