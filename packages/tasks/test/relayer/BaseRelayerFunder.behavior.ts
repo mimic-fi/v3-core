@@ -1,4 +1,4 @@
-import { deployFeedMock, deployTokenMock, fp, MAX_UINT256 } from '@mimic-fi/v3-helpers'
+import { assertEvent, deployFeedMock, deployTokenMock, fp, MAX_UINT256, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 import { ethers } from 'hardhat'
@@ -8,6 +8,42 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
     it('defines it correctly', async function () {
       const expectedType = ethers.utils.solidityKeccak256(['string'], [executionType])
       expect(await this.task.EXECUTION_TYPE()).to.be.equal(expectedType)
+    })
+  })
+
+  describe('setRelayer', () => {
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async function () {
+        const setRelayerRole = this.task.interface.getSighash('setRelayer')
+        await this.authorizer.connect(this.owner).authorize(this.owner.address, this.task.address, setRelayerRole, [])
+        this.task = this.task.connect(this.owner)
+      })
+
+      context('when the relayer is not zero', () => {
+        it('sets the relayer', async function () {
+          await this.task.setRelayer(this.relayer.address)
+
+          expect(await this.task.relayer()).to.be.equal(this.relayer.address)
+        })
+
+        it('emits an event', async function () {
+          const tx = await this.task.setRelayer(this.relayer.address)
+
+          await assertEvent(tx, 'RelayerSet', { relayer: this.relayer })
+        })
+      })
+
+      context('when the relayer is zero', () => {
+        it('reverts', async function () {
+          await expect(this.task.setRelayer(ZERO_ADDRESS)).to.be.revertedWith('FUNDER_RELAYER_ZERO')
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(this.task.setRelayer(this.relayer.address)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+      })
     })
   })
 

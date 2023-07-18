@@ -20,46 +20,57 @@ import '@mimic-fi/v3-relayer/contracts/interfaces/IRelayer.sol';
 import '../interfaces/relayer/IBaseRelayerFunder.sol';
 import '../Task.sol';
 
+/**
+ * @title Base relayer funder task
+ * @dev Task that offers the basic components for more detailed relayer funder tasks
+ */
 abstract contract BaseRelayerFunder is IBaseRelayerFunder, Task {
     using FixedPoint for uint256;
 
     // Reference to the contract to be funded
-    IRelayer public relayer;
+    address public override relayer;
 
     /**
-     * @dev BaseRelayerFunder task config. Only used in the initializer.
+     * @dev Base relayer fund config. Only used in the initializer.
      */
-    struct BaseRelayerFunderConfig {
+    struct BaseRelayerFundConfig {
         address relayer;
         TaskConfig taskConfig;
     }
 
     /**
      * @dev Initializes the base relayer funder. It does call upper contracts initializers.
-     * @param config BaseRelayerFunder config
+     * @param config Base relayer fund config
      */
-    function __BaseRelayerFunder_init(BaseRelayerFunderConfig memory config) internal onlyInitializing {
+    function __BaseRelayerFunder_init(BaseRelayerFundConfig memory config) internal onlyInitializing {
         __Task_init(config.taskConfig);
         __BaseRelayerFunder_init_unchained(config);
     }
 
     /**
      * @dev Initializes the base relayer funder. It does not call upper contracts initializers.
-     * @param config BaseRelayerFunder config
+     * @param config Base relayer fund config
      */
-    function __BaseRelayerFunder_init_unchained(BaseRelayerFunderConfig memory config) internal onlyInitializing {
-        require(config.relayer != address(0), 'FUNDER_RELAYER_ZERO');
-        relayer = IRelayer(config.relayer);
+    function __BaseRelayerFunder_init_unchained(BaseRelayerFundConfig memory config) internal onlyInitializing {
+        _setRelayer(config.relayer);
     }
 
     /**
-     * @dev Tells the amount in `token` to be funded
-     * @param token Address of the token to be used for funding
+     * @dev Sets the relayer
+     * @param newRelayer Address of the relayer to be set
+     */
+    function setRelayer(address newRelayer) external override authP(authParams(newRelayer)) {
+        _setRelayer(newRelayer);
+    }
+
+    /**
+     * @dev Tells the amount in `token` to be paid to the relayer
+     * @param token Address of the token to be used to pay the relayer
      */
     function getTaskAmount(address token) public view virtual override(IBaseTask, BaseTask) returns (uint256) {
         Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
-        uint256 depositedThresholdToken = _getDepositedThresholdToken(threshold.token);
-        uint256 usedQuotaThresholdToken = relayer.getSmartVaultUsedQuota(smartVault).mulUp(
+        uint256 depositedThresholdToken = _getDepositedInThresholdToken(threshold.token);
+        uint256 usedQuotaThresholdToken = IRelayer(relayer).getSmartVaultUsedQuota(smartVault).mulUp(
             _getPrice(_wrappedNativeToken(), threshold.token)
         );
 
@@ -74,19 +85,29 @@ abstract contract BaseRelayerFunder is IBaseRelayerFunder, Task {
      */
     function _beforeTokenThresholdTask(address token, uint256 amount) internal virtual override {
         Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
-        uint256 depositedThresholdToken = _getDepositedThresholdToken(threshold.token);
-        uint256 usedQuotaThresholdToken = relayer.getSmartVaultUsedQuota(smartVault).mulUp(
+        uint256 depositedThresholdToken = _getDepositedInThresholdToken(threshold.token);
+        uint256 usedQuotaThresholdToken = IRelayer(relayer).getSmartVaultUsedQuota(smartVault).mulUp(
             _getPrice(_wrappedNativeToken(), threshold.token)
         );
         require(depositedThresholdToken < threshold.min + usedQuotaThresholdToken, 'TASK_TOKEN_THRESHOLD_NOT_MET');
-        require(amount <= threshold.max + usedQuotaThresholdToken, 'TASK_TOKEN_THRESHOLD_MAX');
+        require(amount + depositedThresholdToken <= threshold.max + usedQuotaThresholdToken, 'TASK_AMOUNT_ABOVE_THRESHOLD');
     }
 
     /**
      * @dev Tells the deposited balance in the relayer in `thresholdToken`
      */
-    function _getDepositedThresholdToken(address thresholdToken) internal view returns (uint256) {
-        uint256 depositedNativeToken = relayer.getSmartVaultBalance(smartVault); // balance in ETH
+    function _getDepositedInThresholdToken(address thresholdToken) internal view returns (uint256) {
+        uint256 depositedNativeToken = IRelayer(relayer).getSmartVaultBalance(smartVault); // balance in ETH
         return depositedNativeToken.mulUp(_getPrice(_wrappedNativeToken(), thresholdToken));
+    }
+
+    /**
+     * @dev Sets the relayer
+     * @param newRelayer Address of the relayer to be set
+     */
+    function _setRelayer(address newRelayer) internal {
+        require(newRelayer != address(0), 'FUNDER_RELAYER_ZERO');
+        relayer = newRelayer;
+        emit RelayerSet(newRelayer);
     }
 }

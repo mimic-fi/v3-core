@@ -46,24 +46,40 @@ describe('OneInchV5RelayerFunder', () => {
       [],
       [
         {
-          baseRelayerFunderConfig: {
-            relayer: relayer.address,
+          baseSwapConfig: {
+            connector: connector.address,
+            tokenOut: ZERO_ADDRESS,
+            maxSlippage: 0,
+            customTokensOut: [],
+            customMaxSlippages: [],
             taskConfig: buildEmptyTaskConfig(owner, smartVault),
           },
-          oneInchV5SwapConfig: {
-            baseSwapConfig: {
-              connector: connector.address,
-              tokenOut: ZERO_ADDRESS,
-              maxSlippage: 0,
-              customTokensOut: [],
-              customMaxSlippages: [],
-              taskConfig: buildEmptyTaskConfig(owner, smartVault),
-            },
-          },
         },
+        relayer.address,
       ],
-      'initialize(((address,((address,bytes32,bytes32),(uint256,uint256,uint256,uint256),(uint256,uint256,uint256),(uint8,address[]),((address,uint256,uint256),(address,(address,uint256,uint256))[]),((address,uint256,uint256),(address,(address,uint256,uint256))[]))),((address,address,uint256,(address,address)[],(address,uint256)[],((address,bytes32,bytes32),(uint256,uint256,uint256,uint256),(uint256,uint256,uint256),(uint8,address[]),((address,uint256,uint256),(address,(address,uint256,uint256))[]),((address,uint256,uint256),(address,(address,uint256,uint256))[]))))))'
+      'initializeOneInchV5RelayerFunder'
     )
+  })
+
+  describe('initialization', async () => {
+    it('cannot call parent initialize', async () => {
+      await expect(
+        task.initialize({
+          baseSwapConfig: {
+            connector: connector.address,
+            tokenOut: ZERO_ADDRESS,
+            maxSlippage: 0,
+            customTokensOut: [],
+            customMaxSlippages: [],
+            taskConfig: buildEmptyTaskConfig(owner, smartVault),
+          },
+        })
+      ).to.be.revertedWith('SWAPPER_INITIALIZER_DISABLED')
+    })
+
+    it('has a relayer reference', async () => {
+      expect(await task.relayer()).to.be.equal(relayer.address)
+    })
   })
 
   describe('relayer funder', () => {
@@ -168,55 +184,70 @@ describe('OneInchV5RelayerFunder', () => {
                     await task.connect(owner).setDefaultMaxSlippage(slippage)
                   })
 
-                  it('executes the expected connector', async () => {
-                    const tx = await task.call(tokenIn.address, amountIn, slippage, data)
+                  context('when the resulting balance is below the max threshold', () => {
+                    it('executes the expected connector', async () => {
+                      const tx = await task.call(tokenIn.address, amountIn, slippage, data)
 
-                    const connectorData = connector.interface.encodeFunctionData('execute', [
-                      tokenIn.address,
-                      tokenOut.address,
-                      amountIn,
-                      minAmountOut,
-                      data,
-                    ])
+                      const connectorData = connector.interface.encodeFunctionData('execute', [
+                        tokenIn.address,
+                        tokenOut.address,
+                        amountIn,
+                        minAmountOut,
+                        data,
+                      ])
 
-                    await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
-                      connector,
-                      data: connectorData,
+                      await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
+                        connector,
+                        data: connectorData,
+                      })
+
+                      await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
+                        tokenIn,
+                        tokenOut,
+                        amountIn,
+                        minAmountOut,
+                        data,
+                      })
                     })
 
-                    await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
-                      tokenIn,
-                      tokenOut,
-                      amountIn,
-                      minAmountOut,
-                      data,
+                    it('emits an Executed event', async () => {
+                      const tx = await task.call(tokenIn.address, amountIn, slippage, data)
+
+                      await assertEvent(tx, 'Executed')
+                    })
+
+                    it('updates the balance connectors properly', async () => {
+                      const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
+                      const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+                      await authorizer
+                        .connect(owner)
+                        .authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+                      await task.connect(owner).setBalanceConnectors(ZERO_BYTES32, nextConnectorId)
+
+                      const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                      await authorizer
+                        .connect(owner)
+                        .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+
+                      const tx = await task.call(tokenIn.address, amountIn, slippage, data)
+
+                      await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+                        id: nextConnectorId,
+                        token: tokenOut.address,
+                        amount: minAmountOut,
+                        added: true,
+                      })
                     })
                   })
 
-                  it('emits an Executed event', async () => {
-                    const tx = await task.call(tokenIn.address, amountIn, slippage, data)
+                  context('when the resulting balance is above the max threshold', async () => {
+                    const diff = thresholdMax.sub(amountIn)
+                    const amount = amountIn.add(diff.add(1))
 
-                    await assertEvent(tx, 'Executed')
-                  })
-
-                  it('updates the balance connectors properly', async () => {
-                    const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
-                    const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
-                    await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
-                    await task.connect(owner).setBalanceConnectors(ZERO_BYTES32, nextConnectorId)
-
-                    const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-                    await authorizer
-                      .connect(owner)
-                      .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
-
-                    const tx = await task.call(tokenIn.address, amountIn, slippage, data)
-
-                    await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
-                      id: nextConnectorId,
-                      token: tokenOut.address,
-                      amount: minAmountOut,
-                      added: true,
+                    it('reverts', async () => {
+                      await expect(task.call(tokenIn.address, amount, slippage, data)).to.be.revertedWith(
+                        'TASK_AMOUNT_ABOVE_THRESHOLD'
+                      )
                     })
                   })
                 })

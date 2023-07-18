@@ -27,29 +27,29 @@ contract RelayerDepositor is IRelayerDepositor, Task {
     bytes32 public constant override EXECUTION_TYPE = keccak256('RELAYER_DEPOSITOR');
 
     // Reference to the contract to be funded
-    address public relayer;
+    address public override relayer;
 
     /**
-     * @dev RelayerDepositor task config. Only used in the initializer.
+     * @dev Relayer deposit config. Only used in the initializer.
      */
-    struct RelayerDepositorConfig {
+    struct RelayerDepositConfig {
         address relayer;
         TaskConfig taskConfig;
     }
 
     /**
      * @dev Initializes the relayer depositor
-     * @param config RelayerDepositor config
+     * @param config Relayer deposit config
      */
-    function initialize(RelayerDepositorConfig memory config) external virtual initializer {
+    function initialize(RelayerDepositConfig memory config) external virtual initializer {
         __RelayerDepositor_init(config);
     }
 
     /**
      * @dev Initializes the relayer depositor. It does call upper contracts initializers.
-     * @param config RelayerDepositor config
+     * @param config Relayer deposit config
      */
-    function __RelayerDepositor_init(RelayerDepositorConfig memory config) internal onlyInitializing {
+    function __RelayerDepositor_init(RelayerDepositConfig memory config) internal onlyInitializing {
         __Task_init(config.taskConfig);
         __RelayerDepositor_init_unchained(config);
     }
@@ -58,9 +58,16 @@ contract RelayerDepositor is IRelayerDepositor, Task {
      * @dev Initializes the relayer depositor. It does not call upper contracts initializers.
      * @param config RelayerDepositor config
      */
-    function __RelayerDepositor_init_unchained(RelayerDepositorConfig memory config) internal onlyInitializing {
-        require(config.relayer != address(0), 'RELAYER_DEPOSITOR_RELAYER_ZERO');
-        relayer = config.relayer;
+    function __RelayerDepositor_init_unchained(RelayerDepositConfig memory config) internal onlyInitializing {
+        _setRelayer(config.relayer);
+    }
+
+    /**
+     * @dev Sets the relayer
+     * @param newRelayer Address of the relayer to be set
+     */
+    function setRelayer(address newRelayer) external override authP(authParams(newRelayer)) {
+        _setRelayer(newRelayer);
     }
 
     /**
@@ -78,7 +85,6 @@ contract RelayerDepositor is IRelayerDepositor, Task {
      */
     function _beforeRelayerDepositor(address token, uint256 amount) internal virtual {
         _beforeTask(token, amount);
-        require(token == Denominations.NATIVE_TOKEN, 'TASK_TOKEN_NOT_NATIVE');
         require(amount > 0, 'TASK_AMOUNT_ZERO');
     }
 
@@ -87,5 +93,15 @@ contract RelayerDepositor is IRelayerDepositor, Task {
      */
     function _afterRelayerDepositor(address token, uint256 amount) internal virtual {
         _afterTask(token, amount);
+    }
+
+    /**
+     * @dev Sets the relayer
+     * @param newRelayer Address of the relayer to be set
+     */
+    function _setRelayer(address newRelayer) internal {
+        require(newRelayer != address(0), 'RELAYER_DEPOSITOR_RELAYER_ZERO');
+        relayer = newRelayer;
+        emit RelayerSet(newRelayer);
     }
 }
