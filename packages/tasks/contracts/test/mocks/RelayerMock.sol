@@ -9,7 +9,11 @@ contract RelayerMock {
 
     event Deposited(address smartVault, uint256 amount);
 
+    event RelayerSet(address relayer);
+
     uint256 public balance;
+
+    address public relayer;
 
     constructor(uint256 _balance) {
         balance = _balance;
@@ -26,5 +30,10 @@ contract RelayerMock {
 
     function setBalance(uint256 _balance) external {
         balance = _balance;
+    }
+
+    function setRelayer(address _relayer) external {
+        relayer = _relayer;
+        emit RelayerSet(_relayer);
     }
 }

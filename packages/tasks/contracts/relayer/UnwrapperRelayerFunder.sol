@@ -17,46 +17,57 @@ pragma solidity ^0.8.0;
 import '../primitives/Unwrapper.sol';
 import './BaseRelayerFunder.sol';
 
+/**
+ * @title Unwrapper relayer funder
+ * @dev Task used to convert funds in order to pay relayers using an unwrapper
+ */
 contract UnwrapperRelayerFunder is BaseRelayerFunder, Unwrapper {
     /**
-     * @dev UnwrapperRelayerFunder task config. Only used in the initializer.
+     * @dev Disables the default unwrapper initializer
      */
-    struct UnwrapperRelayerFunderConfig {
-        BaseRelayerFunderConfig baseRelayerFunderConfig;
-        UnwrapConfig unwrapConfig;
+    function initialize(UnwrapConfig memory) external pure override {
+        revert('UNWRAPPER_INITIALIZER_DISABLED');
     }
 
     /**
      * @dev Initializes the unwrapper relayer funder
-     * @param config UnwrapperRelayerFunder config
+     * @param config Unwrap config
+     * @param relayer Relayer address
      */
-    function initialize(UnwrapperRelayerFunderConfig memory config) external virtual initializer {
-        __UnwrapperRelayerFunder_init(config);
+    function initializeUnwrapperRelayerFunder(UnwrapConfig memory config, address relayer)
+        external
+        virtual
+        initializer
+    {
+        __UnwrapperRelayerFunder_init(config, relayer);
     }
 
     /**
      * @dev Initializes the unwrapper relayer funder. It does call upper contracts initializers.
-     * @param config UnwrapperRelayerFunder config
+     * @param config Unwrap config
+     * @param relayer Relayer address
      */
-    function __UnwrapperRelayerFunder_init(UnwrapperRelayerFunderConfig memory config) internal onlyInitializing {
-        __Unwrapper_init(config.unwrapConfig);
-        __UnwrapperRelayerFunder_init_unchained(config);
+    function __UnwrapperRelayerFunder_init(UnwrapConfig memory config, address relayer) internal onlyInitializing {
+        __Unwrapper_init(config);
+        __BaseRelayerFunder_init_unchained(BaseRelayerFundConfig(relayer, config.taskConfig));
+        __UnwrapperRelayerFunder_init_unchained(config, relayer);
     }
 
     /**
      * @dev Initializes the unwrapper relayer funder. It does not call upper contracts initializers.
-     * @param config UnwrapperRelayerFunder config
+     * @param config Unwrap config
+     * @param relayer Relayer address
      */
-    function __UnwrapperRelayerFunder_init_unchained(UnwrapperRelayerFunderConfig memory config)
+    function __UnwrapperRelayerFunder_init_unchained(UnwrapConfig memory config, address relayer)
         internal
         onlyInitializing
     {
-        __BaseRelayerFunder_init_unchained(config.baseRelayerFunderConfig);
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     /**
-     * @dev Tells the amount in `token` to be funded
-     * @param token Address of the token to be used for funding
+     * @dev Tells the `token` amount to be funded
+     * @param token Address of the token to be used to fund the relayer
      */
     function getTaskAmount(address token)
         public

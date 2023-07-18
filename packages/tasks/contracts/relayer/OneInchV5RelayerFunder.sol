@@ -17,41 +17,55 @@ pragma solidity ^0.8.0;
 import '../swap/OneInchV5Swapper.sol';
 import './BaseRelayerFunder.sol';
 
+/**
+ * @title 1inch v5 relayer funder
+ * @dev Task used to convert funds in order to pay relayers using a 1inch v5 swapper
+ */
 contract OneInchV5RelayerFunder is BaseRelayerFunder, OneInchV5Swapper {
     /**
-     * @dev OneInchV5RelayerFunder task config. Only used in the initializer.
+     * @dev Disables the default 1inch v5 swapper initializer
      */
-    struct OneInchV5RelayerFunderConfig {
-        BaseRelayerFunderConfig baseRelayerFunderConfig;
-        OneInchV5SwapConfig oneInchV5SwapConfig;
+    function initialize(OneInchV5SwapConfig memory) external pure override {
+        revert('SWAPPER_INITIALIZER_DISABLED');
     }
 
     /**
      * @dev Initializes the 1inch v5 relayer funder
-     * @param config OneInchV5RelayerFunder config
+     * @param config 1inch v5 swap config
+     * @param relayer Relayer address
      */
-    function initialize(OneInchV5RelayerFunderConfig memory config) external virtual initializer {
-        __OneInchV5RelayerFunder_init(config);
+    function initializeOneInchV5RelayerFunder(OneInchV5SwapConfig memory config, address relayer)
+        external
+        virtual
+        initializer
+    {
+        __OneInchV5RelayerFunder_init(config, relayer);
     }
 
     /**
      * @dev Initializes the 1inch v5 relayer funder. It does call upper contracts initializers.
-     * @param config OneInchV5RelayerFunder config
+     * @param config 1inch v5 swap config
+     * @param relayer Relayer address
      */
-    function __OneInchV5RelayerFunder_init(OneInchV5RelayerFunderConfig memory config) internal onlyInitializing {
-        __OneInchV5Swapper_init(config.oneInchV5SwapConfig);
-        __OneInchV5RelayerFunder_init_unchained(config);
+    function __OneInchV5RelayerFunder_init(OneInchV5SwapConfig memory config, address relayer)
+        internal
+        onlyInitializing
+    {
+        __OneInchV5Swapper_init(config);
+        __BaseRelayerFunder_init_unchained(BaseRelayerFundConfig(relayer, config.baseSwapConfig.taskConfig));
+        __OneInchV5RelayerFunder_init_unchained(config, relayer);
     }
 
     /**
      * @dev Initializes the 1inch v5 relayer funder. It does not call upper contracts initializers.
-     * @param config OneInchV5RelayerFunder config
+     * @param config Unwrap config
+     * @param relayer Relayer address
      */
-    function __OneInchV5RelayerFunder_init_unchained(OneInchV5RelayerFunderConfig memory config)
+    function __OneInchV5RelayerFunder_init_unchained(OneInchV5SwapConfig memory config, address relayer)
         internal
         onlyInitializing
     {
-        __BaseRelayerFunder_init_unchained(config.baseRelayerFunderConfig);
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     /**

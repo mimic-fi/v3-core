@@ -18,7 +18,7 @@ import '../Task.sol';
 import '../interfaces/primitives/IUnwrapper.sol';
 
 /**
- * @title Unwrapper task
+ * @title Unwrapper
  */
 contract Unwrapper is IUnwrapper, Task {
     // Execution type for relayers

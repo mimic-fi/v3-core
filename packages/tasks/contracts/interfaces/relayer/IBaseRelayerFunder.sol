@@ -17,8 +17,22 @@ pragma solidity >=0.8.0;
 import '../ITask.sol';
 
 /**
- * @dev BaseRelayerFunder task interface
+ * @dev Base relayer funder task interface
  */
 interface IBaseRelayerFunder is ITask {
-    // solhint-disable-previous-line no-empty-blocks
+    /**
+     * @dev Emitted every time the relayer is set
+     */
+    event RelayerSet(address indexed relayer);
+
+    /**
+     * @dev Tells the relayer
+     */
+    function relayer() external view returns (address);
+
+    /**
+     * @dev Sets the relayer
+     * @param newRelayer Address of the relayer to be set
+     */
+    function setRelayer(address newRelayer) external;
 }
