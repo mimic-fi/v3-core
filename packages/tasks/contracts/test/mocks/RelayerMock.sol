@@ -9,46 +9,29 @@ contract RelayerMock {
 
     event Deposited(address smartVault, uint256 amount);
 
-    event RelayerSet(address relayer);
-
     event SmartVaultMaxQuotaSet(address smartVault, uint256 maxQuota);
 
-    uint256 public balance;
+    mapping (address => uint256) public getSmartVaultBalance;
 
-    address public relayer;
+    mapping (address => uint256) public getSmartVaultMaxQuota;
 
-    uint256 public smartVaultMaxQuota;
-
-    uint256 public smartVaultUsedQuota;
-
-    constructor(uint256 _balance) {
-        balance = _balance;
-    }
-
-    function getSmartVaultBalance(address) external view returns (uint256) {
-        return balance;
-    }
+    mapping (address => uint256) public getSmartVaultUsedQuota;
 
     function deposit(address smartVault, uint256 amount) external payable {
-        balance += amount;
+        getSmartVaultBalance[smartVault] += amount;
         emit Deposited(smartVault, amount);
     }
 
-    function setBalance(uint256 _balance) external {
-        balance = _balance;
-    }
-
-    function setRelayer(address _relayer) external {
-        relayer = _relayer;
-        emit RelayerSet(_relayer);
+    function withdraw(address smartVault, uint256 amount) external {
+        getSmartVaultBalance[smartVault] -= amount;
     }
 
     function setSmartVaultMaxQuota(address smartVault, uint256 maxQuota) external {
-        smartVaultMaxQuota = maxQuota;
+        getSmartVaultMaxQuota[smartVault] = maxQuota;
         emit SmartVaultMaxQuotaSet(smartVault, maxQuota);
     }
 
-    function getSmartVaultUsedQuota(address) external view returns (uint256) {
-        return smartVaultUsedQuota;
+    function setSmartVaultUsedQuota(address smartVault, uint256 quota) external {
+        getSmartVaultUsedQuota[smartVault] = quota;
     }
 }

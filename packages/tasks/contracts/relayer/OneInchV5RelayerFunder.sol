@@ -15,13 +15,13 @@
 pragma solidity ^0.8.0;
 
 import '../swap/OneInchV5Swapper.sol';
-import './BaseRelayerFunder.sol';
+import './BaseRelayerFundTask.sol';
 
 /**
  * @title 1inch v5 relayer funder
  * @dev Task used to convert funds in order to pay relayers using a 1inch v5 swapper
  */
-contract OneInchV5RelayerFunder is BaseRelayerFunder, OneInchV5Swapper {
+contract OneInchV5RelayerFunder is BaseRelayerFundTask, OneInchV5Swapper {
     /**
      * @dev Disables the default 1inch v5 swapper initializer
      */
@@ -52,7 +52,7 @@ contract OneInchV5RelayerFunder is BaseRelayerFunder, OneInchV5Swapper {
         onlyInitializing
     {
         __OneInchV5Swapper_init(config);
-        __BaseRelayerFunder_init_unchained(BaseRelayerFundConfig(relayer, config.baseSwapConfig.taskConfig));
+        __BaseRelayerFundTask_init_unchained(BaseRelayerFundConfig(relayer, config.baseSwapConfig.taskConfig));
         __OneInchV5RelayerFunder_init_unchained(config, relayer);
     }
 
@@ -75,10 +75,10 @@ contract OneInchV5RelayerFunder is BaseRelayerFunder, OneInchV5Swapper {
     function getTaskAmount(address token)
         public
         view
-        override(BaseRelayerFunder, IBaseTask, BaseTask)
+        override(BaseRelayerFundTask, IBaseTask, BaseTask)
         returns (uint256)
     {
-        return BaseRelayerFunder.getTaskAmount(token);
+        return BaseRelayerFundTask.getTaskAmount(token);
     }
 
     /**
@@ -86,8 +86,8 @@ contract OneInchV5RelayerFunder is BaseRelayerFunder, OneInchV5Swapper {
      */
     function _beforeTokenThresholdTask(address token, uint256 amount)
         internal
-        override(BaseRelayerFunder, TokenThresholdTask)
+        override(BaseRelayerFundTask, TokenThresholdTask)
     {
-        BaseRelayerFunder._beforeTokenThresholdTask(token, amount);
+        BaseRelayerFundTask._beforeTokenThresholdTask(token, amount);
     }
 }

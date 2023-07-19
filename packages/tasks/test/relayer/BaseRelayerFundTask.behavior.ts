@@ -1,9 +1,9 @@
-import { assertEvent, deployFeedMock, deployTokenMock, fp, MAX_UINT256, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { assertEvent, deployFeedMock, deployTokenMock, fp, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
-import { BigNumber, Contract } from 'ethers'
+import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
 
-export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
+export function itBehavesLikeBaseRelayerFundTask(executionType: string): void {
   describe('execution type', () => {
     it('defines it correctly', async function () {
       const expectedType = ethers.utils.solidityKeccak256(['string'], [executionType])
@@ -35,7 +35,7 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
 
       context('when the relayer is zero', () => {
         it('reverts', async function () {
-          await expect(this.task.setRelayer(ZERO_ADDRESS)).to.be.revertedWith('FUNDER_RELAYER_ZERO')
+          await expect(this.task.setRelayer(ZERO_ADDRESS)).to.be.revertedWith('TASK_FUNDER_RELAYER_ZERO')
         })
       })
     })
@@ -47,15 +47,15 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
     })
   })
 
-  describe('getTaskAmount', async function () {
+  describe('getTaskAmount', () => {
     let wrappedNT: string
     let fundingToken: Contract, thresholdToken: Contract
     let fundingThresholdRate: number
 
-    const thresholdMin = fp(100),
-      thresholdMax = fp(1000)
+    const thresholdMin = fp(100)
+    const thresholdMax = fp(1000)
 
-    before('set wrapped native token', async function () {
+    beforeEach('set wrapped native token', async function () {
       wrappedNT = await this.smartVault.wrappedNativeToken()
     })
 
@@ -69,13 +69,7 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
       fundingToken = await deployTokenMock('TKN')
     })
 
-    beforeEach('fund smart vault', async function () {
-      await fundingToken.mint(this.smartVault.address, MAX_UINT256)
-    })
-
-    const itBehavesLikeGetTaskAmount = () => {
-      let amount: BigNumber // in `thresholdToken`
-
+    const itComputesTaskAmountProperly = () => {
       const thresholdNativeRate = 10 // 10 `thresholdToken` = 1 native token
 
       beforeEach('set threshold', async function () {
@@ -96,13 +90,14 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
       })
 
       context('when the balance is below the min threshold', () => {
-        beforeEach('set amount', async function () {
-          amount = thresholdMin.div(2)
-        })
+        const amount = thresholdMin.div(2)
 
         beforeEach('set smart vault balance in relayer', async function () {
+          const balance = await this.relayer.getSmartVaultBalance(this.smartVault.address)
+          await this.relayer.withdraw(this.smartVault.address, balance)
+
           const amountInNativeToken = amount.div(thresholdNativeRate)
-          await this.relayer.setBalance(amountInNativeToken)
+          await this.relayer.deposit(this.smartVault.address, amountInNativeToken)
         })
 
         it('returns max threshold minus deposited balance', async function () {
@@ -112,17 +107,18 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
       })
 
       context('when the balance is above the min threshold', () => {
-        beforeEach('set amount', async function () {
-          const diff = thresholdMax.sub(thresholdMin)
-          amount = thresholdMin.add(diff.div(2))
-        })
+        const diff = thresholdMax.sub(thresholdMin)
+        const amount = thresholdMin.add(diff.div(2))
 
         beforeEach('set smart vault balance in relayer', async function () {
+          const balance = await this.relayer.getSmartVaultBalance(this.smartVault.address)
+          await this.relayer.withdraw(this.smartVault.address, balance)
+
           const amountInNativeToken = amount.div(thresholdNativeRate)
-          await this.relayer.setBalance(amountInNativeToken)
+          await this.relayer.deposit(this.smartVault.address, amountInNativeToken)
         })
 
-        it('returns 0', async function () {
+        it('returns zero', async function () {
           expect(await this.task.getTaskAmount(fundingToken.address)).to.be.equal(0)
         })
       })
@@ -146,7 +142,7 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
         await this.priceOracle.connect(this.owner).setFeed(thresholdToken.address, fundingToken.address, feed.address)
       })
 
-      itBehavesLikeGetTaskAmount()
+      itComputesTaskAmountProperly()
     })
 
     context('when threshold and funding token are the same', () => {
@@ -158,7 +154,7 @@ export function itBehavesLikeBaseRelayerFunder(executionType: string): void {
         fundingThresholdRate = 1 // 1 `fundingToken` = 1 `thresholdToken`
       })
 
-      itBehavesLikeGetTaskAmount()
+      itComputesTaskAmountProperly()
     })
   })
 }

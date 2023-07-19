@@ -19,6 +19,7 @@ import '../interfaces/primitives/IUnwrapper.sol';
 
 /**
  * @title Unwrapper
+ * @dev Task that offers facilities to unwrap wrapped native tokens
  */
 contract Unwrapper is IUnwrapper, Task {
     // Execution type for relayers

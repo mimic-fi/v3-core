@@ -25,7 +25,7 @@ describe('RelayerDepositor', () => {
   })
 
   beforeEach('deploy relayer', async () => {
-    relayer = await deploy('RelayerMock', [0])
+    relayer = await deploy('RelayerMock', [])
   })
 
   beforeEach('deploy task', async () => {
@@ -62,7 +62,7 @@ describe('RelayerDepositor', () => {
         taskConfig: buildEmptyTaskConfig(owner, smartVault),
       }
       it('reverts', async () => {
-        expect(await task.initialize(config)).to.be.revertedWith('RELAYER_DEPOSITOR_RELAYER_ZERO')
+        expect(await task.initialize(config)).to.be.revertedWith('TASK_RELAYER_DEPOSITOR_ZERO')
       })
     })
   })
@@ -91,7 +91,7 @@ describe('RelayerDepositor', () => {
 
       context('when the relayer is zero', () => {
         it('reverts', async () => {
-          await expect(task.setRelayer(ZERO_ADDRESS)).to.be.revertedWith('RELAYER_DEPOSITOR_RELAYER_ZERO')
+          await expect(task.setRelayer(ZERO_ADDRESS)).to.be.revertedWith('TASK_RELAYER_DEPOSITOR_ZERO')
         })
       })
     })

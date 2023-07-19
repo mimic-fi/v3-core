@@ -17,7 +17,7 @@ import { expect } from 'chai'
 import { Contract } from 'ethers'
 
 import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
-import { itBehavesLikeBaseRelayerFunder } from './BaseRelayerFunder.behavior'
+import { itBehavesLikeBaseRelayerFundTask } from './BaseRelayerFundTask.behavior'
 
 describe('OneInchV5RelayerFunder', () => {
   let task: Contract, relayer: Contract
@@ -37,7 +37,7 @@ describe('OneInchV5RelayerFunder', () => {
   })
 
   before('deploy relayer', async () => {
-    relayer = await deploy('RelayerMock', [0])
+    relayer = await deploy('RelayerMock', [])
   })
 
   beforeEach('deploy task', async () => {
@@ -92,12 +92,10 @@ describe('OneInchV5RelayerFunder', () => {
       this.relayer = relayer
     })
 
-    itBehavesLikeBaseRelayerFunder('1INCH_V5_SWAPPER')
+    itBehavesLikeBaseRelayerFundTask('1INCH_V5_SWAPPER')
   })
 
   describe('1inch v5 swappper', () => {
-    // copy-paste from OneInchV5Swapper test `call`, modifying threshold settings
-
     beforeEach('authorize task', async () => {
       const executeRole = smartVault.interface.getSighash('execute')
       const params = [{ op: OP.EQ, value: connector.address }]
@@ -124,8 +122,8 @@ describe('OneInchV5RelayerFunder', () => {
       context('when the token in is not the zero address', () => {
         context('when the amount in is not zero', () => {
           const tokenRate = 2 // 1 token in = 2 token out
-          const thresholdMin = fp(100),
-            thresholdMax = fp(1000) // in token out
+          const thresholdMin = fp(100) // in token out
+          const thresholdMax = fp(1000) // in token out
           const thresholdMinInTokenIn = thresholdMin.div(tokenRate)
           const thresholdMaxInTokenIn = thresholdMax.div(tokenRate)
           const amountIn = thresholdMinInTokenIn
@@ -167,7 +165,10 @@ describe('OneInchV5RelayerFunder', () => {
                 })
 
                 beforeEach('set smart vault balance in relayer', async function () {
-                  await relayer.setBalance(amountIn)
+                  const balance = await relayer.getSmartVaultBalance(smartVault.address)
+                  await relayer.withdraw(smartVault.address, balance)
+
+                  await relayer.deposit(smartVault.address, amountIn)
                 })
 
                 context('when the slippage is below the limit', () => {
@@ -268,7 +269,10 @@ describe('OneInchV5RelayerFunder', () => {
                 const amountIn = thresholdMinInTokenIn.add(diff.div(2))
 
                 beforeEach('set smart vault balance in relayer', async function () {
-                  await relayer.setBalance(amountIn)
+                  const balance = await relayer.getSmartVaultBalance(smartVault.address)
+                  await relayer.withdraw(smartVault.address, balance)
+
+                  await relayer.deposit(smartVault.address, amountIn)
                 })
 
                 it('reverts', async () => {
