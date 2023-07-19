@@ -64,7 +64,7 @@ interface IRelayer {
     event QuotaPaid(address indexed smartVault, uint256 amount);
 
     /**
-     * @dev Emitted every time a smart vault uses (part of) its available quota
+     * @dev Emitted every time a smart vault uses part of its available quota
      */
     event QuotaUsed(address indexed smartVault, uint256 quota);
 

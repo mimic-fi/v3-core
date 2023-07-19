@@ -116,7 +116,7 @@ contract Relayer is IRelayer, Ownable {
     }
 
     /**
-     * @dev Deposits native tokens for a given smart vault. First, it will pay (part of) the quota, if any
+     * @dev Deposits native tokens for a given smart vault. First, it will pay part of the quota, if any
      * @param smartVault Address of smart vault to deposit balance for
      * @param amount Amount of native tokens to be deposited, must match msg.value
      */
@@ -209,7 +209,9 @@ contract Relayer is IRelayer, Ownable {
      * @param amount Amount of native tokens to be withdrawn
      */
     function _payTransactionGasToRelayer(address smartVault, uint256 amount) internal {
-        uint256 availableQuota = getSmartVaultMaxQuota[smartVault] - getSmartVaultUsedQuota[smartVault];
+        uint256 maxQuota = getSmartVaultMaxQuota[smartVault];
+        uint256 usedQuota = getSmartVaultUsedQuota[smartVault];
+        uint256 availableQuota = usedQuota >= maxQuota ? 0 : (maxQuota - usedQuota);
         uint256 balance = getSmartVaultBalance[smartVault];
         require(amount <= balance + availableQuota, 'RELAYER_SMART_VAULT_NO_BALANCE');
 
@@ -225,23 +227,22 @@ contract Relayer is IRelayer, Ownable {
     }
 
     /**
-     * @dev Pays (part of) the quota for a given smart vault, if applicable
+     * @dev Pays part of the quota for a given smart vault, if applicable
      * @param smartVault Address of smart vault to pay quota for
-     * @param amount Amount of native tokens to be deposited for the smart vault
-     * @return amountPaid Amount of native tokens used to pay the quota
+     * @param toDeposit Amount of native tokens to be deposited for the smart vault
+     * @return quotaPaid Amount of native tokens used to pay the quota
      */
-    function _payQuota(address smartVault, uint256 amount) internal returns (uint256 amountPaid) {
-        amountPaid = 0;
+    function _payQuota(address smartVault, uint256 toDeposit) internal returns (uint256 quotaPaid) {
         uint256 usedQuota = getSmartVaultUsedQuota[smartVault];
         if (usedQuota > 0) {
-            if (amount > usedQuota) {
+            if (toDeposit > usedQuota) {
                 getSmartVaultUsedQuota[smartVault] = 0;
-                amountPaid = usedQuota;
+                quotaPaid = usedQuota;
             } else {
-                getSmartVaultUsedQuota[smartVault] -= amount;
-                amountPaid = amount;
+                getSmartVaultUsedQuota[smartVault] -= toDeposit;
+                quotaPaid = toDeposit;
             }
         }
-        emit QuotaPaid(smartVault, amountPaid);
+        emit QuotaPaid(smartVault, quotaPaid);
     }
 }
