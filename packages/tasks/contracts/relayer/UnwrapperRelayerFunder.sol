@@ -15,13 +15,13 @@
 pragma solidity ^0.8.0;
 
 import '../primitives/Unwrapper.sol';
-import './BaseRelayerFunder.sol';
+import './BaseRelayerFundTask.sol';
 
 /**
  * @title Unwrapper relayer funder
  * @dev Task used to convert funds in order to pay relayers using an unwrapper
  */
-contract UnwrapperRelayerFunder is BaseRelayerFunder, Unwrapper {
+contract UnwrapperRelayerFunder is BaseRelayerFundTask, Unwrapper {
     /**
      * @dev Disables the default unwrapper initializer
      */
@@ -49,7 +49,7 @@ contract UnwrapperRelayerFunder is BaseRelayerFunder, Unwrapper {
      */
     function __UnwrapperRelayerFunder_init(UnwrapConfig memory config, address relayer) internal onlyInitializing {
         __Unwrapper_init(config);
-        __BaseRelayerFunder_init_unchained(BaseRelayerFundConfig(relayer, config.taskConfig));
+        __BaseRelayerFundTask_init_unchained(BaseRelayerFundConfig(relayer, config.taskConfig));
         __UnwrapperRelayerFunder_init_unchained(config, relayer);
     }
 
@@ -72,10 +72,10 @@ contract UnwrapperRelayerFunder is BaseRelayerFunder, Unwrapper {
     function getTaskAmount(address token)
         public
         view
-        override(BaseRelayerFunder, IBaseTask, BaseTask)
+        override(BaseRelayerFundTask, IBaseTask, BaseTask)
         returns (uint256)
     {
-        return BaseRelayerFunder.getTaskAmount(token);
+        return BaseRelayerFundTask.getTaskAmount(token);
     }
 
     /**
@@ -83,8 +83,8 @@ contract UnwrapperRelayerFunder is BaseRelayerFunder, Unwrapper {
      */
     function _beforeTokenThresholdTask(address token, uint256 amount)
         internal
-        override(BaseRelayerFunder, TokenThresholdTask)
+        override(BaseRelayerFundTask, TokenThresholdTask)
     {
-        BaseRelayerFunder._beforeTokenThresholdTask(token, amount);
+        BaseRelayerFundTask._beforeTokenThresholdTask(token, amount);
     }
 }

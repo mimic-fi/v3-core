@@ -17,14 +17,14 @@ pragma solidity ^0.8.0;
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-relayer/contracts/interfaces/IRelayer.sol';
 
-import '../interfaces/relayer/IBaseRelayerFunder.sol';
+import '../interfaces/relayer/IBaseRelayerFundTask.sol';
 import '../Task.sol';
 
 /**
- * @title Base relayer funder task
- * @dev Task that offers the basic components for more detailed relayer funder tasks
+ * @title Base relayer fund task
+ * @dev Task that offers the basic components for more detailed relayer fund tasks
  */
-abstract contract BaseRelayerFunder is IBaseRelayerFunder, Task {
+abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
     using FixedPoint for uint256;
 
     // Reference to the contract to be funded
@@ -39,19 +39,19 @@ abstract contract BaseRelayerFunder is IBaseRelayerFunder, Task {
     }
 
     /**
-     * @dev Initializes the base relayer funder. It does call upper contracts initializers.
+     * @dev Initializes the base relayer fund task. It does call upper contracts initializers.
      * @param config Base relayer fund config
      */
-    function __BaseRelayerFunder_init(BaseRelayerFundConfig memory config) internal onlyInitializing {
+    function __BaseRelayerFundTask_init(BaseRelayerFundConfig memory config) internal onlyInitializing {
         __Task_init(config.taskConfig);
-        __BaseRelayerFunder_init_unchained(config);
+        __BaseRelayerFundTask_init_unchained(config);
     }
 
     /**
-     * @dev Initializes the base relayer funder. It does not call upper contracts initializers.
+     * @dev Initializes the base relayer fund task. It does not call upper contracts initializers.
      * @param config Base relayer fund config
      */
-    function __BaseRelayerFunder_init_unchained(BaseRelayerFundConfig memory config) internal onlyInitializing {
+    function __BaseRelayerFundTask_init_unchained(BaseRelayerFundConfig memory config) internal onlyInitializing {
         _setRelayer(config.relayer);
     }
 
@@ -83,8 +83,9 @@ abstract contract BaseRelayerFunder is IBaseRelayerFunder, Task {
     function _beforeTokenThresholdTask(address token, uint256 amount) internal virtual override {
         Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
         uint256 depositedThresholdToken = _getDepositedInThresholdToken(threshold.token);
+        uint256 amountInThresholdToken = amount.mulUp(_getPrice(token, threshold.token));
         require(depositedThresholdToken < threshold.min, 'TASK_TOKEN_THRESHOLD_NOT_MET');
-        require(amount + depositedThresholdToken <= threshold.max, 'TASK_AMOUNT_ABOVE_THRESHOLD');
+        require(amountInThresholdToken + depositedThresholdToken <= threshold.max, 'TASK_AMOUNT_ABOVE_THRESHOLD');
     }
 
     /**
@@ -100,7 +101,7 @@ abstract contract BaseRelayerFunder is IBaseRelayerFunder, Task {
      * @param newRelayer Address of the relayer to be set
      */
     function _setRelayer(address newRelayer) internal {
-        require(newRelayer != address(0), 'FUNDER_RELAYER_ZERO');
+        require(newRelayer != address(0), 'TASK_FUNDER_RELAYER_ZERO');
         relayer = newRelayer;
         emit RelayerSet(newRelayer);
     }

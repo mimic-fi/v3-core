@@ -20,6 +20,10 @@ import '@mimic-fi/v3-relayer/contracts/interfaces/IRelayer.sol';
 import '../Task.sol';
 import '../interfaces/relayer/IRelayerDepositor.sol';
 
+/**
+ * @title Relayer depositor
+ * @dev Task that offers facilities to deposit balance for Mimic relayers
+ */
 contract RelayerDepositor is IRelayerDepositor, Task {
     using FixedPoint for uint256;
 
@@ -100,7 +104,7 @@ contract RelayerDepositor is IRelayerDepositor, Task {
      * @param newRelayer Address of the relayer to be set
      */
     function _setRelayer(address newRelayer) internal {
-        require(newRelayer != address(0), 'RELAYER_DEPOSITOR_RELAYER_ZERO');
+        require(newRelayer != address(0), 'TASK_RELAYER_DEPOSITOR_ZERO');
         relayer = newRelayer;
         emit RelayerSet(newRelayer);
     }

@@ -17,9 +17,9 @@ pragma solidity >=0.8.0;
 import '../ITask.sol';
 
 /**
- * @dev Base relayer funder task interface
+ * @dev Base relayer fund task interface
  */
-interface IBaseRelayerFunder is ITask {
+interface IBaseRelayerFundTask is ITask {
     /**
      * @dev Emitted every time the relayer is set
      */

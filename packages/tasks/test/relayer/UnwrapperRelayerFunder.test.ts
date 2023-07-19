@@ -17,7 +17,7 @@ import { expect } from 'chai'
 import { Contract } from 'ethers'
 
 import { buildEmptyTaskConfig, deployEnvironment, Mimic } from '../../src/setup'
-import { itBehavesLikeBaseRelayerFunder } from './BaseRelayerFunder.behavior'
+import { itBehavesLikeBaseRelayerFundTask } from './BaseRelayerFundTask.behavior'
 
 describe('UnwrapperRelayerFunder', () => {
   let task: Contract, relayer: Contract
@@ -30,7 +30,7 @@ describe('UnwrapperRelayerFunder', () => {
   })
 
   before('deploy relayer', async () => {
-    relayer = await deploy('RelayerMock', [0])
+    relayer = await deploy('RelayerMock', [])
   })
 
   beforeEach('deploy task', async () => {
@@ -71,12 +71,10 @@ describe('UnwrapperRelayerFunder', () => {
       this.relayer = relayer
     })
 
-    itBehavesLikeBaseRelayerFunder('UNWRAPPER')
+    itBehavesLikeBaseRelayerFundTask('UNWRAPPER')
   })
 
   describe('unwrapper', () => {
-    // copy-paste from Unwrapper test `call`, modifying threshold settings
-
     beforeEach('authorize task', async () => {
       const unwrapRole = smartVault.interface.getSighash('unwrap')
       await authorizer.connect(owner).authorize(task.address, smartVault.address, unwrapRole, [])
@@ -109,7 +107,10 @@ describe('UnwrapperRelayerFunder', () => {
             const thresholdMax = thresholdMin.mul(2)
 
             beforeEach('set smart vault balance in relayer', async function () {
-              await relayer.setBalance(amount)
+              const balance = await relayer.getSmartVaultBalance(smartVault.address)
+              await relayer.withdraw(smartVault.address, balance)
+
+              await relayer.deposit(smartVault.address, amount)
             })
 
             beforeEach('set default token threshold', async () => {
@@ -165,7 +166,10 @@ describe('UnwrapperRelayerFunder', () => {
             const threshold = amount.div(2)
 
             beforeEach('set smart vault balance in relayer', async function () {
-              await relayer.setBalance(amount)
+              const balance = await relayer.getSmartVaultBalance(smartVault.address)
+              await relayer.withdraw(smartVault.address, balance)
+
+              await relayer.deposit(smartVault.address, amount)
             })
 
             beforeEach('set default token threshold', async () => {

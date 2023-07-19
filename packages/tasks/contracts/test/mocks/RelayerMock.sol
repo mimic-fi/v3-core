@@ -9,31 +9,14 @@ contract RelayerMock {
 
     event Deposited(address smartVault, uint256 amount);
 
-    event RelayerSet(address relayer);
-
-    uint256 public balance;
-
-    address public relayer;
-
-    constructor(uint256 _balance) {
-        balance = _balance;
-    }
-
-    function getSmartVaultBalance(address) external view returns (uint256) {
-        return balance;
-    }
+    mapping (address => uint256) public getSmartVaultBalance;
 
     function deposit(address smartVault, uint256 amount) external payable {
-        balance += amount;
+        getSmartVaultBalance[smartVault] += amount;
         emit Deposited(smartVault, amount);
     }
 
-    function setBalance(uint256 _balance) external {
-        balance = _balance;
-    }
-
-    function setRelayer(address _relayer) external {
-        relayer = _relayer;
-        emit RelayerSet(_relayer);
+    function withdraw(address smartVault, uint256 amount) external {
+        getSmartVaultBalance[smartVault] -= amount;
     }
 }
