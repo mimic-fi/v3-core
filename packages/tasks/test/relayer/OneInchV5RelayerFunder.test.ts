@@ -8,7 +8,6 @@ import {
   deployTokenMock,
   fp,
   getSigners,
-  MAX_UINT256,
   ZERO_ADDRESS,
   ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
@@ -284,7 +283,7 @@ describe('OneInchV5RelayerFunder', () => {
             })
 
             context('when the token out is not set', () => {
-              const threshold = MAX_UINT256
+              const threshold = fp(10000)
 
               beforeEach('set price feed', async function () {
                 const feed = await deployFeedMock(fp(1), 18)
@@ -320,7 +319,7 @@ describe('OneInchV5RelayerFunder', () => {
 
         context('when the amount in is zero', () => {
           const amountIn = 0
-          const threshold = MAX_UINT256
+          const threshold = fp(10000)
 
           beforeEach('set price feed', async function () {
             const feed = await deployFeedMock(fp(1), 18)

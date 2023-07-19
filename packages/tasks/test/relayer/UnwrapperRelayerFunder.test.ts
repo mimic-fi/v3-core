@@ -7,7 +7,6 @@ import {
   deployTokenMock,
   fp,
   getSigners,
-  MAX_UINT256,
   NATIVE_TOKEN_ADDRESS,
   ZERO_ADDRESS,
   ZERO_BYTES32,
@@ -95,11 +94,11 @@ describe('UnwrapperRelayerFunder', () => {
         })
 
         context('when the given amount is greater than zero', () => {
-          const amount = fp(0.02)
+          const amount = fp(0.2)
 
           beforeEach('fund smart vault', async () => {
-            await mimic.wrappedNativeToken.connect(owner).deposit({ value: amount })
-            await mimic.wrappedNativeToken.connect(owner).transfer(smartVault.address, amount)
+            await mimic.wrappedNativeToken.connect(owner).deposit({ value: amount.mul(10) })
+            await mimic.wrappedNativeToken.connect(owner).transfer(smartVault.address, amount.mul(10))
           })
 
           context('when the balance is below the min threshold', () => {
@@ -175,7 +174,7 @@ describe('UnwrapperRelayerFunder', () => {
             beforeEach('set default token threshold', async () => {
               const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
               await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-              await task.connect(owner).setDefaultTokenThreshold(tokenAddr, threshold, MAX_UINT256)
+              await task.connect(owner).setDefaultTokenThreshold(tokenAddr, threshold, fp(10000))
             })
 
             it('reverts', async () => {
@@ -186,7 +185,7 @@ describe('UnwrapperRelayerFunder', () => {
 
         context('when the given amount is zero', () => {
           const amount = 0
-          const threshold = MAX_UINT256
+          const threshold = fp(10000)
 
           beforeEach('set default token threshold', async () => {
             const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
@@ -202,7 +201,7 @@ describe('UnwrapperRelayerFunder', () => {
 
       context('when the given token is not the wrapped native token', () => {
         let token: Contract
-        const threshold = MAX_UINT256
+        const threshold = fp(10000)
 
         beforeEach('set token in', async () => {
           token = await deployTokenMock('TKN')
