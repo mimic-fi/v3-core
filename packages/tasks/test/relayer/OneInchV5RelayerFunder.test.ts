@@ -127,6 +127,8 @@ describe('OneInchV5RelayerFunder', () => {
           const thresholdMinInTokenIn = thresholdMin.div(tokenRate)
           const thresholdMaxInTokenIn = thresholdMax.div(tokenRate)
           const amountIn = thresholdMinInTokenIn
+          const tokenInNativeRate = 2 // 2 token in = 1 native
+          const tokenOutNativeRate = 1 // 1 token out = 1 native
 
           context('when the token in is allowed', () => {
             context('when there is a token out set', () => {
@@ -140,7 +142,7 @@ describe('OneInchV5RelayerFunder', () => {
               })
 
               beforeEach('set price feed', async function () {
-                const feed = await deployFeedMock(fp(1), 18)
+                const feed = await deployFeedMock(fp(tokenOutNativeRate), 18)
                 const setFeedRole = priceOracle.interface.getSighash('setFeed')
                 await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
                 await priceOracle.connect(owner).setFeed(wrappedNT, tokenOut.address, feed.address)
@@ -168,7 +170,8 @@ describe('OneInchV5RelayerFunder', () => {
                   const balance = await relayer.getSmartVaultBalance(smartVault.address)
                   await relayer.withdraw(smartVault.address, balance)
 
-                  await relayer.deposit(smartVault.address, amountIn)
+                  const amountInNativeToken = amountIn.div(tokenInNativeRate)
+                  await relayer.deposit(smartVault.address, amountInNativeToken)
                 })
 
                 context('when the slippage is below the limit', () => {
@@ -272,7 +275,8 @@ describe('OneInchV5RelayerFunder', () => {
                   const balance = await relayer.getSmartVaultBalance(smartVault.address)
                   await relayer.withdraw(smartVault.address, balance)
 
-                  await relayer.deposit(smartVault.address, amountIn)
+                  const amountInNativeToken = amountIn.div(tokenInNativeRate)
+                  await relayer.deposit(smartVault.address, amountInNativeToken)
                 })
 
                 it('reverts', async () => {
