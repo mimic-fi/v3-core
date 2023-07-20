@@ -125,7 +125,7 @@ export function itBehavesLikeBaseRelayerFundTask(executionType: string): void {
             await this.relayer.withdraw(this.smartVault.address, balance)
           })
 
-          it('returns max threshold plus used quota', async function () {
+          it('returns the diff plus used quota', async function () {
             const taskAmount = await this.task.getTaskAmount(fundingToken.address)
 
             expect(taskAmount.div(fundingThresholdRate)).to.be.equal(thresholdMax.add(usedQuota))

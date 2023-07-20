@@ -70,9 +70,7 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
     function getTaskAmount(address token) public view virtual override(IBaseTask, BaseTask) returns (uint256) {
         Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
         uint256 depositedThresholdToken = _getDepositedInThresholdToken(threshold.token);
-        uint256 usedQuotaThresholdToken = IRelayer(relayer).getSmartVaultUsedQuota(smartVault).mulUp(
-            _getPrice(_wrappedNativeToken(), threshold.token)
-        );
+        uint256 usedQuotaThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);
 
         if (depositedThresholdToken >= threshold.min) return 0;
 
@@ -87,12 +85,13 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
         Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
         uint256 depositedThresholdToken = _getDepositedInThresholdToken(threshold.token);
         uint256 amountInThresholdToken = amount.mulUp(_getPrice(token, threshold.token));
-        uint256 usedQuotaThresholdToken = IRelayer(relayer).getSmartVaultUsedQuota(smartVault).mulUp(
-            _getPrice(_wrappedNativeToken(), threshold.token)
-        );
-        
+        uint256 usedQuotaThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);
+
         require(depositedThresholdToken < threshold.min + usedQuotaThresholdToken, 'TASK_TOKEN_THRESHOLD_NOT_MET');
-        require(amountInThresholdToken + depositedThresholdToken <= threshold.max + usedQuotaThresholdToken, 'TASK_AMOUNT_ABOVE_THRESHOLD');
+        require(
+            amountInThresholdToken + depositedThresholdToken <= threshold.max + usedQuotaThresholdToken,
+            'TASK_AMOUNT_ABOVE_THRESHOLD'
+        );
     }
 
     /**
@@ -101,6 +100,14 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
     function _getDepositedInThresholdToken(address thresholdToken) internal view returns (uint256) {
         uint256 depositedNativeToken = IRelayer(relayer).getSmartVaultBalance(smartVault); // balance in ETH
         return depositedNativeToken.mulUp(_getPrice(_wrappedNativeToken(), thresholdToken));
+    }
+
+    /**
+     * @dev Tells the used quota in the relayer in `thresholdToken`
+     */
+    function _getUsedQuotaInThresholdToken(address thresholdToken) internal view returns (uint256) {
+        uint256 usedQuotaNativeToken = IRelayer(relayer).getSmartVaultUsedQuota(smartVault); // used quota in ETH
+        return usedQuotaNativeToken.mulUp(_getPrice(_wrappedNativeToken(), thresholdToken));
     }
 
     /**

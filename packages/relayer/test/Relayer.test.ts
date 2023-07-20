@@ -259,24 +259,19 @@ describe('Relayer', () => {
           ;({ authorizer, smartVault } = await deployEnvironment(smartVaultOwner))
         })
 
-        beforeEach('set sender', async () => {
-          relayer = relayer.connect(owner)
-        })
-
         beforeEach('set maximum quota', async () => {
           const maxQuota = fp(10000)
-          await relayer.setSmartVaultMaxQuota(smartVault.address, maxQuota)
+          await relayer.connect(owner).setSmartVaultMaxQuota(smartVault.address, maxQuota)
         })
 
         beforeEach('use some quota', async () => {
           const task = await deploy('TaskMock', [smartVault.address])
 
           await authorizer.connect(smartVaultOwner).authorize(task.address, smartVault.address, '0xaabbccdd', [])
-          await relayer.setExecutor(owner.address, true)
           await relayer.deposit(ZERO_ADDRESS, fp(1.5), { value: fp(1.5) })
 
           const data = task.interface.encodeFunctionData('succeed')
-          const tx = await relayer.execute(task.address, data)
+          const tx = await relayer.connect(executor).execute(task.address, data)
           await tx.wait()
         })
 
@@ -508,7 +503,7 @@ describe('Relayer', () => {
               const currentSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
               const chargedGasAmount = previousSmartVaultBalance.sub(currentSmartVaultBalance)
 
-              assertEvent(tx, 'GasPaid', { smartVault, amount: chargedGasAmount })
+              assertEvent(tx, 'GasPaid', { smartVault, amount: chargedGasAmount, quota: 0 })
             })
           }
 
@@ -592,27 +587,16 @@ describe('Relayer', () => {
             })
 
             it('emits an event', async () => {
-              const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
-
-              const tx = await relayer.execute(task.address, data)
-
-              const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
-              const chargedGasAmount = previousRelayerBalance.sub(currentRelayerBalance)
-
-              assertEvent(tx, 'GasPaid', { smartVault, amount: chargedGasAmount })
-            })
-
-            it('emit an event', async () => {
               const previousSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
-
               const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
 
               const tx = await relayer.execute(task.address, data)
 
               const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
               const chargedGasAmount = previousRelayerBalance.sub(currentRelayerBalance)
+              const quota = chargedGasAmount.sub(previousSmartVaultBalance)
 
-              assertEvent(tx, 'QuotaUsed', { smartVault, amount: chargedGasAmount.sub(previousSmartVaultBalance) })
+              assertEvent(tx, 'GasPaid', { smartVault, amount: chargedGasAmount, quota })
             })
           })
 
