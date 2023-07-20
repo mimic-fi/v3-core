@@ -64,14 +64,9 @@ interface IRelayer {
     event QuotaPaid(address indexed smartVault, uint256 amount);
 
     /**
-     * @dev Emitted every time a smart vault uses part of its available quota
-     */
-    event QuotaUsed(address indexed smartVault, uint256 quota);
-
-    /**
      * @dev Emitted every time a smart vault pays for transaction gas to the relayer
      */
-    event GasPaid(address indexed smartVault, uint256 amount);
+    event GasPaid(address indexed smartVault, uint256 amount, uint256 quota);
 
     /**
      * @dev Tells the default collector address
