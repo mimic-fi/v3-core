@@ -19,11 +19,8 @@ import { itBehavesLikeBaseRelayerFundTask } from './BaseRelayerFundTask.behavior
 
 describe('CollectorRelayerFunder', () => {
   let task: Contract, relayer: Contract
-  let smartVault: Contract,
-    authorizer: Contract,
-    priceOracle: Contract,
-    tokensSource: SignerWithAddress,
-    owner: SignerWithAddress
+  let smartVault: Contract, authorizer: Contract, priceOracle: Contract
+  let owner: SignerWithAddress, tokensSource: SignerWithAddress
 
   before('setup', async () => {
     // eslint-disable-next-line prettier/prettier
@@ -99,26 +96,6 @@ describe('CollectorRelayerFunder', () => {
       await task.connect(owner).setTokensSource(tokensSource.address)
     })
 
-    beforeEach('set tokens acceptance type', async () => {
-      const setTokensAcceptanceTypeRole = task.interface.getSighash('setTokensAcceptanceType')
-      await authorizer.connect(owner).authorize(owner.address, task.address, setTokensAcceptanceTypeRole, [])
-      await task.connect(owner).setTokensAcceptanceType(1)
-    })
-
-    beforeEach('set tokens acceptance list', async () => {
-      const setTokensAcceptanceListRole = task.interface.getSighash('setTokensAcceptanceList')
-      await authorizer.connect(owner).authorize(owner.address, task.address, setTokensAcceptanceListRole, [])
-      await task.connect(owner).setTokensAcceptanceList([token.address], [true])
-    })
-
-    beforeEach('set price feed', async function () {
-      const feed = await deployFeedMock(fp(tokenRate), 18)
-      const setFeedRole = priceOracle.interface.getSighash('setFeed')
-      const wrappedNativeToken = await smartVault.wrappedNativeToken()
-      await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
-      await priceOracle.connect(owner).setFeed(wrappedNativeToken, token.address, feed.address)
-    })
-
     context('when the sender is authorized', () => {
       beforeEach('set sender', async () => {
         const callRole = task.interface.getSighash('call')
@@ -126,7 +103,27 @@ describe('CollectorRelayerFunder', () => {
         task = task.connect(owner)
       })
 
+      beforeEach('set tokens acceptance type', async () => {
+        const setTokensAcceptanceTypeRole = task.interface.getSighash('setTokensAcceptanceType')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setTokensAcceptanceTypeRole, [])
+        await task.connect(owner).setTokensAcceptanceType(1)
+      })
+
       context('when the given token is allowed', () => {
+        beforeEach('set tokens acceptance list', async () => {
+          const setTokensAcceptanceListRole = task.interface.getSighash('setTokensAcceptanceList')
+          await authorizer.connect(owner).authorize(owner.address, task.address, setTokensAcceptanceListRole, [])
+          await task.connect(owner).setTokensAcceptanceList([token.address], [true])
+        })
+
+        beforeEach('set price feed', async function () {
+          const feed = await deployFeedMock(fp(tokenRate), 18)
+          const setFeedRole = priceOracle.interface.getSighash('setFeed')
+          const wrappedNativeToken = await smartVault.wrappedNativeToken()
+          await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
+          await priceOracle.connect(owner).setFeed(wrappedNativeToken, token.address, feed.address)
+        })
+
         context('when the balance is below the min threshold', () => {
           const thresholdMin = amount.mul(2) // in usdc
           const thresholdMax = thresholdMin.mul(2) // in usdc
