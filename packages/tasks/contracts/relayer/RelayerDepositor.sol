@@ -34,14 +34,6 @@ contract RelayerDepositor is IRelayerDepositor, Task {
     address public override relayer;
 
     /**
-     * @dev Relayer deposit config. Only used in the initializer.
-     */
-    struct RelayerDepositConfig {
-        address relayer;
-        TaskConfig taskConfig;
-    }
-
-    /**
      * @dev Initializes the relayer depositor
      * @param config Task config
      * @param _relayer Relayer address
