@@ -66,7 +66,7 @@ contract Collector is ICollector, Task {
     /**
      * @dev Tells the address from where the token amounts to execute this task are fetched
      */
-    function getTokensSource() external view virtual override(IBaseTask, BaseTask) returns (address) {
+    function getTokensSource() public view virtual override(IBaseTask, BaseTask) returns (address) {
         return _tokensSource;
     }
 
