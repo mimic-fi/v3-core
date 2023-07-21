@@ -24,46 +24,20 @@ describe('RelayerDepositor', () => {
     ;({ authorizer, smartVault } = await deployEnvironment(owner))
   })
 
-  beforeEach('deploy relayer', async () => {
-    relayer = await deploy('RelayerMock', [])
-  })
-
   beforeEach('deploy task', async () => {
-    task = await deployProxy(
-      'RelayerDepositor',
-      [],
-      [
-        {
-          relayer: relayer.address,
-          taskConfig: buildEmptyTaskConfig(owner, smartVault),
-        },
-      ]
-    )
+    relayer = await deploy('RelayerMock', [])
+    task = await deployProxy('RelayerDepositor', [], [buildEmptyTaskConfig(owner, smartVault), relayer.address])
   })
 
   describe('initialization', async () => {
-    context('when the relayer is not zero', async () => {
-      it('has a relayer reference', async () => {
-        expect(await task.relayer()).to.be.equal(relayer.address)
-      })
-
-      it('cannot be initialized twice', async () => {
-        const config = {
-          relayer: relayer.address,
-          taskConfig: buildEmptyTaskConfig(owner, smartVault),
-        }
-        await expect(task.initialize(config)).to.be.revertedWith('Initializable: contract is already initialized')
-      })
+    it('has a relayer reference', async () => {
+      expect(await task.relayer()).to.be.equal(relayer.address)
     })
 
-    context('when the relayer is zero', async () => {
-      const config = {
-        relayer: ZERO_ADDRESS,
-        taskConfig: buildEmptyTaskConfig(owner, smartVault),
-      }
-      it('reverts', async () => {
-        expect(await task.initialize(config)).to.be.revertedWith('TASK_RELAYER_DEPOSITOR_ZERO')
-      })
+    it('cannot be initialized twice', async () => {
+      await expect(task.initialize(buildEmptyTaskConfig(owner, smartVault), relayer.address)).to.be.revertedWith(
+        'Initializable: contract is already initialized'
+      )
     })
   })
 
@@ -104,6 +78,8 @@ describe('RelayerDepositor', () => {
   })
 
   describe('call', () => {
+    const token = NATIVE_TOKEN_ADDRESS
+
     beforeEach('authorize task', async () => {
       const callRole = smartVault.interface.getSighash('call')
       await authorizer.connect(owner).authorize(task.address, smartVault.address, callRole, [])
@@ -115,8 +91,6 @@ describe('RelayerDepositor', () => {
         await authorizer.connect(owner).authorize(owner.address, task.address, callRole, [])
         task = task.connect(owner)
       })
-
-      const token = NATIVE_TOKEN_ADDRESS
 
       context('when the given amount is greater than zero', () => {
         const amount = fp(100)
@@ -184,7 +158,7 @@ describe('RelayerDepositor', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(token, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
       })
     })
   })
