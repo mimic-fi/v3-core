@@ -32,11 +32,7 @@ contract Relayer is IRelayer, Ownable {
     using SafeERC20 for IERC20;
 
     // Gas amount charged to cover base costs
-    uint256 public constant BASE_GAS = 29e3;
-
-    // Variable used to allow a better developer experience to reimburse tx gas cost
-    // solhint-disable-next-line var-name-mixedcase
-    uint256 private __initialGas__;
+    uint256 public constant BASE_GAS = 70e3;
 
     // Default collector address
     address public override defaultCollector;
@@ -142,29 +138,36 @@ contract Relayer is IRelayer, Ownable {
     }
 
     /**
-     * @dev Executes a task
-     * @param task Address of the task to execute
-     * @param data Calldata to execute on the given task
+     * @dev Executes a list of tasks
+     * @param tasks Addresses of the tasks to execute
+     * @param datas List of calldata to execute each of the given tasks
+     * @param continueIfFailed Whether the execution should fail in case one of the tasks fail
      */
-    function execute(address task, bytes calldata data) external override {
-        __initialGas__ = gasleft();
+    function execute(address[] memory tasks, bytes[] memory datas, bool continueIfFailed) external override {
         require(isExecutorAllowed[msg.sender], 'RELAYER_EXECUTOR_NOT_ALLOWED');
+        require(tasks.length > 0, 'RELAYER_EXECUTE_NO_INPUT');
+        require(tasks.length == datas.length, 'RELAYER_EXECUTE_INPUT_BAD_LENGTH');
 
-        address smartVault = ITask(task).smartVault();
-        require(ISmartVault(smartVault).hasPermissions(task), 'RELAYER_INVALID_TASK_SMART_VAULT');
+        uint256 totalGasUsed = BASE_GAS;
+        address smartVault = ITask(tasks[0]).smartVault();
+        for (uint256 i = 0; i < tasks.length; i++) {
+            uint256 initialGas = gasleft();
+            address task = tasks[i];
+            require(ITask(task).smartVault() == smartVault, 'RELAYER_INVALID_TASK_SMART_VAULT');
+            require(ISmartVault(smartVault).hasPermissions(task), 'RELAYER_INVALID_TASK_PERMISSIONS');
+
+            bytes memory data = datas[i];
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool taskSuccess, bytes memory result) = task.call(data);
+            uint256 gasUsed = initialGas - gasleft();
+            totalGasUsed += gasUsed;
+            emit TaskExecuted(smartVault, task, data, taskSuccess, result, gasUsed);
+            if (!taskSuccess && !continueIfFailed) break;
+        }
 
         // solhint-disable-next-line avoid-low-level-calls
-        (bool taskSuccess, bytes memory result) = task.call(data);
-        emit TaskExecuted(smartVault, task, data, taskSuccess, result);
-
-        uint256 gasUsed = BASE_GAS + __initialGas__ - gasleft();
-        uint256 totalCost = gasUsed * tx.gasprice;
-        _payTransactionGasToRelayer(smartVault, totalCost);
-        delete __initialGas__;
-
-        // solhint-disable-next-line avoid-low-level-calls
-        (bool paySuccess, ) = getApplicableCollector(smartVault).call{ value: totalCost }('');
-        require(paySuccess, 'RELAYER_COLLECTOR_SEND_FAILED');
+        uint256 totalGasCost = totalGasUsed * tx.gasprice;
+        _payTransactionGasToRelayer(smartVault, totalGasCost);
     }
 
     /**
@@ -209,13 +212,13 @@ contract Relayer is IRelayer, Ownable {
      * @param amount Amount of native tokens to be withdrawn
      */
     function _payTransactionGasToRelayer(address smartVault, uint256 amount) internal {
+        uint256 balance = getSmartVaultBalance[smartVault];
         uint256 maxQuota = getSmartVaultMaxQuota[smartVault];
         uint256 usedQuota = getSmartVaultUsedQuota[smartVault];
         uint256 availableQuota = usedQuota >= maxQuota ? 0 : (maxQuota - usedQuota);
-        uint256 balance = getSmartVaultBalance[smartVault];
         require(amount <= balance + availableQuota, 'RELAYER_SMART_VAULT_NO_BALANCE');
 
-        uint256 quota = 0;
+        uint256 quota;
         if (balance >= amount) {
             getSmartVaultBalance[smartVault] = balance - amount;
         } else {
@@ -223,6 +226,9 @@ contract Relayer is IRelayer, Ownable {
             getSmartVaultBalance[smartVault] = 0;
             getSmartVaultUsedQuota[smartVault] = usedQuota + quota;
         }
+
+        (bool paySuccess, ) = getApplicableCollector(smartVault).call{ value: amount - quota }('');
+        require(paySuccess, 'RELAYER_COLLECTOR_SEND_FAILED');
         emit GasPaid(smartVault, amount, quota);
     }
 
@@ -234,7 +240,6 @@ contract Relayer is IRelayer, Ownable {
      */
     function _payQuota(address smartVault, uint256 toDeposit) internal returns (uint256 quotaPaid) {
         uint256 usedQuota = getSmartVaultUsedQuota[smartVault];
-
         if (usedQuota == 0) return 0;
 
         if (toDeposit > usedQuota) {
@@ -244,6 +249,7 @@ contract Relayer is IRelayer, Ownable {
             getSmartVaultUsedQuota[smartVault] = usedQuota - toDeposit;
             quotaPaid = toDeposit;
         }
+
         emit QuotaPaid(smartVault, quotaPaid);
     }
 }

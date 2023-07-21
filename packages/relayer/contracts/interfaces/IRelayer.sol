@@ -41,7 +41,14 @@ interface IRelayer {
     /**
      * @dev Emitted every time a smart vault's task is executed
      */
-    event TaskExecuted(address indexed smartVault, address indexed task, bytes data, bool success, bytes result);
+    event TaskExecuted(
+        address indexed smartVault,
+        address indexed task,
+        bytes data,
+        bool success,
+        bytes result,
+        uint256 gas
+    );
 
     /**
      * @dev Emitted every time some native tokens are deposited for the smart vault's balance
@@ -150,11 +157,12 @@ interface IRelayer {
     function withdraw(uint256 amount) external;
 
     /**
-     * @dev Executes a task
-     * @param task Address of the task to execute
-     * @param data Calldata to execute on the given task
+     * @dev Executes a list of tasks
+     * @param tasks Addresses of the tasks to execute
+     * @param datas List of calldata to execute each of the given tasks
+     * @param continueIfFailed Whether the execution should fail in case one of the tasks fail
      */
-    function execute(address task, bytes calldata data) external;
+    function execute(address[] memory tasks, bytes[] memory datas, bool continueIfFailed) external;
 
     /**
      * @dev Withdraw ERC20 tokens to an external account. To be used in case of accidental token transfers.

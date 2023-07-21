@@ -1,5 +1,6 @@
 import {
   assertEvent,
+  assertNoIndirectEvent,
   decimal,
   deploy,
   deployTokenMock,
@@ -271,7 +272,7 @@ describe('Relayer', () => {
           await relayer.deposit(ZERO_ADDRESS, fp(1.5), { value: fp(1.5) })
 
           const data = task.interface.encodeFunctionData('succeed')
-          const tx = await relayer.connect(executor).execute(task.address, data)
+          const tx = await relayer.connect(executor).execute([task.address], [data], false)
           await tx.wait()
         })
 
@@ -439,20 +440,20 @@ describe('Relayer', () => {
         })
 
         context('when the smart vault has enough balance deposited', () => {
-          let data: string
+          let datas: string[], tasks: string[]
 
           beforeEach('deposit funds', async () => {
             await relayer.deposit(smartVault.address, fp(0.5), { value: fp(0.5) })
           })
 
-          const itChargesTheExpectedGasAmount = () => {
-            const tolerance = 0.05
+          const itChargesTheExpectedGasAmount = (continueIfFail: boolean) => {
+            const tolerance = 0.1
 
             it('charges the expected gas amount', async () => {
               const BASE_GAS = await relayer.BASE_GAS()
               const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
 
-              const tx = await relayer.execute(task.address, data)
+              const tx = await relayer.execute(tasks, datas, continueIfFail)
               const { gasUsed, effectiveGasPrice } = await tx.wait()
 
               const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
@@ -483,7 +484,7 @@ describe('Relayer', () => {
               const previousCollectorBalance = await ethers.provider.getBalance(collector)
               const previousSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
 
-              await relayer.execute(task.address, data)
+              await relayer.execute(tasks, datas, continueIfFail)
 
               const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
               const chargedGasAmount = previousRelayerBalance.sub(currentRelayerBalance)
@@ -498,29 +499,33 @@ describe('Relayer', () => {
             it('withdraws the balance from the smart vault', async () => {
               const previousSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
 
-              const tx = await relayer.execute(task.address, data)
+              const tx = await relayer.execute(tasks, datas, continueIfFail)
 
               const currentSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
               const chargedGasAmount = previousSmartVaultBalance.sub(currentSmartVaultBalance)
-
               assertEvent(tx, 'GasPaid', { smartVault, amount: chargedGasAmount, quota: 0 })
             })
           }
 
           context('when the call succeeds', () => {
+            let data: string
+            const continueIfFail = false
+
             beforeEach('build call data', async () => {
               data = task.interface.encodeFunctionData('succeed')
+              datas = [data]
+              tasks = [task.address]
             })
 
             it('logs the transaction properly', async () => {
-              const tx = await relayer.execute(task.address, data)
+              const tx = await relayer.execute(tasks, datas, continueIfFail)
 
               const event = await assertEvent(tx, 'TaskExecuted', { smartVault, task, data, success: true })
               const decodedResult = defaultAbiCoder.decode(['uint256'], event.args.result)[0]
               expect(decodedResult).to.be.equal(1)
             })
 
-            itChargesTheExpectedGasAmount()
+            itChargesTheExpectedGasAmount(continueIfFail)
           })
 
           context('when the call reverts', () => {
@@ -530,79 +535,129 @@ describe('Relayer', () => {
               data = task.interface.encodeFunctionData('fail')
             })
 
-            it('logs the transaction properly', async () => {
-              const tx = await relayer.execute(task.address, data)
+            context('when there is only one task to execute', () => {
+              const continueIfFail = false
 
-              const event = await assertEvent(tx, 'TaskExecuted', { smartVault, task, data, success: false })
-              const decodedResult = defaultAbiCoder.decode(['string'], `0x${event.args.result.slice(10)}`)[0]
-              expect(decodedResult).to.be.equal('TASK_FAILED')
+              beforeEach('build execution lists', async () => {
+                datas = [data]
+                tasks = [task.address]
+              })
+
+              it('logs the transaction properly', async () => {
+                const tx = await relayer.execute(tasks, datas, continueIfFail)
+
+                const event = await assertEvent(tx, 'TaskExecuted', { smartVault, task, data, success: false })
+                const decodedResult = defaultAbiCoder.decode(['string'], `0x${event.args.result.slice(10)}`)[0]
+                expect(decodedResult).to.be.equal('TASK_FAILED')
+              })
+
+              itChargesTheExpectedGasAmount(continueIfFail)
             })
 
-            itChargesTheExpectedGasAmount()
+            context('when there is a second task to execute', () => {
+              let secondData: string
+
+              beforeEach('build call data', async () => {
+                secondData = task.interface.encodeFunctionData('succeed')
+                datas = [data, secondData]
+                tasks = [task.address, task.address]
+              })
+
+              context('when the execution should continue', () => {
+                const continueIfFail = true
+
+                it('logs the transaction properly', async () => {
+                  const tx = await relayer.execute(tasks, datas, continueIfFail)
+
+                  const firstEvent = await assertEvent(tx, 'TaskExecuted', { smartVault, task, data, success: false })
+                  const firstResult = defaultAbiCoder.decode(['string'], `0x${firstEvent.args.result.slice(10)}`)[0]
+                  expect(firstResult).to.be.equal('TASK_FAILED')
+
+                  const secondEvent = await assertEvent(tx, 'TaskExecuted', {
+                    smartVault,
+                    task,
+                    data: secondData,
+                    success: true,
+                  })
+                  const secondResult = defaultAbiCoder.decode(['uint256'], secondEvent.args.result)[0]
+                  expect(secondResult).to.be.equal(1)
+                })
+
+                itChargesTheExpectedGasAmount(continueIfFail)
+              })
+
+              context('when the execution should not continue', () => {
+                const continueIfFail = false
+
+                it('logs the transaction properly', async () => {
+                  const tx = await relayer.execute(tasks, datas, continueIfFail)
+
+                  const firstEvent = await assertEvent(tx, 'TaskExecuted', { smartVault, task, data, success: false })
+                  const firstResult = defaultAbiCoder.decode(['string'], `0x${firstEvent.args.result.slice(10)}`)[0]
+                  expect(firstResult).to.be.equal('TASK_FAILED')
+
+                  await assertNoIndirectEvent(tx, task.interface, 'Succeeded')
+                })
+
+                itChargesTheExpectedGasAmount(continueIfFail)
+              })
+            })
           })
         })
 
         context('when the smart vault does not have enough balance deposited', () => {
+          let data: string
+
+          beforeEach('build call data', async () => {
+            data = task.interface.encodeFunctionData('succeed')
+          })
+
           context('when the available quota is enough', () => {
-            let data: string
-
-            const amount = fp(0.000001)
-
-            beforeEach('deposit funds', async () => {
-              await relayer.deposit(smartVault.address, amount, { value: amount })
-            })
-
-            beforeEach('deposit funds', async () => {
-              await relayer.deposit(ZERO_ADDRESS, fp(10), { value: fp(10) })
-            })
-
             beforeEach('set maximum quota', async () => {
               const maxQuota = fp(10000)
               await relayer.connect(owner).setSmartVaultMaxQuota(smartVault.address, maxQuota)
             })
 
-            beforeEach('build call data', async () => {
-              data = task.interface.encodeFunctionData('succeed')
-            })
-
             it('withdraws all the balance from the smart vault', async () => {
-              await relayer.execute(task.address, data)
+              await relayer.execute([task.address], [data], false)
 
               expect(await relayer.getSmartVaultBalance(smartVault.address)).to.be.equal(0)
             })
 
             it('uses tha available quota', async () => {
-              const previousSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
+              const tx = await relayer.execute([task.address], [data], false)
+              const event = await assertEvent(tx, 'GasPaid')
 
+              const chargedGasAmount = event.args.quota
+              const smartVaultUsedQuota = await relayer.getSmartVaultUsedQuota(smartVault.address)
+              expect(smartVaultUsedQuota).to.be.equal(chargedGasAmount)
+            })
+
+            it('does not affect the relayer balance', async () => {
               const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
 
-              await relayer.execute(task.address, data)
+              await relayer.execute([task.address], [data], false)
 
               const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
-              const chargedGasAmount = previousRelayerBalance.sub(currentRelayerBalance)
-
-              const smartVaultUsedQuota = await relayer.getSmartVaultUsedQuota(smartVault.address)
-
-              expect(smartVaultUsedQuota).to.be.equal(chargedGasAmount.sub(previousSmartVaultBalance))
+              expect(currentRelayerBalance).to.be.equal(previousRelayerBalance)
             })
 
             it('emits an event', async () => {
-              const previousSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
-              const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
+              const previousQuotaUsed = await relayer.getSmartVaultUsedQuota(smartVault.address)
 
-              const tx = await relayer.execute(task.address, data)
+              const tx = await relayer.execute([task.address], [data], false)
 
-              const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
-              const chargedGasAmount = previousRelayerBalance.sub(currentRelayerBalance)
-              const quota = chargedGasAmount.sub(previousSmartVaultBalance)
-
-              assertEvent(tx, 'GasPaid', { smartVault, amount: chargedGasAmount, quota })
+              const currentQuotaUsed = await relayer.getSmartVaultUsedQuota(smartVault.address)
+              const expectedQuota = currentQuotaUsed.sub(previousQuotaUsed)
+              assertEvent(tx, 'GasPaid', { smartVault, amount: 0, quota: expectedQuota })
             })
           })
 
           context('when the available quota is not enough', () => {
             it('reverts', async () => {
-              await expect(relayer.execute(task.address, '0x')).to.be.revertedWith('RELAYER_SMART_VAULT_NO_BALANCE')
+              await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith(
+                'RELAYER_SMART_VAULT_NO_BALANCE'
+              )
             })
           })
         })
@@ -610,14 +665,16 @@ describe('Relayer', () => {
 
       context('when the task does not have permissions over the associated smart vault', () => {
         it('reverts', async () => {
-          await expect(relayer.execute(task.address, '0x')).to.be.revertedWith('RELAYER_INVALID_TASK_SMART_VAULT')
+          await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith(
+            'RELAYER_INVALID_TASK_PERMISSIONS'
+          )
         })
       })
     })
 
     context('when the sender is not an executor', () => {
       it('reverts', async () => {
-        await expect(relayer.execute(task.address, '0x')).to.be.revertedWith('RELAYER_EXECUTOR_NOT_ALLOWED')
+        await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith('RELAYER_EXECUTOR_NOT_ALLOWED')
       })
     })
   })
