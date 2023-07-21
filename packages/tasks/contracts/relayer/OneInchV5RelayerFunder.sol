@@ -14,8 +14,8 @@
 
 pragma solidity ^0.8.0;
 
-import '../swap/OneInchV5Swapper.sol';
 import './BaseRelayerFundTask.sol';
+import '../swap/OneInchV5Swapper.sol';
 
 /**
  * @title 1inch v5 relayer funder

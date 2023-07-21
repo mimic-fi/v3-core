@@ -80,6 +80,7 @@ contract RelayerDepositor is IRelayerDepositor, Task {
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
         _beforeRelayerDepositor(token, amount);
         bytes memory relayerData = abi.encodeWithSelector(IRelayer.deposit.selector, smartVault, amount);
+        // solhint-disable-next-line avoid-low-level-calls
         ISmartVault(smartVault).call(relayer, relayerData, amount);
         _afterRelayerDepositor(token, amount);
     }
