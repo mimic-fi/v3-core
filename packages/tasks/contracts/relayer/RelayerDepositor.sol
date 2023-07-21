@@ -43,27 +43,29 @@ contract RelayerDepositor is IRelayerDepositor, Task {
 
     /**
      * @dev Initializes the relayer depositor
-     * @param config Relayer deposit config
+     * @param config Task config
+     * @param _relayer Relayer address
      */
-    function initialize(RelayerDepositConfig memory config) external virtual initializer {
-        __RelayerDepositor_init(config);
+    function initialize(TaskConfig memory config, address _relayer) external virtual initializer {
+        __RelayerDepositor_init(config, _relayer);
     }
 
     /**
      * @dev Initializes the relayer depositor. It does call upper contracts initializers.
-     * @param config Relayer deposit config
+     * @param config Task config
+     * @param _relayer Relayer address
      */
-    function __RelayerDepositor_init(RelayerDepositConfig memory config) internal onlyInitializing {
-        __Task_init(config.taskConfig);
-        __RelayerDepositor_init_unchained(config);
+    function __RelayerDepositor_init(TaskConfig memory config, address _relayer) internal onlyInitializing {
+        __Task_init(config);
+        __RelayerDepositor_init_unchained(config, _relayer);
     }
 
     /**
      * @dev Initializes the relayer depositor. It does not call upper contracts initializers.
-     * @param config RelayerDepositor config
+     * @param _relayer Relayer address
      */
-    function __RelayerDepositor_init_unchained(RelayerDepositConfig memory config) internal onlyInitializing {
-        _setRelayer(config.relayer);
+    function __RelayerDepositor_init_unchained(TaskConfig memory, address _relayer) internal onlyInitializing {
+        _setRelayer(_relayer);
     }
 
     /**
