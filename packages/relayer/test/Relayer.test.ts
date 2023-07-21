@@ -13,7 +13,7 @@ import {
 import { deployEnvironment } from '@mimic-fi/v3-tasks'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
-import { Contract } from 'ethers'
+import { BigNumber, Contract } from 'ethers'
 import { defaultAbiCoder } from 'ethers/lib/utils'
 import { ethers } from 'hardhat'
 
@@ -166,6 +166,50 @@ describe('Relayer', () => {
     })
   })
 
+  describe('setSmartVaultMaxQuota', () => {
+    let smartVault: SignerWithAddress
+
+    beforeEach('load smart vault', async () => {
+      smartVault = await getSigner()
+    })
+
+    context('when the sender is allowed', () => {
+      beforeEach('set sender', () => {
+        relayer = relayer.connect(owner)
+      })
+
+      context('when the max quota was set', () => {
+        const maxQuota = fp(100)
+
+        it('updates the smart vault maximum quota correctly', async () => {
+          await relayer.setSmartVaultMaxQuota(smartVault.address, maxQuota)
+
+          expect(await relayer.getSmartVaultMaxQuota(smartVault.address)).to.be.equal(maxQuota)
+        })
+
+        it('emits an event', async () => {
+          const tx = await relayer.setSmartVaultMaxQuota(smartVault.address, maxQuota)
+
+          await assertEvent(tx, 'SmartVaultMaxQuotaSet', { smartVault, maxQuota })
+        })
+      })
+
+      context('when the max quota was not set', () => {
+        it('returns zero', async () => {
+          expect(await relayer.getSmartVaultMaxQuota(smartVault.address)).to.be.equal(0)
+        })
+      })
+    })
+
+    context('when the sender is not allowed', () => {
+      it('reverts', async () => {
+        await expect(relayer.setSmartVaultMaxQuota(smartVault.address, 0)).to.be.revertedWith(
+          'Ownable: caller is not the owner'
+        )
+      })
+    })
+  })
+
   describe('deposit', () => {
     let smartVault: SignerWithAddress
 
@@ -178,28 +222,127 @@ describe('Relayer', () => {
     context('when the given value is correct', () => {
       const value = amount
 
-      it('deposits the amount correctly', async () => {
-        const previousSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
+      context('when the used quota is zero', () => {
+        it('deposits the amount correctly', async () => {
+          const previousSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
 
-        await relayer.deposit(smartVault.address, amount, { value })
+          await relayer.deposit(smartVault.address, amount, { value })
 
-        const currentSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
-        expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.add(amount))
+          const currentSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
+          expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.add(amount))
+        })
+
+        it('increments the relayer balance properly', async () => {
+          const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
+
+          await relayer.deposit(smartVault.address, amount, { value })
+
+          const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
+          expect(currentRelayerBalance).to.be.equal(previousRelayerBalance.add(amount))
+        })
+
+        it('emits an event', async () => {
+          const tx = await relayer.deposit(smartVault.address, amount, { value })
+
+          await assertEvent(tx, 'Deposited', { smartVault, amount })
+        })
       })
 
-      it('increments the relayer balance properly', async () => {
-        const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
+      context('when the used quota is not zero', () => {
+        let authorizer: Contract, smartVault: Contract, smartVaultOwner: SignerWithAddress
+        let usedQuota: BigNumber, currentQuota: BigNumber, paidQuota: BigNumber
+        let amount: BigNumber, value: BigNumber, toDeposit: BigNumber
 
-        await relayer.deposit(smartVault.address, amount, { value })
+        beforeEach('deploy smart vault', async () => {
+          smartVaultOwner = await getSigner()
+          // eslint-disable-next-line prettier/prettier
+          ;({ authorizer, smartVault } = await deployEnvironment(smartVaultOwner))
+        })
 
-        const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
-        expect(currentRelayerBalance).to.be.equal(previousRelayerBalance.add(amount))
-      })
+        beforeEach('set maximum quota', async () => {
+          const maxQuota = fp(10000)
+          await relayer.connect(owner).setSmartVaultMaxQuota(smartVault.address, maxQuota)
+        })
 
-      it('emits an event', async () => {
-        const tx = await relayer.deposit(smartVault.address, amount, { value })
+        beforeEach('use some quota', async () => {
+          const task = await deploy('TaskMock', [smartVault.address])
 
-        await assertEvent(tx, 'Deposited', { smartVault, amount })
+          await authorizer.connect(smartVaultOwner).authorize(task.address, smartVault.address, '0xaabbccdd', [])
+          await relayer.deposit(ZERO_ADDRESS, fp(1.5), { value: fp(1.5) })
+
+          const data = task.interface.encodeFunctionData('succeed')
+          const tx = await relayer.connect(executor).execute(task.address, data)
+          await tx.wait()
+        })
+
+        const itBehavesLikeDeposit = () => {
+          it('has no balance', async () => {
+            expect(await relayer.getSmartVaultBalance(smartVault.address)).to.be.equal(0)
+          })
+
+          it('deposits the amount correctly', async () => {
+            const previousSmartVaultBalance = fp(0)
+
+            await relayer.deposit(smartVault.address, amount, { value })
+
+            const currentSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
+            expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.add(toDeposit))
+          })
+
+          it('increments the relayer balance properly', async () => {
+            const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
+
+            await relayer.deposit(smartVault.address, amount, { value })
+
+            const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
+            expect(currentRelayerBalance).to.be.equal(previousRelayerBalance.add(amount))
+          })
+
+          it('emits an event', async () => {
+            const tx = await relayer.deposit(smartVault.address, amount, { value })
+
+            await assertEvent(tx, 'Deposited', { smartVault, amount: toDeposit })
+          })
+
+          it('decrements the used quota properly', async () => {
+            await relayer.deposit(smartVault.address, amount, { value })
+
+            const currentUsedQuota = await relayer.getSmartVaultUsedQuota(smartVault.address)
+            expect(currentUsedQuota).to.be.equal(currentQuota)
+          })
+
+          it('emits an event', async () => {
+            const tx = await relayer.deposit(smartVault.address, amount, { value })
+
+            await assertEvent(tx, 'QuotaPaid', { smartVault, amount: paidQuota })
+          })
+        }
+
+        context('when the used quota is lower than the amount', () => {
+          beforeEach('set data', async () => {
+            usedQuota = await relayer.getSmartVaultUsedQuota(smartVault.address)
+            amount = usedQuota.mul(2)
+            value = amount
+            toDeposit = amount.sub(usedQuota)
+            currentQuota = fp(0)
+            paidQuota = usedQuota
+          })
+
+          itBehavesLikeDeposit()
+        })
+
+        context('when the used quota is greater than or equal to the amount', () => {
+          beforeEach('set data', async () => {
+            usedQuota = await relayer.getSmartVaultUsedQuota(smartVault.address)
+            amount = usedQuota.div(2)
+            value = amount
+            toDeposit = fp(0)
+            currentQuota = usedQuota.sub(amount)
+            paidQuota = amount
+          })
+
+          itBehavesLikeDeposit()
+        })
       })
     })
 
@@ -295,7 +438,7 @@ describe('Relayer', () => {
           await authorizer.connect(smartVaultOwner).authorize(task.address, smartVault.address, '0xaabbccdd', [])
         })
 
-        context('when the smart vault has some balance deposited', () => {
+        context('when the smart vault has enough balance deposited', () => {
           let data: string
 
           beforeEach('deposit funds', async () => {
@@ -360,7 +503,7 @@ describe('Relayer', () => {
               const currentSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
               const chargedGasAmount = previousSmartVaultBalance.sub(currentSmartVaultBalance)
 
-              assertEvent(tx, 'Withdrawn', { smartVault, amount: chargedGasAmount })
+              assertEvent(tx, 'GasPaid', { smartVault, amount: chargedGasAmount, quota: 0 })
             })
           }
 
@@ -399,9 +542,68 @@ describe('Relayer', () => {
           })
         })
 
-        context('when the smart vault does not have balance deposited', () => {
-          it('reverts', async () => {
-            await expect(relayer.execute(task.address, '0x')).to.be.revertedWith('RELAYER_SMART_VAULT_NO_BALANCE')
+        context('when the smart vault does not have enough balance deposited', () => {
+          context('when the available quota is enough', () => {
+            let data: string
+
+            const amount = fp(0.000001)
+
+            beforeEach('deposit funds', async () => {
+              await relayer.deposit(smartVault.address, amount, { value: amount })
+            })
+
+            beforeEach('deposit funds', async () => {
+              await relayer.deposit(ZERO_ADDRESS, fp(10), { value: fp(10) })
+            })
+
+            beforeEach('set maximum quota', async () => {
+              const maxQuota = fp(10000)
+              await relayer.connect(owner).setSmartVaultMaxQuota(smartVault.address, maxQuota)
+            })
+
+            beforeEach('build call data', async () => {
+              data = task.interface.encodeFunctionData('succeed')
+            })
+
+            it('withdraws all the balance from the smart vault', async () => {
+              await relayer.execute(task.address, data)
+
+              expect(await relayer.getSmartVaultBalance(smartVault.address)).to.be.equal(0)
+            })
+
+            it('uses tha available quota', async () => {
+              const previousSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
+
+              const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
+
+              await relayer.execute(task.address, data)
+
+              const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
+              const chargedGasAmount = previousRelayerBalance.sub(currentRelayerBalance)
+
+              const smartVaultUsedQuota = await relayer.getSmartVaultUsedQuota(smartVault.address)
+
+              expect(smartVaultUsedQuota).to.be.equal(chargedGasAmount.sub(previousSmartVaultBalance))
+            })
+
+            it('emits an event', async () => {
+              const previousSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
+              const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
+
+              const tx = await relayer.execute(task.address, data)
+
+              const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
+              const chargedGasAmount = previousRelayerBalance.sub(currentRelayerBalance)
+              const quota = chargedGasAmount.sub(previousSmartVaultBalance)
+
+              assertEvent(tx, 'GasPaid', { smartVault, amount: chargedGasAmount, quota })
+            })
+          })
+
+          context('when the available quota is not enough', () => {
+            it('reverts', async () => {
+              await expect(relayer.execute(task.address, '0x')).to.be.revertedWith('RELAYER_SMART_VAULT_NO_BALANCE')
+            })
           })
         })
       })

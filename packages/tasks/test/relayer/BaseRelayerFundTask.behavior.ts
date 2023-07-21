@@ -1,6 +1,6 @@
 import { assertEvent, deployFeedMock, deployTokenMock, fp, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
-import { Contract } from 'ethers'
+import { BigNumber, Contract } from 'ethers'
 import { ethers } from 'hardhat'
 
 export function itBehavesLikeBaseRelayerFundTask(executionType: string): void {
@@ -90,19 +90,46 @@ export function itBehavesLikeBaseRelayerFundTask(executionType: string): void {
       })
 
       context('when the balance is below the min threshold', () => {
-        const amount = thresholdMin.div(2)
+        context('when the used quota is zero', () => {
+          const amount = thresholdMin.div(2)
 
-        beforeEach('set smart vault balance in relayer', async function () {
-          const balance = await this.relayer.getSmartVaultBalance(this.smartVault.address)
-          await this.relayer.withdraw(this.smartVault.address, balance)
+          beforeEach('set used quota', async function () {
+            await this.relayer.setSmartVaultUsedQuota(this.smartVault.address, 0)
+          })
 
-          const amountInNativeToken = amount.div(thresholdNativeRate)
-          await this.relayer.deposit(this.smartVault.address, amountInNativeToken)
+          beforeEach('set smart vault balance in relayer', async function () {
+            const balance = await this.relayer.getSmartVaultBalance(this.smartVault.address)
+            await this.relayer.withdraw(this.smartVault.address, balance)
+
+            const amountInNativeToken = amount.div(thresholdNativeRate)
+            await this.relayer.deposit(this.smartVault.address, amountInNativeToken)
+          })
+
+          it('returns max threshold minus deposited balance', async function () {
+            const taskAmount = await this.task.getTaskAmount(fundingToken.address)
+
+            expect(taskAmount.div(fundingThresholdRate)).to.be.equal(thresholdMax.sub(amount))
+          })
         })
 
-        it('returns max threshold minus deposited balance', async function () {
-          const taskAmount = await this.task.getTaskAmount(fundingToken.address)
-          expect(taskAmount.div(fundingThresholdRate)).to.be.equal(thresholdMax.sub(amount))
+        context('when the used quota is not zero', () => {
+          let usedQuota: BigNumber
+
+          beforeEach('set used quota', async function () {
+            usedQuota = thresholdMin.div(2)
+            await this.relayer.setSmartVaultUsedQuota(this.smartVault.address, usedQuota.div(thresholdNativeRate))
+          })
+
+          beforeEach('set smart vault balance to zero', async function () {
+            const balance = await this.relayer.getSmartVaultBalance(this.smartVault.address)
+            await this.relayer.withdraw(this.smartVault.address, balance)
+          })
+
+          it('returns the diff plus used quota', async function () {
+            const taskAmount = await this.task.getTaskAmount(fundingToken.address)
+
+            expect(taskAmount.div(fundingThresholdRate)).to.be.equal(thresholdMax.add(usedQuota))
+          })
         })
       })
 
@@ -116,6 +143,10 @@ export function itBehavesLikeBaseRelayerFundTask(executionType: string): void {
 
           const amountInNativeToken = amount.div(thresholdNativeRate)
           await this.relayer.deposit(this.smartVault.address, amountInNativeToken)
+        })
+
+        beforeEach('set used quota', async function () {
+          await this.relayer.setSmartVaultUsedQuota(this.smartVault.address, 0)
         })
 
         it('returns zero', async function () {
