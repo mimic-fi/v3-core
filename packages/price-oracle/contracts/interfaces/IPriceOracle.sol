@@ -43,6 +43,36 @@ interface IPriceOracle is IAuthorized {
     }
 
     /**
+     * @dev The base decimals are bigger than the quote decimals plus the fixed point decimals
+     */
+    error BaseDecimalsTooBig(address base, address quote, uint256 baseDecimals, uint256 quoteDecimals);
+
+    /**
+     * @dev The price deadline is is in the past
+     */
+    error OraclePriceOutdated(address base, address quote, uint256 deadline);
+
+    /**
+     * @dev The feed for the given (base, quote) pair doesn't exist
+     */
+    error OracleMissingFeed(address base, address quote);
+
+    /**
+     * @dev The inverse feed decimals are bigger than the maximum inverse feed decimals
+     */
+    error FeedDecimalsTooBig(address inverseFeed, uint256 inverseFeedDecimals);
+
+    /**
+     * @dev The quote feed decimals are bigger than the base feed decimals plus the fixed point decimals
+     */
+    error QuoteFeedDecimalsTooBig(address quoteFeed, uint256 quoteFeedDecimals, address baseFeed, uint256 baseFeedDecimals);
+
+    /**
+     * @dev The signer is not allowed
+     */
+    error OracleInvalidSigner(address signer);
+
+    /**
      * @dev Emitted every time a signer is changed
      */
     event SignerSet(address indexed signer, bool allowed);

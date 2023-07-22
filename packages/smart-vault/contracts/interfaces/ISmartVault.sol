@@ -21,6 +21,51 @@ import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorized.sol';
  */
 interface ISmartVault is IAuthorized {
     /**
+     * @dev The smart vault is paused
+     */
+    error SmartVaultPaused(address smartVault);
+
+    /**
+     * @dev The smart vault is already paused
+     */
+    error SmartVaultAlreadyPaused(address smartVault);
+
+    /**
+     * @dev The connector ID is zero
+     */
+    error SmartVaultConnectorIdZero(address smartVault);
+
+    /**
+     * @dev The connector token is zero
+     */
+    error SmartVaultConnectorTokenZero(address smartVault);
+
+    /**
+     * @dev The amount is zero
+     */
+    error SmartVaultAmountZero(address smartVault);
+
+    /**
+     * @dev The smart vault balance is lower than the amount
+     */
+    error SmartVaultInsufficentBalance(address smartVault, uint256 balance, uint256 amount);
+
+    /**
+     * @dev The recipient is zero
+     */
+    error SmartVaultRecipientZero(address smartVault);
+
+    /**
+     * @dev The connector balance is lower than the amount
+     */
+    error SmartVaultConnectorInsufficentBalance(address smartVault, bytes32 id, address token, uint256 balance, uint256 amount);
+
+    /**
+     * @dev The connector is either not registered, non stateless or deprecated
+     */
+    error SmartVaultInvalidConnector(address smartVault, address connector);
+
+    /**
      * @dev Emitted every time a smart vault is paused
      */
     event Paused();

@@ -153,7 +153,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         uint256 quoteDecimals = IERC20Metadata(quote).decimals();
 
         // No need for checked math as an uint8 + FP_DECIMALS (constant) will always fit in an uint256
-        require(baseDecimals <= quoteDecimals + FP_DECIMALS, 'BASE_DECIMALS_TOO_BIG');
+        if (baseDecimals > quoteDecimals + FP_DECIMALS) revert BaseDecimalsTooBig(base, quote, baseDecimals, quoteDecimals);
 
         // No need for checked math as we are checking it manually beforehand
         uint256 resultDecimals = quoteDecimals + FP_DECIMALS - baseDecimals;
@@ -176,7 +176,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         for (uint256 i = 0; i < prices.length; i++) {
             PriceData memory price = prices[i];
             if (price.base == base && price.quote == quote) {
-                require(price.deadline >= block.timestamp, 'ORACLE_PRICE_OUTDATED');
+                if (price.deadline < block.timestamp) revert OraclePriceOutdated(base, quote, price.deadline);
                 return price.rate;
             }
         }
@@ -226,7 +226,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         address quoteFeed = getFeed[quote][pivot];
         if (baseFeed != address(0) && quoteFeed != address(0)) return _getPivotPrice(baseFeed, quoteFeed);
 
-        revert('ORACLE_MISSING_FEED');
+        revert OracleMissingFeed(base, quote);
     }
 
     /**
@@ -249,7 +249,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
      */
     function _getInversePrice(address inverseFeed) internal view returns (uint256 price, uint256 decimals) {
         (uint256 inversePrice, uint256 inverseFeedDecimals) = _getFeedData(inverseFeed);
-        require(inverseFeedDecimals <= INVERSE_FEED_MAX_DECIMALS, 'FEED_DECIMALS_TOO_BIG');
+        if (inverseFeedDecimals > INVERSE_FEED_MAX_DECIMALS) revert FeedDecimalsTooBig(inverseFeed, inverseFeedDecimals);
 
         // Prices are requested for different purposes, we are rounding down always to follow a single strategy
         price = FixedPoint.ONE.divDown(inversePrice);
@@ -273,7 +273,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         (uint256 quotePrice, uint256 quoteFeedDecimals) = _getFeedData(quoteFeed);
 
         // No need for checked math as an uint8 + FP_DECIMALS (constant) will always fit in an uint256
-        require(quoteFeedDecimals <= baseFeedDecimals + FP_DECIMALS, 'QUOTE_FEED_DECIMALS_TOO_BIG');
+        if (quoteFeedDecimals > baseFeedDecimals + FP_DECIMALS) revert QuoteFeedDecimalsTooBig(quoteFeed, quoteFeedDecimals, baseFeed, baseFeedDecimals);
 
         // Price is base/quote = (base/pivot) / (quote/pivot)
         // Prices are requested for different purposes, we are rounding down always to follow a single strategy
@@ -305,7 +305,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
 
         (PriceData[] memory prices, bytes memory signature) = abi.decode(data, (PriceData[], bytes));
         (address recovered, ECDSA.RecoverError error) = ECDSA.tryRecover(getPricesDigest(prices), signature);
-        require(error == ECDSA.RecoverError.NoError && isSignerAllowed(recovered), 'ORACLE_INVALID_SIGNER');
+        if (error != ECDSA.RecoverError.NoError || !isSignerAllowed(recovered)) revert OracleInvalidSigner(recovered);
         return prices;
     }
 
