@@ -130,7 +130,7 @@ contract Relayer is IRelayer, Ownable {
      */
     function withdraw(uint256 amount) external override {
         uint256 balance = getSmartVaultBalance[msg.sender];
-        if (amount > balance) revert RelayerWithdrawInsufficentBalance(amount, balance);
+        if (amount > balance) revert RelayerWithdrawSvInsufficentBalance(amount, balance);
         getSmartVaultBalance[msg.sender] = balance - amount;
         emit Withdrawn(msg.sender, amount);
         (bool success, ) = payable(msg.sender).call{ value: amount }('');
@@ -145,14 +145,16 @@ contract Relayer is IRelayer, Ownable {
      */
     function execute(address[] memory tasks, bytes[] memory datas, bool continueIfFailed) external override {
         if (!isExecutorAllowed[msg.sender]) revert RelayerExecutorNotAllowed(msg.sender);
-        if (tasks.length == 0 || tasks.length != datas.length) revert RelayerExecuteInputBadLength(tasks.length, datas.length);
+        if (tasks.length == 0 || tasks.length != datas.length)
+            revert RelayerExecuteInputBadLength(tasks.length, datas.length);
 
         uint256 totalGasUsed = BASE_GAS;
         address smartVault = ITask(tasks[0]).smartVault();
         for (uint256 i = 0; i < tasks.length; i++) {
             uint256 initialGas = gasleft();
             address task = tasks[i];
-            if (ITask(task).smartVault() != smartVault || !ISmartVault(smartVault).hasPermissions(task)) revert RelayerInvalidTask(task, smartVault);
+            if (ITask(task).smartVault() != smartVault || !ISmartVault(smartVault).hasPermissions(task))
+                revert RelayerInvalidTask(task, smartVault);
             bytes memory data = datas[i];
             // solhint-disable-next-line avoid-low-level-calls
             (bool taskSuccess, bytes memory result) = task.call(data);
@@ -213,7 +215,8 @@ contract Relayer is IRelayer, Ownable {
         uint256 maxQuota = getSmartVaultMaxQuota[smartVault];
         uint256 usedQuota = getSmartVaultUsedQuota[smartVault];
         uint256 availableQuota = usedQuota >= maxQuota ? 0 : (maxQuota - usedQuota);
-        if (amount <= balance + availableQuota) revert RelayerPaymentSvInsufficentBalance(amount, balance, availableQuota);
+        if (amount <= balance + availableQuota)
+            revert RelayerPaymentSvInsufficentBalance(amount, balance, availableQuota);
 
         uint256 quota;
         if (balance >= amount) {

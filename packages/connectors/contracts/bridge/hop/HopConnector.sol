@@ -52,7 +52,7 @@ contract HopConnector {
      * @dev The deadline was sent when not needed
      */
     error HopDeadlineNotNeeded();
-    
+
     /**
      * @dev The bridge operation is not supported
      */
@@ -139,7 +139,8 @@ contract HopConnector {
         } else revert HopBridgeOpNotSupported();
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn) revert HopBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+        if (postBalanceIn < preBalanceIn - amountIn)
+            revert HopBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**

@@ -76,5 +76,4 @@ interface ITask is
      * @dev The previous connector is not zero
      */
     error TaskPreviousConnectorNotZero(bytes32 previous);
-
 }

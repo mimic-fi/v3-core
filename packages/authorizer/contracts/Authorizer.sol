@@ -178,7 +178,8 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
     function unauthorize(address who, address where, bytes4 what) public override nonReentrant {
         uint256[] memory how = authParams(who, where, what);
         bool allowed = isAuthorized(msg.sender, address(this), IAuthorizer.unauthorize.selector, how);
-        if (!allowed) revert AuthorizerSenderNotAllowed(msg.sender, address(this), IAuthorizer.unauthorize.selector, how);
+        if (!allowed)
+            revert AuthorizerSenderNotAllowed(msg.sender, address(this), IAuthorizer.unauthorize.selector, how);
         _unauthorize(who, where, what);
     }
 

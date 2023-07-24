@@ -43,7 +43,7 @@ library FixedPoint {
     function mulDown(uint256 a, uint256 b) internal pure returns (uint256) {
         unchecked {
             uint256 product = a * b;
-            if (a !=0 && product / a != b) revert MulOverflow(a, b);
+            if (a != 0 && product / a != b) revert MulOverflow(a, b);
             return product / ONE;
         }
     }
@@ -54,7 +54,7 @@ library FixedPoint {
     function mulUp(uint256 a, uint256 b) internal pure returns (uint256) {
         unchecked {
             uint256 product = a * b;
-            if (a !=0 && product / a != b) revert MulOverflow(a, b);
+            if (a != 0 && product / a != b) revert MulOverflow(a, b);
             return product == 0 ? 0 : (((product - 1) / ONE) + 1);
         }
     }

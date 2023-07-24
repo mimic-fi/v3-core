@@ -58,7 +58,13 @@ interface ISmartVault is IAuthorized {
     /**
      * @dev The connector balance is lower than the amount
      */
-    error SmartVaultConnectorInsufficentBalance(address smartVault, bytes32 id, address token, uint256 balance, uint256 amount);
+    error SmartVaultConnectorInsufficentBalance(
+        address smartVault,
+        bytes32 id,
+        address token,
+        uint256 balance,
+        uint256 amount
+    );
 
     /**
      * @dev The connector is either not registered, non stateless or deprecated

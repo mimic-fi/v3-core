@@ -37,12 +37,17 @@ contract UniswapV3Connector {
     error UniswapV3SwapSameToken(address token);
 
     /**
+     * @dev The hop-tokens and hop-fees arrays have different lengths
+     */
+    error UniswapV3BadHopTokensFeesLength(uint256 hopTokensLength, uint256 hopFeesLength);
+
+    /**
      * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
      */
     error UniswapV3BadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
 
     /**
-     * @dev The amount out is less than the minimum amount out 
+     * @dev The amount out is less than the minimum amount out
      */
     error UniswapV3BadAmountOut(uint256 amountOut, uint256 minAmountOut);
 
@@ -82,7 +87,8 @@ contract UniswapV3Connector {
         uint24[] memory hopFees
     ) external returns (uint256 amountOut) {
         if (tokenIn == tokenOut) revert UniswapV3SwapSameToken(tokenIn);
-        if (hopTokens.length != hopFees.length) revert UniswapV3BadHopTokensFeesLength(hopTokens.length, hopFees.length);
+        if (hopTokens.length != hopFees.length)
+            revert UniswapV3BadHopTokensFeesLength(hopTokens.length, hopFees.length);
 
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));

@@ -44,7 +44,7 @@ library EnumerableMap {
     /**
      * @dev The key doesn't exist in the map
      */
-    error EnumerableMapNonExistentKey(address indexed key);
+    error EnumerableMapNonExistentKey(address key);
 
     /**
      * @dev Adds a key-value pair to a map, or updates the value for an existing
@@ -225,7 +225,7 @@ library EnumerableMap {
      */
     function get(AddressToAddressMap storage map, address key) internal view returns (address) {
         address value = map._values[key];
-        if (value == 0 && !contains(map, key)) revert EnumerableMapNonExistentKey(key);
+        if (value == address(0) && !contains(map, key)) revert EnumerableMapNonExistentKey(key);
         return value;
     }
 

@@ -117,7 +117,7 @@ contract FeeController is IFeeController, Ownable {
      * @param collector Fee collector to be set
      */
     function setFeeCollector(address smartVault, address collector) external override onlyOwner {
-        if (collector == address(0)) revert FeeControllerCollectorZero(smartVault);
+        if (collector == address(0)) revert FeeControllerCollectorZero();
         Fee storage fee = _fees[smartVault];
         if (fee.maxPct == 0) revert FeeControllerSvNotSet(smartVault);
         fee.collector = collector;

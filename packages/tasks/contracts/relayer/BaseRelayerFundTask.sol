@@ -89,7 +89,12 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
         if (depositedInThresholdToken >= threshold.min + usedQuotaInThresholdToken)
             revert TaskDepositedAboveMinThreshold(depositedInThresholdToken, threshold.min, usedQuotaInThresholdToken);
         if (amountInThresholdToken + depositedInThresholdToken > threshold.max + usedQuotaInThresholdToken)
-            revert TaskAmountAboveMaxThreshold(amountInThresholdToken, depositedInThresholdToken, threshold.max, usedQuotaInThresholdToken);
+            revert TaskAmountAboveMaxThreshold(
+                amountInThresholdToken,
+                depositedInThresholdToken,
+                threshold.max,
+                usedQuotaInThresholdToken
+            );
     }
 
     /**

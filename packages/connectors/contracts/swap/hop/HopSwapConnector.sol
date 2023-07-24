@@ -41,7 +41,7 @@ contract HopSwapConnector {
     error HopBadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
 
     /**
-     * @dev The amount out is less than the minimum amount out 
+     * @dev The amount out is less than the minimum amount out
      */
     error HopBadAmountOut(uint256 amountOut, uint256 minAmountOut);
 

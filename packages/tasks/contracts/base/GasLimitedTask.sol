@@ -118,7 +118,8 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
     function _beforeGasLimitedTask(address, uint256) internal virtual {
         __initialGas__ = gasleft();
         if (gasPriceLimit > 0 && tx.gasprice > gasPriceLimit) revert TaskGasPriceLimit(tx.gasprice, gasPriceLimit);
-        if (priorityFeeLimit > 0 && tx.gasprice - block.basefee > priorityFeeLimit) revert TaskPriorityFeeLimit(tx.gasprice, block.basefee, priorityFeeLimit);
+        if (priorityFeeLimit > 0 && tx.gasprice - block.basefee > priorityFeeLimit)
+            revert TaskPriorityFeeLimit(tx.gasprice, block.basefee, priorityFeeLimit);
     }
 
     /**
@@ -136,7 +137,8 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
             if (amount == 0) revert GasLimitedTaskAmountZero();
             uint256 price = _getPrice(ISmartVault(this.smartVault()).wrappedNativeToken(), token);
             uint256 totalCostInToken = totalCost.mulUp(price);
-            if (totalCostInToken.divUp(amount) > txCostLimitPct) revert TaskTxCostLimitPct(totalCostInToken, amount, txCostLimitPct);
+            if (totalCostInToken.divUp(amount) > txCostLimitPct)
+                revert TaskTxCostLimitPct(totalCostInToken, amount, txCostLimitPct);
         }
     }
 

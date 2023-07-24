@@ -65,7 +65,12 @@ interface IPriceOracle is IAuthorized {
     /**
      * @dev The quote feed decimals are bigger than the base feed decimals plus the fixed point decimals
      */
-    error QuoteFeedDecimalsTooBig(address quoteFeed, uint256 quoteFeedDecimals, address baseFeed, uint256 baseFeedDecimals);
+    error QuoteFeedDecimalsTooBig(
+        address quoteFeed,
+        uint256 quoteFeedDecimals,
+        address baseFeed,
+        uint256 baseFeedDecimals
+    );
 
     /**
      * @dev The signer is not allowed

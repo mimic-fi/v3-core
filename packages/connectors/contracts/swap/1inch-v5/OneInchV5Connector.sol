@@ -41,7 +41,7 @@ contract OneInchV5Connector {
     error OneInchV5BadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
 
     /**
-     * @dev The amount out is less than the minimum amount out 
+     * @dev The amount out is less than the minimum amount out
      */
     error OneInchV5BadAmountOut(uint256 amountOut, uint256 minAmountOut);
 
@@ -74,7 +74,8 @@ contract OneInchV5Connector {
         Address.functionCall(address(oneInchV5Router), data, '1INCH_V5_SWAP_FAILED');
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn) revert OneInchV5BadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+        if (postBalanceIn < preBalanceIn - amountIn)
+            revert OneInchV5BadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;

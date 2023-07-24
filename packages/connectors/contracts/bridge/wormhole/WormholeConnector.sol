@@ -102,7 +102,8 @@ contract WormholeConnector {
         uint16 wormholeNetworkId = _getWormholeNetworkId(chainId);
         uint256 relayerFee = wormholeCircleRelayer.relayerFee(wormholeNetworkId, token);
         if (relayerFee > amountIn) revert WormholeBridgeRelayerFeeGTAmount(relayerFee, amountIn);
-        if (minAmountOut > amountIn - relayerFee) revert WormholeBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
+        if (minAmountOut > amountIn - relayerFee)
+            revert WormholeBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
 
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
 
@@ -116,7 +117,8 @@ contract WormholeConnector {
         );
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn) revert WormholeBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+        if (postBalanceIn < preBalanceIn - amountIn)
+            revert WormholeBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**

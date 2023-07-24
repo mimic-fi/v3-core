@@ -102,7 +102,8 @@ contract ConnextConnector {
         if (block.chainid == chainId) revert ConnextBridgeSameChain(chainId);
         if (recipient == address(0)) revert ConnextBridgeRecipientZero();
         if (relayerFee > amountIn) revert ConnextBridgeRelayerFeeGTAmount(relayerFee, amountIn);
-        if (minAmountOut > amountIn - relayerFee) revert ConnextBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
+        if (minAmountOut > amountIn - relayerFee)
+            revert ConnextBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
 
         uint32 domain = _getChainDomain(chainId);
         uint256 amountInAfterFees = amountIn - relayerFee;
@@ -126,7 +127,8 @@ contract ConnextConnector {
         );
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn) revert ConnextBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+        if (postBalanceIn < preBalanceIn - amountIn)
+            revert ConnextBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**

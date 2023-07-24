@@ -41,7 +41,7 @@ interface IFeeController {
     /**
      * @dev The collector to be set is zero
      */
-    error FeeControllerCollectorZero(address smartVault);
+    error FeeControllerCollectorZero();
 
     /**
      * @dev The pct to be set is above the maxPct

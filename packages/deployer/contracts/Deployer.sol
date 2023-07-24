@@ -44,7 +44,7 @@ contract Deployer {
      * @dev The namespace is empty
      */
     error DeployerNamespaceEmpty();
-    
+
     /**
      * @dev The name is empty
      */

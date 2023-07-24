@@ -93,7 +93,8 @@ contract AxelarConnector {
         axelarGateway.sendToken(chainName, Strings.toHexString(recipient), symbol, amountIn);
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn) revert AxelarBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+        if (postBalanceIn < preBalanceIn - amountIn)
+            revert AxelarBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**
