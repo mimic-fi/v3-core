@@ -21,6 +21,11 @@ import '../ITask.sol';
  */
 interface ICollector is ITask {
     /**
+     * @dev The tokens source is zero
+     */
+    error TaskTokensSourceZero();
+
+    /**
      * @dev Emitted every time the tokens source is set
      */
     event TokensSourceSet(address indexed tokensSource);

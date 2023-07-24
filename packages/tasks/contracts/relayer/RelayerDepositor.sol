@@ -90,7 +90,7 @@ contract RelayerDepositor is IRelayerDepositor, Task {
      */
     function _beforeRelayerDepositor(address token, uint256 amount) internal virtual {
         _beforeTask(token, amount);
-        require(amount > 0, 'TASK_AMOUNT_ZERO');
+        if (amount == 0) revert TaskAmountZero();
     }
 
     /**
@@ -105,7 +105,7 @@ contract RelayerDepositor is IRelayerDepositor, Task {
      * @param newRelayer Address of the relayer to be set
      */
     function _setRelayer(address newRelayer) internal {
-        require(newRelayer != address(0), 'TASK_RELAYER_DEPOSITOR_ZERO');
+        if (newRelayer == address(0)) revert TaskRelayerZero();
         relayer = newRelayer;
         emit RelayerSet(newRelayer);
     }

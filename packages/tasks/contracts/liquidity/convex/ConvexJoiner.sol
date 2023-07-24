@@ -79,7 +79,7 @@ contract ConvexJoiner is IConvexJoiner, BaseConvexTask {
      */
     function _beforeConvexJoiner(address token, uint256 amount) internal virtual {
         _beforeBaseConvexTask(token, amount);
-        require(amount > 0, 'TASK_AMOUNT_ZERO');
+        if (amount == 0) revert TaskAmountZero();
     }
 
     /**

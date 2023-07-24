@@ -19,6 +19,36 @@ pragma solidity >=0.8.0;
  */
 interface IFeeController {
     /**
+     * @dev The smart vault's fee maxPct is zero
+     */
+    error FeeControllerSvNotSet(address smartVault);
+
+    /**
+     * @dev The maxPct to be set is zero
+     */
+    error FeeControllerMaxPctZero(address smartVault);
+
+    /**
+     * @dev The maxPct to be set is above one
+     */
+    error FeeControllerMaxPctAboveOne(address smartVault);
+
+    /**
+     * @dev The maxPct to be set is above the previous maxPct
+     */
+    error FeeControllerMaxPctAbovePrevious(address smartVault, uint256 maxPct, uint256 previousMaxPct);
+
+    /**
+     * @dev The collector to be set is zero
+     */
+    error FeeControllerCollectorZero(address smartVault);
+
+    /**
+     * @dev The pct to be set is above the maxPct
+     */
+    error FeeControllerPctAboveMax(address smartVault, uint256 pct, uint256 maxPct);
+
+    /**
      * @dev Emitted every time a default fee collector is set
      */
     event DefaultFeeCollectorSet(address indexed collector);

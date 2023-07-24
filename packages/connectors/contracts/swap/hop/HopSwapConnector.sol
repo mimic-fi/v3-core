@@ -26,6 +26,26 @@ import './IHopDex.sol';
  */
 contract HopSwapConnector {
     /**
+     * @dev The token in is the same as the token out
+     */
+    error HopSwapSameToken(address token);
+
+    /**
+     * @dev The dex address is zero
+     */
+    error HopDexAddressZero();
+
+    /**
+     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
+     */
+    error HopBadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+
+    /**
+     * @dev The amount out is less than the minimum amount out 
+     */
+    error HopBadAmountOut(uint256 amountOut, uint256 minAmountOut);
+
+    /**
      * @dev Executes a token swap in Hop
      * @param tokenIn Token being sent
      * @param tokenOut Token being received
@@ -37,8 +57,8 @@ contract HopSwapConnector {
         external
         returns (uint256 amountOut)
     {
-        require(tokenIn != tokenOut, 'HOP_SWAP_SAME_TOKEN');
-        require(hopDexAddress != address(0), 'HOP_DEX_ADDRESS_ZERO');
+        if (tokenIn == tokenOut) revert HopSwapSameToken(tokenIn);
+        if (hopDexAddress == address(0)) revert HopDexAddressZero();
 
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
@@ -51,10 +71,10 @@ contract HopSwapConnector {
         hopDex.swap(tokenInIndex, tokenOutIndex, amountIn, minAmountOut, block.timestamp);
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
-        require(postBalanceIn >= preBalanceIn - amountIn, 'HOP_BAD_TOKEN_IN_BALANCE');
+        if (postBalanceIn < preBalanceIn - amountIn) revert HopBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;
-        require(amountOut >= minAmountOut, 'HOP_MIN_AMOUNT_OUT');
+        if (amountOut < minAmountOut) revert HopBadAmountOut(amountOut, minAmountOut);
     }
 }

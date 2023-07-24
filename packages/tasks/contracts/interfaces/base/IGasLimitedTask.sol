@@ -21,6 +21,41 @@ import './IBaseTask.sol';
  */
 interface IGasLimitedTask is IBaseTask {
     /**
+     * @dev The gas price is higher than the limit
+     */
+    error TaskGasPriceLimit(uint256 gasPrice, uint256 gasPriceLimit);
+
+    /**
+     * @dev The gas price minus the base fee is higher than the priority fee limit
+     */
+    error TaskPriorityFeeLimit(uint256 gasPrice, uint256 baseFee, uint256 priorityFeeLimit);
+
+    /**
+     * @dev The initial gas is zero
+     */
+    error TaskGasNotInitialized();
+
+    /**
+     * @dev The transaction cost is higher than the limit
+     */
+    error TaskTxCostLimit(uint256 totalCost, uint256 txCostLimit);
+
+    /**
+     * @dev The transaction cost divided by the amount is higher than the limit percentage
+     */
+    error TaskTxCostLimitPct(uint256 totalCost, uint256 amount, uint256 txCostLimitPct);
+
+    /**
+     * @dev The new transaction cost limit percentage is higher than one
+     */
+    error TaskTxCostLimitPctAboveOne();
+
+    /**
+     * @dev The amount is zero
+     */
+    error GasLimitedTaskAmountZero();
+
+    /**
      * @dev Emitted every time the gas price limit is set
      */
     event GasPriceLimitSet(uint256 gasPriceLimit);

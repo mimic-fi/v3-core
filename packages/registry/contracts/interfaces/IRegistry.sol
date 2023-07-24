@@ -21,6 +21,26 @@ import './IRegistry.sol';
  */
 interface IRegistry {
     /**
+     * @dev The implementation address is zero
+     */
+    error RegistryImplAddressZero();
+
+    /**
+     * @dev The implementation is not registered
+     */
+    error RegistryImplNotRegistered(address implementation);
+
+    /**
+     * @dev The implementation is already deprecated
+     */
+    error RegistryImplAlreadyDeprecated(address implementation);
+
+    /**
+     * @dev The implementation is already registered
+     */
+    error RegistryImplAlreadyRegistered(address implementation);
+
+    /**
      * @dev Emitted every time an implementation is registered
      */
     event Registered(address indexed implementation, string name, bool stateless);

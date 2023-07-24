@@ -21,6 +21,11 @@ import '../ITask.sol';
  */
 interface IRelayerDepositor is ITask {
     /**
+     * @dev The relayer is zero
+     */
+    error TaskRelayerZero();
+
+    /**
      * @dev Emitted every time the relayer is set
      */
     event RelayerSet(address indexed relayer);

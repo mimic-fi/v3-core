@@ -86,11 +86,10 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
         uint256 depositedInThresholdToken = _getDepositedInThresholdToken(threshold.token);
         uint256 usedQuotaInThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);
 
-        require(depositedInThresholdToken < threshold.min + usedQuotaInThresholdToken, 'TASK_TOKEN_THRESHOLD_NOT_MET');
-        require(
-            amountInThresholdToken + depositedInThresholdToken <= threshold.max + usedQuotaInThresholdToken,
-            'TASK_AMOUNT_ABOVE_THRESHOLD'
-        );
+        if (depositedInThresholdToken >= threshold.min + usedQuotaInThresholdToken)
+            revert TaskDepositedAboveMinThreshold(depositedInThresholdToken, threshold.min, usedQuotaInThresholdToken);
+        if (amountInThresholdToken + depositedInThresholdToken > threshold.max + usedQuotaInThresholdToken)
+            revert TaskAmountAboveMaxThreshold(amountInThresholdToken, depositedInThresholdToken, threshold.max, usedQuotaInThresholdToken);
     }
 
     /**
@@ -116,7 +115,7 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
      * @param newRelayer Address of the relayer to be set
      */
     function _setRelayer(address newRelayer) internal {
-        require(newRelayer != address(0), 'TASK_FUNDER_RELAYER_ZERO');
+        if (newRelayer == address(0)) revert TaskRelayerZero();
         relayer = newRelayer;
         emit RelayerSet(newRelayer);
     }

@@ -21,8 +21,6 @@ import './base/ITokenIndexedTask.sol';
 import './base/ITokenThresholdTask.sol';
 import './base/IVolumeLimitedTask.sol';
 
-// solhint-disable no-empty-blocks
-
 /**
  * @dev Task interface
  */
@@ -34,5 +32,49 @@ interface ITask is
     ITokenThresholdTask,
     IVolumeLimitedTask
 {
+    /**
+     * @dev The amount is zero
+     */
+    error TaskAmountZero();
+
+    /**
+     * @dev The token is zero
+     */
+    error TaskTokenZero();
+
+    /**
+     * @dev The token out is not set
+     */
+    error TaskTokenOutNotSet();
+
+    /**
+     * @dev The slippage is higher than the maximum slippage
+     */
+    error TaskSlippageTooHigh(uint256 slippage, uint256 maxSlippage);
+
+    /**
+     * @dev The connector is zero
+     */
+    error TaskConnectorZero();
+
+    /**
+     * @dev The recipient is zero
+     */
+    error TaskRecipientZero();
+
+    /**
+     * @dev The slippage to be set is higher than one
+     */
+    error TaskSlippageAboveOne();
+
+    /**
+     * @dev The next connector is not zero
+     */
+    error TaskNextConnectorNotZero(bytes32 next);
+
+    /**
+     * @dev The previous connector is not zero
+     */
+    error TaskPreviousConnectorNotZero(bytes32 previous);
 
 }

@@ -25,8 +25,30 @@ import '@mimic-fi/v3-registry/contracts/interfaces/IRegistry.sol';
 contract Deployer {
     using Address for address;
 
-    // Registry reference
-    IRegistry public immutable registry;
+    /**
+     * @dev The implementation is not registered
+     */
+    error DeployerImplNotRegistered(address implementation);
+
+    /**
+     * @dev The implementation is stateless
+     */
+    error DeployerImplStateless(address implementation);
+
+    /**
+     * @dev The implementation is deprecated
+     */
+    error DeployerImplDeprecated(address implementation);
+
+    /**
+     * @dev The namespace is empty
+     */
+    error DeployerNamespaceEmpty();
+    
+    /**
+     * @dev The name is empty
+     */
+    error DeployerNameEmpty();
 
     /**
      * @dev Emitted every time an authorizer is deployed
@@ -38,7 +60,7 @@ contract Deployer {
      */
     event PriceOracleDeployed(string namespace, string name, address instance, address implementation);
 
-    /**Bas
+    /**
      * @dev Emitted every time a smart vault is deployed
      */
     event SmartVaultDeployed(string namespace, string name, address instance, address implementation);
@@ -47,6 +69,9 @@ contract Deployer {
      * @dev Emitted every time a task is deployed
      */
     event TaskDeployed(string namespace, string name, address instance, address implementation);
+
+    // Registry reference
+    IRegistry public immutable registry;
 
     /**
      * @dev Creates a new Deployer contract
@@ -165,9 +190,9 @@ contract Deployer {
      * @param implementation Address of the implementation to be checked
      */
     function _validateImplementation(address implementation) internal view {
-        require(registry.isRegistered(implementation), 'DEPLOYER_IMPL_NOT_REGISTERED');
-        require(!registry.isStateless(implementation), 'DEPLOYER_IMPL_STATELESS');
-        require(!registry.isDeprecated(implementation), 'DEPLOYER_IMPL_DEPRECATED');
+        if (!registry.isRegistered(implementation)) revert DeployerImplNotRegistered(implementation);
+        if (registry.isStateless(implementation)) revert DeployerImplStateless(implementation);
+        if (registry.isDeprecated(implementation)) revert DeployerImplDeprecated(implementation);
     }
 
     /**
@@ -177,8 +202,8 @@ contract Deployer {
         internal
         returns (address)
     {
-        require(bytes(namespace).length > 0, 'DEPLOYER_NAMESPACE_EMPTY');
-        require(bytes(name).length > 0, 'DEPLOYER_NAME_EMPTY');
+        if (bytes(namespace).length == 0) revert DeployerNamespaceEmpty();
+        if (bytes(name).length == 0) revert DeployerNameEmpty();
 
         bytes memory bytecode = abi.encodePacked(
             hex'3d602d80600a3d3981f3363d3d373d3d3d363d73',

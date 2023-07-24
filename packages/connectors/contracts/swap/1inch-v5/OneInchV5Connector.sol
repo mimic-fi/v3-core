@@ -31,6 +31,21 @@ contract OneInchV5Connector {
     IOneInchV5AggregationRouter public immutable oneInchV5Router;
 
     /**
+     * @dev The token in is the same as the token out
+     */
+    error OneInchV5SwapSameToken(address token);
+
+    /**
+     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
+     */
+    error OneInchV5BadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+
+    /**
+     * @dev The amount out is less than the minimum amount out 
+     */
+    error OneInchV5BadAmountOut(uint256 amountOut, uint256 minAmountOut);
+
+    /**
      * @dev Creates a new OneInchV5Connector contract
      * @param _oneInchV5Router 1inch aggregation router v5 reference
      */
@@ -41,7 +56,7 @@ contract OneInchV5Connector {
     /**
      * @dev Executes a token swap in 1Inch V5
      * @param tokenIn Token to be sent
-     * @param tokenOut Token to received
+     * @param tokenOut Token to be received
      * @param amountIn Amount of token in to be swapped
      * @param minAmountOut Minimum amount of token out willing to receive
      * @param data Calldata to be sent to the 1inch aggregation router
@@ -50,7 +65,7 @@ contract OneInchV5Connector {
         external
         returns (uint256 amountOut)
     {
-        require(tokenIn != tokenOut, '1INCH_V5_SWAP_SAME_TOKEN');
+        if (tokenIn == tokenOut) revert OneInchV5SwapSameToken(tokenIn);
 
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
@@ -59,10 +74,10 @@ contract OneInchV5Connector {
         Address.functionCall(address(oneInchV5Router), data, '1INCH_V5_SWAP_FAILED');
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
-        require(postBalanceIn >= preBalanceIn - amountIn, '1INCH_V5_BAD_TOKEN_IN_BALANCE');
+        if (postBalanceIn < preBalanceIn - amountIn) revert OneInchV5BadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;
-        require(amountOut >= minAmountOut, '1INCH_V5_MIN_AMOUNT_OUT');
+        if (amountOut < minAmountOut) revert OneInchV5BadAmountOut(amountOut, minAmountOut);
     }
 }

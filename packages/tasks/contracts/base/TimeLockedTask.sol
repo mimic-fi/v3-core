@@ -96,13 +96,13 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
      * @dev Before time locked task hook
      */
     function _beforeTimeLockedTask(address, uint256) internal virtual {
-        require(block.timestamp >= timeLockExpiration, 'TASK_TIME_LOCK_NOT_EXPIRED');
+        if (block.timestamp < timeLockExpiration) revert TaskTimeLockNotExpired(timeLockExpiration);
 
         if (timeLockExecutionPeriod > 0) {
             uint256 diff = block.timestamp - timeLockExpiration;
             uint256 periods = diff / timeLockDelay;
             uint256 offset = diff - (periods * timeLockDelay);
-            require(offset <= timeLockExecutionPeriod, 'TASK_TIME_LOCK_WAIT_NEXT_PERIOD');
+            if (offset > timeLockExecutionPeriod) revert TaskTimeLockWaitNextPeriod(offset, timeLockExecutionPeriod);
         }
     }
 
@@ -128,7 +128,7 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
      * @param delay New delay to be set
      */
     function _setTimeLockDelay(uint256 delay) internal {
-        require(delay >= timeLockExecutionPeriod, 'TASK_DELAY_GT_EXECUTION_PERIOD');
+        if (delay < timeLockExecutionPeriod) revert TaskExecutionPeriodGtDelay(timeLockExecutionPeriod, delay);
         timeLockDelay = delay;
         emit TimeLockDelaySet(delay);
     }
@@ -147,7 +147,7 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
      * @param period New execution period to be set
      */
     function _setTimeLockExecutionPeriod(uint256 period) internal {
-        require(period <= timeLockDelay, 'TASK_EXECUTION_PERIOD_GT_DELAY');
+        if (period > timeLockDelay) revert TaskExecutionPeriodGtDelay(period, timeLockDelay);
         timeLockExecutionPeriod = period;
         emit TimeLockExecutionPeriodSet(period);
     }

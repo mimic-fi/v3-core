@@ -140,7 +140,9 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
         virtual
     {
         _beforeBaseBridgeTask(token, amount, slippage);
-        require(relayerFee.divUp(amount) <= getRelayerFee(token), 'TASK_FEE_TOO_HIGH');
+        uint256 maxRelayerFee = getRelayerFee(token);
+        uint256 relayerFeePct = relayerFee.divUp(amount);
+        if (relayerFeePct > maxRelayerFee) revert TaskFeeTooHigh(relayerFeePct, maxRelayerFee);
     }
 
     /**
@@ -165,7 +167,7 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
      * @param relayerFee Relayer fee to be set
      */
     function _setCustomRelayerFee(address token, uint256 relayerFee) internal {
-        require(token != address(0), 'TASK_TOKEN_ZERO');
+        if (token == address(0)) revert TaskTokenZero();
         customRelayerFee[token] = relayerFee;
         emit CustomRelayerFeeSet(token, relayerFee);
     }

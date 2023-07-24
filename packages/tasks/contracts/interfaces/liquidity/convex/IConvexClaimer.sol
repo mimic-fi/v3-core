@@ -21,6 +21,16 @@ import './IBaseConvexTask.sol';
  */
 interface IConvexClaimer is IBaseConvexTask {
     /**
+     * @dev The amount is not zero
+     */
+    error TaskAmountNotZero();
+
+    /**
+     * @dev The length of the tokens out is not the same as the length of the amounts out
+     */
+    error ClaimerInvalidResultLength(uint256 tokensOutLength, uint256 amountsOutLength);
+
+    /**
      * @dev Executes the Convex claimer task
      */
     function call(address token, uint256 amount) external;

@@ -31,12 +31,20 @@ import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 library EnumerableMap {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    // AddressToUintMap
-
+    /**
+     * @dev Address to uint map
+     * @param _keys Set of map keys
+     * @param _values Map of values
+     */
     struct AddressToUintMap {
         EnumerableSet.AddressSet _keys;
         mapping (address => uint256) _values;
     }
+
+    /**
+     * @dev The key doesn't exist in the map
+     */
+    error EnumerableMapNonExistentKey(address indexed key);
 
     /**
      * @dev Adds a key-value pair to a map, or updates the value for an existing
@@ -116,7 +124,7 @@ library EnumerableMap {
      */
     function get(AddressToUintMap storage map, address key) internal view returns (uint256) {
         uint256 value = map._values[key];
-        require(value != 0 || contains(map, key), 'EnumerableMap: nonexistent key');
+        if (value == 0 && !contains(map, key)) revert EnumerableMapNonExistentKey(key);
         return value;
     }
 
@@ -217,7 +225,7 @@ library EnumerableMap {
      */
     function get(AddressToAddressMap storage map, address key) internal view returns (address) {
         address value = map._values[key];
-        require(value != address(0) || contains(map, key), 'EnumerableMap: nonexistent key');
+        if (value == 0 && !contains(map, key)) revert EnumerableMapNonExistentKey(key);
         return value;
     }
 

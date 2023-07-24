@@ -26,7 +26,7 @@ contract CollectorRelayerFunder is BaseRelayerFundTask, Collector {
      * @dev Disables the default collector initializer
      */
     function initialize(CollectConfig memory) external pure override {
-        revert('COLLECTOR_INITIALIZER_DISABLED');
+        revert TaskInitializerDisabled();
     }
 
     /**

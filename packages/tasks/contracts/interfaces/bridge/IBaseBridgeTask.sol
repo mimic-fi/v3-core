@@ -21,6 +21,21 @@ import '../ITask.sol';
  */
 interface IBaseBridgeTask is ITask {
     /**
+     * @dev The fee is higher than the maximum fee
+     */
+    error TaskFeeTooHigh(uint256 feePct, uint256 maxFeePct);
+
+    /**
+     * @dev The destination chain id is the same as the current chain id
+     */
+    error TaskBridgeCurrentChainId(uint256 destinationChain);
+
+    /**
+     * @dev The destination chain is not set
+     */
+    error TaskDestinationChainNotSet();
+
+    /**
      * @dev Emitted every time the connector is set
      */
     event ConnectorSet(address indexed connector);

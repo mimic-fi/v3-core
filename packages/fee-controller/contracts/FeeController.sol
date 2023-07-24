@@ -67,7 +67,7 @@ contract FeeController is IFeeController, Ownable {
      */
     function getFee(address smartVault) external view override returns (uint256 max, uint256 pct, address collector) {
         Fee storage fee = _fees[smartVault];
-        require(fee.maxPct > 0, 'FEE_CONTROLLER_SV_NOT_SET');
+        if (fee.maxPct == 0) revert FeeControllerSvNotSet(smartVault);
 
         pct = fee.pct;
         max = fee.maxPct;
@@ -88,13 +88,13 @@ contract FeeController is IFeeController, Ownable {
      * @param maxPct Max fee percentage to be set
      */
     function setMaxFeePercentage(address smartVault, uint256 maxPct) external override onlyOwner {
-        require(maxPct > 0, 'FEE_CONTROLLER_MAX_PCT_ZERO');
+        if (maxPct == 0) revert FeeControllerMaxPctZero(smartVault);
 
         Fee storage fee = _fees[smartVault];
         if (fee.maxPct == 0) {
-            require(maxPct < FixedPoint.ONE, 'FEE_CONTROLLER_MAX_PCT_ABOVE_ONE');
+            if (maxPct >= FixedPoint.ONE) revert FeeControllerMaxPctAboveOne(smartVault);
         } else {
-            require(maxPct < fee.maxPct, 'FEE_CONTROLLER_MAX_PCT_ABOVE_PRE');
+            if (maxPct >= fee.maxPct) revert FeeControllerMaxPctAbovePrevious(smartVault, maxPct, fee.maxPct);
         }
 
         fee.maxPct = maxPct;
@@ -117,9 +117,9 @@ contract FeeController is IFeeController, Ownable {
      * @param collector Fee collector to be set
      */
     function setFeeCollector(address smartVault, address collector) external override onlyOwner {
-        require(collector != address(0), 'FEE_CONTROLLER_COLLECTOR_ZERO');
+        if (collector == address(0)) revert FeeControllerCollectorZero(smartVault);
         Fee storage fee = _fees[smartVault];
-        require(fee.maxPct > 0, 'FEE_CONTROLLER_SV_NOT_SET');
+        if (fee.maxPct == 0) revert FeeControllerSvNotSet(smartVault);
         fee.collector = collector;
         emit FeeCollectorSet(smartVault, collector);
     }
@@ -129,7 +129,7 @@ contract FeeController is IFeeController, Ownable {
      * @param collector Default fee collector to be set
      */
     function _setDefaultFeeCollector(address collector) private {
-        require(collector != address(0), 'FEE_CONTROLLER_COLLECTOR_ZERO');
+        if (collector == address(0)) revert FeeControllerCollectorZero();
         defaultFeeCollector = collector;
         emit DefaultFeeCollectorSet(collector);
     }
@@ -141,8 +141,8 @@ contract FeeController is IFeeController, Ownable {
      */
     function _setFeePercentage(address smartVault, uint256 pct) private {
         Fee storage fee = _fees[smartVault];
-        require(fee.maxPct > 0, 'FEE_CONTROLLER_SV_NOT_SET');
-        require(pct <= fee.maxPct, 'FEE_CONTROLLER_PCT_ABOVE_MAX');
+        if (fee.maxPct == 0) revert FeeControllerSvNotSet(smartVault);
+        if (pct > fee.maxPct) revert FeeControllerPctAboveMax(smartVault, pct, fee.maxPct);
         fee.pct = pct;
         emit FeePercentageSet(smartVault, pct);
     }

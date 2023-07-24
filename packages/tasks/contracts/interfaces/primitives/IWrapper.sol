@@ -21,6 +21,11 @@ import '../ITask.sol';
  */
 interface IWrapper is ITask {
     /**
+     * @dev The token is not the native token
+     */
+    error TaskTokenNotNative();
+
+    /**
      * @dev Executes the wrapper task
      */
     function call(address token, uint256 amount) external;

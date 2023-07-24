@@ -26,6 +26,21 @@ import './IParaswapV5Augustus.sol';
  * @dev Interfaces with Paraswap V5 to swap tokens
  */
 contract ParaswapV5Connector {
+    /**
+     * @dev The token in is the same as the token out
+     */
+    error ParaswapV5SwapSameToken(address token);
+
+    /**
+     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
+     */
+    error ParaswapV5BadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+
+    /**
+     * @dev The amount out is less than the minimum amount out 
+     */
+    error ParaswapV5BadAmountOut(uint256 amountOut, uint256 minAmountOut);
+
     // Reference to Paraswap V5 Augustus swapper
     IParaswapV5Augustus public immutable paraswapV5Augustus;
 
@@ -49,7 +64,7 @@ contract ParaswapV5Connector {
         external
         returns (uint256 amountOut)
     {
-        require(tokenIn != tokenOut, 'PARASWAP_V5_SWAP_SAME_TOKEN');
+        if (tokenIn == tokenOut) revert ParaswapV5SwapSameToken(tokenIn);
 
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
@@ -59,10 +74,10 @@ contract ParaswapV5Connector {
         Address.functionCall(address(paraswapV5Augustus), data, 'PARASWAP_V5_SWAP_FAILED');
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
-        require(postBalanceIn >= preBalanceIn - amountIn, 'PARASWAP_V5_BAD_TOKEN_IN_BALANCE');
+        if (postBalanceIn < preBalanceIn - amountIn) revert ParaswapV5BadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;
-        require(amountOut >= minAmountOut, 'PARASWAP_V5_MIN_AMOUNT_OUT');
+        if (amountOut < minAmountOut) revert ParaswapV5BadAmountOut(amountOut, minAmountOut);
     }
 }

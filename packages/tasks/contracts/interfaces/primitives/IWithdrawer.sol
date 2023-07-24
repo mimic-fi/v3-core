@@ -21,6 +21,11 @@ import '../ITask.sol';
  */
 interface IWithdrawer is ITask {
     /**
+     * @dev The recipient to be set is the smart vault
+     */
+    error TaskRecipientSmartVault(address recipient);
+
+    /**
      * @dev Emitted every time the recipient is set
      */
     event RecipientSet(address indexed recipient);

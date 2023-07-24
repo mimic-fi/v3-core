@@ -27,6 +27,20 @@ import './ICvxBooster.sol';
  */
 contract ConvexConnector {
     using FixedPoint for uint256;
+    /**
+     * @dev Failed to deposit tokens into Convex booster
+     */
+    error ConvexBoosterDepositFailed(uint256 poolId, uint256 amount);
+
+    /**
+     * @dev Failed to withdraw tokens from Convex pool in the Convex booster
+     */
+    error ConvexCvxPoolWithdrawFailed(address cvxPool, uint256 amount);
+
+    /**
+     * @dev Convex pool associated with the given Curve pool not found
+     */
+    error ConvexCvxPoolNotFound(address curvePool);
 
     // Convex booster
     ICvxBooster public immutable booster;
@@ -83,7 +97,7 @@ contract ConvexConnector {
 
         uint256 initialCvxPoolTokenBalance = cvxPool.balanceOf(address(this));
         IERC20(curvePool).approve(address(booster), amount);
-        require(booster.deposit(poolId, amount), 'CONVEX_BOOSTER_DEPOSIT_FAILED');
+        if (!booster.deposit(poolId, amount)) revert ConvexBoosterDepositFailed(poolId, amount);
         uint256 finalCvxPoolTokenBalance = cvxPool.balanceOf(address(this));
         return finalCvxPoolTokenBalance - initialCvxPoolTokenBalance;
     }
@@ -99,7 +113,7 @@ contract ConvexConnector {
 
         // Unstake from Convex
         uint256 initialPoolTokenBalance = IERC20(curvePool).balanceOf(address(this));
-        require(ICvxPool(cvxPool).withdraw(amount, true), 'CONVEX_CVX_POOL_WITHDRAW_FAILED');
+        if (!ICvxPool(cvxPool).withdraw(amount, true)) revert ConvexCvxPoolWithdrawFailed(cvxPool, amount);
         uint256 finalPoolTokenBalance = IERC20(curvePool).balanceOf(address(this));
         return finalPoolTokenBalance - initialPoolTokenBalance;
     }
@@ -114,6 +128,6 @@ contract ConvexConnector {
                 return (i, ICvxPool(rewards));
             }
         }
-        revert('CONVEX_CVX_POOL_NOT_FOUND');
+        revert ConvexCvxPoolNotFound(curvePool);
     }
 }

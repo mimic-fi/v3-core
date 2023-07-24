@@ -21,6 +21,21 @@ import './IBaseTask.sol';
  */
 interface ITimeLockedTask is IBaseTask {
     /**
+     * @dev The time-lock has not expired
+     */
+    error TaskTimeLockNotExpired(uint256 timeLockExpiration);
+
+    /**
+     * @dev The execution period has expired
+     */
+    error TaskTimeLockWaitNextPeriod(uint256 offset, uint256 timeLockExecutionPeriod);
+
+    /**
+     * @dev The execution period is greater than the time-lock delay
+     */
+    error TaskExecutionPeriodGtDelay(uint256 executionPeriod, uint256 delay);
+
+    /**
      * @dev Emitted every time a new time-lock delay is set
      */
     event TimeLockDelaySet(uint256 delay);

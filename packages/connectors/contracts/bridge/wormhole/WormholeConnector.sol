@@ -26,6 +26,36 @@ import './IWormhole.sol';
  * @dev Interfaces with Wormhole to bridge tokens through CCTP
  */
 contract WormholeConnector {
+    /**
+     * @dev The chain ID is the same of the current chain
+     */
+    error WormholeBridgeSameChain(uint256 chainId);
+
+    /**
+     * @dev The recipient address is zero
+     */
+    error WormholeBridgeRecipientZero();
+
+    /**
+     * @dev The relayer fee is greater than the amount to be bridged
+     */
+    error WormholeBridgeRelayerFeeGTAmount(uint256 relayerFee, uint256 amountIn);
+
+    /**
+     * @dev The minimum amount out is greater than the amount to be bridged minus the relayer fee
+     */
+    error WormholeBridgeMinAmountOutTooBig(uint256 minAmountOut, uint256 amountIn, uint256 relayerFee);
+
+    /**
+     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
+     */
+    error WormholeBridgeBadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+
+    /**
+     * @dev The chain ID is not supported
+     */
+    error WormholeBridgeUnknownChainId(uint256 chainId);
+
     // List of Wormhole network IDs
     uint16 private constant ETHEREUM_WORMHOLE_NETWORK_ID = 2;
     uint16 private constant POLYGON_WORMHOLE_NETWORK_ID = 5;
@@ -66,13 +96,13 @@ contract WormholeConnector {
     function execute(uint256 chainId, address token, uint256 amountIn, uint256 minAmountOut, address recipient)
         external
     {
-        require(block.chainid != chainId, 'WORMHOLE_BRIDGE_SAME_CHAIN');
-        require(recipient != address(0), 'WORMHOLE_BRIDGE_RECIPIENT_ZERO');
+        if (block.chainid == chainId) revert WormholeBridgeSameChain(chainId);
+        if (recipient == address(0)) revert WormholeBridgeRecipientZero();
 
         uint16 wormholeNetworkId = _getWormholeNetworkId(chainId);
         uint256 relayerFee = wormholeCircleRelayer.relayerFee(wormholeNetworkId, token);
-        require(relayerFee <= amountIn, 'WORMHOLE_RELAYER_FEE_GT_AMT_IN');
-        require(minAmountOut <= amountIn - relayerFee, 'WORMHOLE_MIN_AMOUNT_OUT_TOO_BIG');
+        if (relayerFee > amountIn) revert WormholeBridgeRelayerFeeGTAmount(relayerFee, amountIn);
+        if (minAmountOut > amountIn - relayerFee) revert WormholeBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
 
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
 
@@ -86,13 +116,13 @@ contract WormholeConnector {
         );
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        require(postBalanceIn >= preBalanceIn - amountIn, 'WORMHOLE_BAD_TOKEN_IN_BALANCE');
+        if (postBalanceIn < preBalanceIn - amountIn) revert WormholeBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**
      * @dev Tells the Wormhole network ID based on a chain ID
      * @param chainId ID of the chain being queried
-     * @return Wormhole network ID associated to the requested chain ID
+     * @return Wormhole network ID associated with the requested chain ID
      */
     function _getWormholeNetworkId(uint256 chainId) internal pure returns (uint16) {
         if (chainId == ETHEREUM_ID) return ETHEREUM_WORMHOLE_NETWORK_ID;
@@ -102,6 +132,6 @@ contract WormholeConnector {
         else if (chainId == BSC_ID) return BSC_WORMHOLE_NETWORK_ID;
         else if (chainId == FANTOM_ID) return FANTOM_WORMHOLE_NETWORK_ID;
         else if (chainId == AVALANCHE_ID) return AVALANCHE_WORMHOLE_NETWORK_ID;
-        else revert('WORMHOLE_UNKNOWN_CHAIN_ID');
+        else revert WormholeBridgeUnknownChainId(chainId);
     }
 }

@@ -117,7 +117,7 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
      */
     function _beforeHopL2Swapper(address token, uint256 amount, uint256 slippage) internal virtual {
         _beforeBaseSwapTask(token, amount, slippage);
-        require(tokenAmm[token] != address(0), 'TASK_MISSING_HOP_TOKEN_AMM');
+        if (tokenAmm[token] == address(0)) revert TaskMissingHopTokenAmm();
     }
 
     /**
@@ -139,8 +139,9 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
      * @param amm AMM to be set
      */
     function _setTokenAmm(address hToken, address amm) internal {
-        require(hToken != address(0), 'TASK_HOP_TOKEN_ZERO');
-        require(amm == address(0) || hToken == IHopL2Amm(amm).hToken(), 'TASK_HOP_TOKEN_AMM_MISMATCH');
+        if (hToken == address(0)) revert TaskTokenZero();
+        address hopL2AmmHToken = IHopL2Amm(amm).hToken();
+        if (amm != address(0) && hToken != hopL2AmmHToken) revert TaskHopTokenAmmMismatch(hToken, amm, hopL2AmmHToken);
 
         tokenAmm[hToken] = amm;
         emit TokenAmmSet(hToken, amm);

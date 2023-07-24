@@ -117,26 +117,26 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
      */
     function _beforeGasLimitedTask(address, uint256) internal virtual {
         __initialGas__ = gasleft();
-        require(gasPriceLimit == 0 || tx.gasprice <= gasPriceLimit, 'TASK_GAS_PRICE_LIMIT');
-        require(priorityFeeLimit == 0 || tx.gasprice - block.basefee <= priorityFeeLimit, 'TASK_PRIORITY_FEE_LIMIT');
+        if (gasPriceLimit > 0 && tx.gasprice > gasPriceLimit) revert TaskGasPriceLimit(tx.gasprice, gasPriceLimit);
+        if (priorityFeeLimit > 0 && tx.gasprice - block.basefee > priorityFeeLimit) revert TaskPriorityFeeLimit(tx.gasprice, block.basefee, priorityFeeLimit);
     }
 
     /**
      * @dev Validates transaction cost limit
      */
     function _afterGasLimitedTask(address token, uint256 amount) internal virtual {
-        require(__initialGas__ > 0, 'TASK_GAS_NOT_INITIALIZED');
+        if (__initialGas__ == 0) revert TaskGasNotInitialized();
 
         uint256 totalGas = __initialGas__ - gasleft();
         uint256 totalCost = totalGas * tx.gasprice;
-        require(txCostLimit == 0 || totalCost <= txCostLimit, 'TASK_TX_COST_LIMIT');
+        if (txCostLimit > 0 && totalCost > txCostLimit) revert TaskTxCostLimit(totalCost, txCostLimit);
         delete __initialGas__;
 
         if (txCostLimitPct > 0) {
-            require(amount > 0, 'TASK_TX_COST_LIMIT_PCT');
+            if (amount == 0) revert GasLimitedTaskAmountZero();
             uint256 price = _getPrice(ISmartVault(this.smartVault()).wrappedNativeToken(), token);
             uint256 totalCostInToken = totalCost.mulUp(price);
-            require(totalCostInToken.divUp(amount) <= txCostLimitPct, 'TASK_TX_COST_LIMIT_PCT');
+            if (totalCostInToken.divUp(amount) > txCostLimitPct) revert TaskTxCostLimitPct(totalCostInToken, amount, txCostLimitPct);
         }
     }
 
@@ -172,7 +172,7 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
      * @param newTxCostLimitPct New transaction cost limit percentage to be set
      */
     function _setTxCostLimitPct(uint256 newTxCostLimitPct) internal {
-        require(newTxCostLimitPct <= FixedPoint.ONE, 'TASK_TX_COST_LIMIT_PCT_ABOVE_ONE');
+        if (newTxCostLimitPct > FixedPoint.ONE) revert TaskTxCostLimitPctAboveOne();
         txCostLimitPct = newTxCostLimitPct;
         emit TxCostLimitPctSet(newTxCostLimitPct);
     }

@@ -28,6 +28,26 @@ import './IUniswapV2Router02.sol';
  * @dev Interfaces with Uniswap V2 to swap tokens
  */
 contract UniswapV2Connector {
+    /**
+     * @dev The token in is the same as the token out
+     */
+    error UniswapV2SwapSameToken(address token);
+
+    /**
+     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
+     */
+    error UniswapV2BadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+
+    /**
+     * @dev The amount out is less than the minimum amount out 
+     */
+    error UniswapV2BadAmountOut(uint256 amountOut, uint256 minAmountOut);
+
+    /**
+     * @dev The pool does not exist
+     */
+    error UniswapV2InvalidPool(address factory, address tokenA, address tokenB);
+
     // Reference to UniswapV2 router
     IUniswapV2Router02 public immutable uniswapV2Router;
 
@@ -54,7 +74,7 @@ contract UniswapV2Connector {
         uint256 minAmountOut,
         address[] memory hopTokens
     ) external returns (uint256 amountOut) {
-        require(tokenIn != tokenOut, 'UNI_V2_SWAP_SAME_TOKEN');
+        if (tokenIn == tokenOut) revert UniswapV2SwapSameToken(tokenIn);
 
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
@@ -65,11 +85,11 @@ contract UniswapV2Connector {
             : _batchSwap(tokenIn, tokenOut, amountIn, minAmountOut, hopTokens);
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
-        require(postBalanceIn >= preBalanceIn - amountIn, 'UNI_V2_BAD_TOKEN_IN_BALANCE');
+        if (postBalanceIn < preBalanceIn - amountIn) revert UniswapV2BadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;
-        require(amountOut >= minAmountOut, 'UNI_V2_MIN_AMOUNT_OUT');
+        if (amountOut < minAmountOut) revert UniswapV2BadAmountOut(amountOut, minAmountOut);
     }
 
     /**
@@ -120,6 +140,6 @@ contract UniswapV2Connector {
      */
     function _validatePool(address factory, address tokenA, address tokenB) private view {
         address pool = IUniswapV2Factory(factory).getPair(tokenA, tokenB);
-        require(pool != address(0), 'INVALID_UNISWAP_POOL');
+        if (pool == address(0)) revert UniswapV2InvalidPool(factory, tokenA, tokenB);
     }
 }

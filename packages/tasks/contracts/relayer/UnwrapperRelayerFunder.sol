@@ -26,7 +26,7 @@ contract UnwrapperRelayerFunder is BaseRelayerFundTask, Unwrapper {
      * @dev Disables the default unwrapper initializer
      */
     function initialize(UnwrapConfig memory) external pure override {
-        revert('UNWRAPPER_INITIALIZER_DISABLED');
+        revert TaskInitializerDisabled();
     }
 
     /**

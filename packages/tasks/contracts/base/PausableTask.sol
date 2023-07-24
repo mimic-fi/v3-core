@@ -46,7 +46,7 @@ abstract contract PausableTask is IPausableTask, Authorized {
      * @dev Pauses a task
      */
     function pause() external override auth {
-        require(!isPaused, 'TASK_ALREADY_PAUSED');
+        if (isPaused) revert TaskAlreadyPaused();
         isPaused = true;
         emit Paused();
     }
@@ -55,7 +55,7 @@ abstract contract PausableTask is IPausableTask, Authorized {
      * @dev Unpauses a task
      */
     function unpause() external override auth {
-        require(isPaused, 'TASK_ALREADY_UNPAUSED');
+        if (!isPaused) revert TaskAlreadyUnpaused();
         isPaused = false;
         emit Unpaused();
     }
@@ -64,7 +64,7 @@ abstract contract PausableTask is IPausableTask, Authorized {
      * @dev Before pausable task hook
      */
     function _beforePausableTask(address, uint256) internal virtual {
-        require(!isPaused, 'TASK_PAUSED');
+        if (isPaused) revert TaskPaused();
     }
 
     /**

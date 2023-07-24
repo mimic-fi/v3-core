@@ -81,7 +81,7 @@ interface IRelayer {
     /**
      * @dev It failed to send amount minus quota to the smart vault's collector
      */
-    error RelayerCollectorFailed(address indexed smartVault, uint256 amount, uint256 quota);
+    error RelayerCollectorFailed(address smartVault, uint256 amount, uint256 quota);
 
     /**
      * @dev Emitted every time an executor is configured

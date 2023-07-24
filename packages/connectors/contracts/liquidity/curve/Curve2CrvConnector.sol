@@ -26,6 +26,20 @@ import './I2CrvPool.sol';
  */
 contract Curve2CrvConnector {
     using FixedPoint for uint256;
+    /**
+     * @dev Failed to find the token in the 2CRV pool
+     */
+    error TokenNotFound(address pool, address token);
+
+    /**
+     * @dev Token decimals exceed 18
+     */
+    error TokenDecimalsAbove18(address token, uint256 decimals);
+
+    /**
+     * @dev The slippage is above one
+     */
+    error InvalidSlippage(uint256 slippage);
 
     /**
      * @dev Adds liquidity to the 2CRV pool
@@ -36,7 +50,7 @@ contract Curve2CrvConnector {
      */
     function join(address pool, address tokenIn, uint256 amountIn, uint256 slippage) external returns (uint256) {
         if (amountIn == 0) return 0;
-        require(slippage <= FixedPoint.ONE, '2CRV_SLIPPAGE_ABOVE_ONE');
+        if (slippage > FixedPoint.ONE) revert InvalidSlippage(slippage);
         (uint256 tokenIndex, uint256 tokenScale) = _findTokenInfo(pool, tokenIn);
 
         // Compute min amount out
@@ -65,7 +79,7 @@ contract Curve2CrvConnector {
         returns (uint256 amountOut)
     {
         if (amountIn == 0) return 0;
-        require(slippage <= FixedPoint.ONE, '2CRV_INVALID_SLIPPAGE');
+        if (slippage > FixedPoint.ONE) revert InvalidSlippage(slippage);
         (uint256 tokenIndex, uint256 tokenScale) = _findTokenInfo(pool, tokenOut);
 
         // Compute min amount out
@@ -87,13 +101,13 @@ contract Curve2CrvConnector {
             try I2CrvPool(pool).coins(i) returns (address coin) {
                 if (token == coin) {
                     uint256 decimals = IERC20Metadata(token).decimals();
-                    require(decimals <= 18, '2CRV_TOKEN_ABOVE_18_DECIMALS');
+                    if (decimals > 18) revert TokenDecimalsAbove18(token, decimals);
                     return (i, 10**(18 - decimals));
                 }
             } catch {
-                revert('2CRV_TOKEN_NOT_FOUND');
+                revert TokenNotFound(pool, token);
             }
         }
-        revert('2CRV_TOKEN_NOT_FOUND');
+        revert TokenNotFound(pool, token);
     }
 }

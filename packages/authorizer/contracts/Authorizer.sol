@@ -165,7 +165,7 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
     function authorize(address who, address where, bytes4 what, Param[] memory params) public override nonReentrant {
         uint256[] memory how = authParams(who, where, what);
         bool allowed = isAuthorized(msg.sender, address(this), IAuthorizer.authorize.selector, how);
-        require(allowed, 'AUTHORIZER_SENDER_NOT_ALLOWED');
+        if (!allowed) revert AuthorizerSenderNotAllowed(msg.sender, address(this), IAuthorizer.authorize.selector, how);
         _authorize(who, where, what, params);
     }
 
@@ -178,7 +178,7 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
     function unauthorize(address who, address where, bytes4 what) public override nonReentrant {
         uint256[] memory how = authParams(who, where, what);
         bool allowed = isAuthorized(msg.sender, address(this), IAuthorizer.unauthorize.selector, how);
-        require(allowed, 'AUTHORIZER_SENDER_NOT_ALLOWED');
+        if (!allowed) revert AuthorizerSenderNotAllowed(msg.sender, address(this), IAuthorizer.unauthorize.selector, how);
         _unauthorize(who, where, what);
     }
 
@@ -255,6 +255,6 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
         if (Op(param.op) == Op.LT) return how < param.value;
         if (Op(param.op) == Op.GTE) return how >= param.value;
         if (Op(param.op) == Op.LTE) return how <= param.value;
-        revert('AUTHORIZER_INVALID_PARAM_OP');
+        revert AuthorizerInvalidParamOp(param.op);
     }
 }

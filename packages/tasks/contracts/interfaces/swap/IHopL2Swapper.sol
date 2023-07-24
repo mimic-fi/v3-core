@@ -21,6 +21,16 @@ import './IBaseSwapTask.sol';
  */
 interface IHopL2Swapper is IBaseSwapTask {
     /**
+     * @dev The amm for the token is zero
+     */
+    error TaskMissingHopTokenAmm();
+
+    /**
+     * @dev The hToken to be set is not the Hop L2 amm hToken
+     */
+    error TaskHopTokenAmmMismatch(address hToken, address amm, address hopL2AmmHToken);    
+
+    /**
      * @dev Emitted every time an AMM is set for a token
      */
     event TokenAmmSet(address indexed token, address amm);

@@ -67,9 +67,9 @@ contract Registry is IRegistry, Ownable {
      * @param implementation Address of the implementation to be deprecated
      */
     function deprecate(address implementation) external override onlyOwner {
-        require(implementation != address(0), 'REGISTRY_IMPL_ADDRESS_ZERO');
-        require(isRegistered[implementation], 'REGISTRY_IMPL_NOT_REGISTERED');
-        require(!isDeprecated[implementation], 'REGISTRY_IMPL_ALREADY_DEPRECATED');
+        if (implementation == address(0)) revert RegistryImplAddressZero();
+        if (!isRegistered[implementation]) revert RegistryImplNotRegistered(implementation);
+        if (isDeprecated[implementation]) revert RegistryImplAlreadyDeprecated(implementation);
 
         isDeprecated[implementation] = true;
         emit Deprecated(implementation);
@@ -82,8 +82,8 @@ contract Registry is IRegistry, Ownable {
      * @param stateless Whether the given implementation is considered stateless or not
      */
     function _register(string memory name, address implementation, bool stateless) internal {
-        require(implementation != address(0), 'REGISTRY_IMPL_ADDRESS_ZERO');
-        require(!isRegistered[implementation], 'REGISTRY_IMPL_ALREADY_REGISTERED');
+        if (implementation == address(0)) revert RegistryImplAddressZero();
+        if (isRegistered[implementation]) revert RegistryImplAlreadyRegistered(implementation);
 
         isRegistered[implementation] = true;
         isStateless[implementation] = stateless;

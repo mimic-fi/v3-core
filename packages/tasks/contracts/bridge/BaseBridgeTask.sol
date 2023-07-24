@@ -187,10 +187,11 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      */
     function _beforeBaseBridgeTask(address token, uint256 amount, uint256 slippage) internal virtual {
         _beforeTask(token, amount);
-        require(token != address(0), 'TASK_TOKEN_ZERO');
-        require(amount > 0, 'TASK_AMOUNT_ZERO');
-        require(getDestinationChain(token) != 0, 'TASK_DESTINATION_CHAIN_NOT_SET');
-        require(slippage <= getMaxSlippage(token), 'TASK_SLIPPAGE_TOO_HIGH');
+        if (token == address(0)) revert TaskTokenZero();
+        if (amount == 0) revert TaskAmountZero();
+        if (getDestinationChain(token) == 0) revert TaskDestinationChainNotSet();
+        uint256 maxSlippage = getMaxSlippage(token);
+        if (slippage > maxSlippage) revert TaskSlippageTooHigh(slippage, maxSlippage);
     }
 
     /**
@@ -206,7 +207,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @param next Balance connector id of the next task in the workflow
      */
     function _setBalanceConnectors(bytes32 previous, bytes32 next) internal virtual override {
-        require(next == bytes32(0), 'TASK_NEXT_CONNECTOR_NOT_ZERO');
+        if (next != bytes32(0)) revert TaskNextConnectorNotZero(next);
         super._setBalanceConnectors(previous, next);
     }
 
@@ -215,7 +216,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @param newConnector Address of the connector to be set
      */
     function _setConnector(address newConnector) internal {
-        require(newConnector != address(0), 'TASK_CONNECTOR_ZERO');
+        if (newConnector == address(0)) revert TaskConnectorZero();
         connector = newConnector;
         emit ConnectorSet(newConnector);
     }
@@ -225,7 +226,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @param newRecipient Address of the new recipient to be set
      */
     function _setRecipient(address newRecipient) internal {
-        require(newRecipient != address(0), 'TASK_RECIPIENT_ZERO');
+        if (newRecipient == address(0)) revert TaskRecipientZero();
         recipient = newRecipient;
         emit RecipientSet(newRecipient);
     }
@@ -235,7 +236,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @param destinationChain Default destination chain to be set
      */
     function _setDefaultDestinationChain(uint256 destinationChain) internal {
-        require(destinationChain != block.chainid, 'TASK_BRIDGE_CURRENT_CHAIN_ID');
+        if (destinationChain == block.chainid) revert TaskBridgeCurrentChainId(destinationChain);
         defaultDestinationChain = destinationChain;
         emit DefaultDestinationChainSet(destinationChain);
     }
@@ -245,7 +246,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @param maxSlippage Default max slippage to be set
      */
     function _setDefaultMaxSlippage(uint256 maxSlippage) internal {
-        require(maxSlippage <= FixedPoint.ONE, 'TASK_SLIPPAGE_ABOVE_ONE');
+        if (maxSlippage > FixedPoint.ONE) revert TaskSlippageAboveOne();
         defaultMaxSlippage = maxSlippage;
         emit DefaultMaxSlippageSet(maxSlippage);
     }
@@ -256,8 +257,8 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @param destinationChain Destination chain to be set
      */
     function _setCustomDestinationChain(address token, uint256 destinationChain) internal {
-        require(token != address(0), 'TASK_TOKEN_ZERO');
-        require(destinationChain != block.chainid, 'TASK_BRIDGE_CURRENT_CHAIN_ID');
+        if (token == address(0)) revert TaskTokenZero();
+        if (destinationChain == block.chainid) revert TaskBridgeCurrentChainId(destinationChain);
         customDestinationChain[token] = destinationChain;
         emit CustomDestinationChainSet(token, destinationChain);
     }
@@ -268,8 +269,8 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @param maxSlippage Max slippage to be set
      */
     function _setCustomMaxSlippage(address token, uint256 maxSlippage) internal {
-        require(token != address(0), 'TASK_TOKEN_ZERO');
-        require(maxSlippage <= FixedPoint.ONE, 'TASK_SLIPPAGE_ABOVE_ONE');
+        if (token == address(0)) revert TaskTokenZero();
+        if (maxSlippage > FixedPoint.ONE) revert TaskSlippageAboveOne();
         customMaxSlippage[token] = maxSlippage;
         emit CustomMaxSlippageSet(token, maxSlippage);
     }

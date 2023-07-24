@@ -25,6 +25,16 @@ interface IBaseTask is IAuthorized {
     function EXECUTION_TYPE() external view returns (bytes32);
 
     /**
+     * @dev The balance connectors are the same
+     */
+    error TaskSameBalanceConnectors(bytes32 connectorId);
+
+    /**
+     * @dev The price oracle is not set
+     */
+    error TaskPriceOracleNotSet(address base, address quote);
+
+    /**
      * @dev Emitted every time a task is executed
      */
     event Executed();
