@@ -45,9 +45,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
           const next = '0x0000000000000000000000000000000000000000000000000000000000000002'
 
           it('reverts', async function () {
-            await expect(this.task.setBalanceConnectors(previous, next)).to.be.revertedWith(
-              'TASK_NEXT_CONNECTOR_NOT_ZERO'
-            )
+            await expect(this.task.setBalanceConnectors(previous, next)).to.be.revertedWith('TaskNextConnectorNotZero')
           })
         })
       })
@@ -63,7 +61,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
         await expect(this.task.setBalanceConnectors(ZERO_BYTES32, ZERO_BYTES32)).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
+          'AuthSenderNotAllowed'
         )
       })
     })
@@ -101,14 +99,14 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
         const connector = ZERO_ADDRESS
 
         it('reverts', async function () {
-          await expect(this.task.setConnector(connector)).to.be.revertedWith('TASK_CONNECTOR_ZERO')
+          await expect(this.task.setConnector(connector)).to.be.revertedWith('TaskConnectorZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(this.task.setConnector(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(this.task.setConnector(ZERO_ADDRESS)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -139,14 +137,14 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
         const recipient = ZERO_ADDRESS
 
         it('reverts', async function () {
-          await expect(this.task.setRecipient(recipient)).to.be.revertedWith('TASK_RECIPIENT_ZERO')
+          await expect(this.task.setRecipient(recipient)).to.be.revertedWith('TaskRecipientZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(this.task.setRecipient(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(this.task.setRecipient(ZERO_ADDRESS)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -183,9 +181,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
             const chainId = 31337 // Hardhat destination chain
 
             it('reverts', async function () {
-              await expect(this.task.setDefaultDestinationChain(chainId)).to.be.revertedWith(
-                'TASK_BRIDGE_CURRENT_CHAIN_ID'
-              )
+              await expect(this.task.setDefaultDestinationChain(chainId)).to.be.revertedWith('TaskBridgeCurrentChainId')
             })
           })
         }
@@ -242,7 +238,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(this.task.setDefaultDestinationChain(1)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(this.task.setDefaultDestinationChain(1)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -304,7 +300,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
 
           it('reverts', async function () {
             await expect(this.task.setCustomDestinationChain(token.address, chainId)).to.be.revertedWith(
-              'TASK_BRIDGE_CURRENT_CHAIN_ID'
+              'TaskBridgeCurrentChainId'
             )
           })
         })
@@ -346,7 +342,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(this.task.setCustomDestinationChain(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(this.task.setCustomDestinationChain(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -381,14 +377,14 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
         const slippage = fp(1).add(1)
 
         it('reverts', async function () {
-          await expect(this.task.setDefaultMaxSlippage(slippage)).to.be.revertedWith('TASK_SLIPPAGE_ABOVE_ONE')
+          await expect(this.task.setDefaultMaxSlippage(slippage)).to.be.revertedWith('TaskSlippageAboveOne')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(this.task.setDefaultMaxSlippage(1)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(this.task.setDefaultMaxSlippage(1)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -430,7 +426,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
 
         it('reverts', async function () {
           await expect(this.task.setCustomMaxSlippage(token.address, slippage)).to.be.revertedWith(
-            'TASK_SLIPPAGE_ABOVE_ONE'
+            'TaskSlippageAboveOne'
           )
         })
       })
@@ -438,7 +434,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(this.task.setCustomMaxSlippage(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(this.task.setCustomMaxSlippage(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

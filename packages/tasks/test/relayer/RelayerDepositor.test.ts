@@ -65,14 +65,14 @@ describe('RelayerDepositor', () => {
 
       context('when the relayer is zero', () => {
         it('reverts', async () => {
-          await expect(task.setRelayer(ZERO_ADDRESS)).to.be.revertedWith('TASK_RELAYER_DEPOSITOR_ZERO')
+          await expect(task.setRelayer(ZERO_ADDRESS)).to.be.revertedWith('TaskRelayerZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setRelayer(relayer.address)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setRelayer(relayer.address)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -142,7 +142,7 @@ describe('RelayerDepositor', () => {
           })
 
           it('reverts', async () => {
-            await expect(task.call(token, amount)).to.be.revertedWith('TASK_TOKEN_THRESHOLD_NOT_MET')
+            await expect(task.call(token, amount)).to.be.revertedWith('TaskTokenThresholdNotMet')
           })
         })
       })
@@ -151,14 +151,14 @@ describe('RelayerDepositor', () => {
         const amount = 0
 
         it('reverts', async () => {
-          await expect(task.call(token, amount)).to.be.revertedWith('TASK_AMOUNT_ZERO')
+          await expect(task.call(token, amount)).to.be.revertedWith('TaskAmountZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(token, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(token, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

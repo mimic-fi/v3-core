@@ -134,7 +134,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @dev Unpauses a samrt vault. Sender must be authorized.
      */
     function unpause() external override auth {
-        if (!isPaused) revert SmartVaultAlreadyPaused(address(this));
+        if (!isPaused) revert SmartVaultAlreadyUnpaused(address(this));
         isPaused = false;
         emit Unpaused();
     }
@@ -183,8 +183,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         notPaused
         authP(authParams(id, token, amount, add))
     {
-        if (id == bytes32(0)) revert SmartVaultConnectorIdZero(address(this));
-        if (token == address(0)) revert SmartVaultConnectorTokenZero(address(this));
+        if (id == bytes32(0) || token == address(0)) revert SmartVaultConnectorInputZero(address(this));
         (add ? _increaseBalanceConnector : _decreaseBalanceConnector)(id, token, amount);
     }
 
@@ -233,7 +232,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     function wrap(uint256 amount) external override nonReentrant notPaused authP(authParams(amount)) {
         if (amount == 0) revert SmartVaultAmountZero(address(this));
         uint256 balance = address(this).balance;
-        if (balance < amount) revert SmartVaultInsufficentBalance(address(this), balance, amount);
+        if (balance < amount) revert SmartVaultInsufficientBalance(address(this), balance, amount);
         IWrappedNativeToken(wrappedNativeToken).deposit{ value: amount }();
         emit Wrapped(amount);
     }
@@ -330,7 +329,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      */
     function _decreaseBalanceConnector(bytes32 id, address token, uint256 amount) internal {
         uint256 value = getBalanceConnector[id][token];
-        if (value < amount) revert SmartVaultConnectorInsufficentBalance(address(this), id, token, value, amount);
+        if (value < amount) revert SmartVaultConnectorInsuffBalance(address(this), id, token, value, amount);
         getBalanceConnector[id][token] = value - amount;
         emit BalanceConnectorUpdated(id, token, amount, false);
     }

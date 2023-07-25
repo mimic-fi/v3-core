@@ -158,9 +158,7 @@ describe('WormholeBridger', () => {
 
                 context('when the slippage is above the limit', () => {
                   it('reverts', async () => {
-                    await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith(
-                      'TASK_SLIPPAGE_TOO_HIGH'
-                    )
+                    await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith('TaskSlippageTooHigh')
                   })
                 })
               })
@@ -178,7 +176,7 @@ describe('WormholeBridger', () => {
 
                 it('reverts', async () => {
                   await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith(
-                    'TASK_TOKEN_THRESHOLD_NOT_MET'
+                    'TaskTokenThresholdNotMet'
                   )
                 })
               })
@@ -192,7 +190,7 @@ describe('WormholeBridger', () => {
               })
 
               it('reverts', async () => {
-                await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+                await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith('TaskTokenNotAllowed')
               })
             })
           })
@@ -200,7 +198,7 @@ describe('WormholeBridger', () => {
           context('when the destination chain was not set', () => {
             it('reverts', async () => {
               await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith(
-                'TASK_DESTINATION_CHAIN_NOT_SET'
+                'TaskDestinationChainNotSet'
               )
             })
           })
@@ -210,7 +208,7 @@ describe('WormholeBridger', () => {
           const amount = 0
 
           it('reverts', async () => {
-            await expect(task.call(token.address, amount, 0)).to.be.revertedWith('TASK_AMOUNT_ZERO')
+            await expect(task.call(token.address, amount, 0)).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -219,14 +217,14 @@ describe('WormholeBridger', () => {
         const token = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(token, 0, 0)).to.be.revertedWith('TASK_TOKEN_ZERO')
+          await expect(task.call(token, 0, 0)).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

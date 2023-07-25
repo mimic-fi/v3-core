@@ -125,7 +125,7 @@ describe('Deployer', () => {
         it('reverts', async () => {
           await expect(
             deployer.deployAuthorizer(namespace, name, { impl: authorizer.address, owners: [sender.address] })
-          ).to.be.revertedWith('DEPLOYER_IMPL_DEPRECATED')
+          ).to.be.revertedWith('DeployerImplDeprecated')
         })
       })
     })
@@ -134,7 +134,7 @@ describe('Deployer', () => {
       it('reverts', async () => {
         await expect(
           deployer.deployAuthorizer(namespace, name, { impl: authorizer.address, owners: [sender.address] })
-        ).to.be.revertedWith('DEPLOYER_IMPL_NOT_REGISTERED')
+        ).to.be.revertedWith('DeployerImplNotRegistered')
       })
     })
   })
@@ -262,7 +262,7 @@ describe('Deployer', () => {
         it('reverts', async () => {
           await expect(
             deployer.deployPriceOracle(namespace, name, { impl: priceOracle.address, ...priceOracleParams })
-          ).to.be.revertedWith('DEPLOYER_IMPL_DEPRECATED')
+          ).to.be.revertedWith('DeployerImplDeprecated')
         })
       })
     })
@@ -271,7 +271,7 @@ describe('Deployer', () => {
       it('reverts', async () => {
         await expect(
           deployer.deployPriceOracle(namespace, name, { impl: priceOracle.address, ...priceOracleParams })
-        ).to.be.revertedWith('DEPLOYER_IMPL_NOT_REGISTERED')
+        ).to.be.revertedWith('DeployerImplNotRegistered')
       })
     })
   })
@@ -390,7 +390,7 @@ describe('Deployer', () => {
         it('reverts', async () => {
           await expect(
             deployer.deploySmartVault(namespace, name, { impl: smartVault.address, ...smartVaultParams })
-          ).to.be.revertedWith('DEPLOYER_IMPL_DEPRECATED')
+          ).to.be.revertedWith('DeployerImplDeprecated')
         })
       })
     })
@@ -399,7 +399,7 @@ describe('Deployer', () => {
       it('reverts', async () => {
         await expect(
           deployer.deploySmartVault(namespace, name, { impl: smartVault.address, ...smartVaultParams })
-        ).to.be.revertedWith('DEPLOYER_IMPL_NOT_REGISTERED')
+        ).to.be.revertedWith('DeployerImplNotRegistered')
       })
     })
   })
@@ -520,7 +520,7 @@ describe('Deployer', () => {
 
         it('reverts', async () => {
           await expect(deployer.deployTask(namespace, name, { impl: task.address, initializeData })).to.be.revertedWith(
-            'DEPLOYER_IMPL_DEPRECATED'
+            'DeployerImplDeprecated'
           )
         })
       })
@@ -529,7 +529,7 @@ describe('Deployer', () => {
     context('when the implementation is not registered', () => {
       it('reverts', async () => {
         await expect(deployer.deployTask(namespace, name, { impl: task.address, initializeData })).to.be.revertedWith(
-          'DEPLOYER_IMPL_NOT_REGISTERED'
+          'DeployerImplNotRegistered'
         )
       })
     })

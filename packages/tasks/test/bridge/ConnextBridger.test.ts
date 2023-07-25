@@ -91,7 +91,7 @@ describe('ConnextBridger', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(task.setDefaultRelayerFee(1)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setDefaultRelayerFee(1)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -127,7 +127,7 @@ describe('ConnextBridger', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(task.setCustomRelayerFee(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setCustomRelayerFee(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -238,7 +238,7 @@ describe('ConnextBridger', () => {
                   context('when the relayer fee is too high', () => {
                     it('reverts', async () => {
                       await expect(task.call(token.address, amountIn, 0, relayerFee)).to.be.revertedWith(
-                        'TASK_FEE_TOO_HIGH'
+                        'TaskFeeTooHigh'
                       )
                     })
                   })
@@ -247,7 +247,7 @@ describe('ConnextBridger', () => {
                 context('when the slippage is above the limit', () => {
                   it('reverts', async () => {
                     await expect(task.call(token.address, amountIn, slippage, 0)).to.be.revertedWith(
-                      'TASK_SLIPPAGE_TOO_HIGH'
+                      'TaskSlippageTooHigh'
                     )
                   })
                 })
@@ -266,7 +266,7 @@ describe('ConnextBridger', () => {
 
                 it('reverts', async () => {
                   await expect(task.call(token.address, amountIn, slippage, relayerFee)).to.be.revertedWith(
-                    'TASK_TOKEN_THRESHOLD_NOT_MET'
+                    'TaskTokenThresholdNotMet'
                   )
                 })
               })
@@ -281,7 +281,7 @@ describe('ConnextBridger', () => {
 
               it('reverts', async () => {
                 await expect(task.call(token.address, amountIn, slippage, relayerFee)).to.be.revertedWith(
-                  'TASK_TOKEN_NOT_ALLOWED'
+                  'TaskTokenNotAllowed'
                 )
               })
             })
@@ -290,7 +290,7 @@ describe('ConnextBridger', () => {
           context('when the destination chain was not set', () => {
             it('reverts', async () => {
               await expect(task.call(token.address, amountIn, slippage, relayerFee)).to.be.revertedWith(
-                'TASK_DESTINATION_CHAIN_NOT_SET'
+                'TaskDestinationChainNotSet'
               )
             })
           })
@@ -300,7 +300,7 @@ describe('ConnextBridger', () => {
           const amount = 0
 
           it('reverts', async () => {
-            await expect(task.call(token.address, amount, 0, 0)).to.be.revertedWith('TASK_AMOUNT_ZERO')
+            await expect(task.call(token.address, amount, 0, 0)).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -309,14 +309,14 @@ describe('ConnextBridger', () => {
         const token = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(token, 0, 0, 0)).to.be.revertedWith('TASK_TOKEN_ZERO')
+          await expect(task.call(token, 0, 0, 0)).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 0, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0, 0, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

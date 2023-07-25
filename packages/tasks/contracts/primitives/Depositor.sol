@@ -33,7 +33,7 @@ contract Depositor is ICollector, Collector {
     /**
      * @dev The tokens source to be set is not the contract itself
      */
-    error TaskDepositBadTokensSource(address tokensSource, address thisAddress);
+    error TaskDepositorBadTokensSource(address tokensSource, address thisAddress);
 
     /**
      * @dev It allows receiving native token transfers
@@ -65,7 +65,7 @@ contract Depositor is ICollector, Collector {
      * @param tokensSource Address of the tokens source to be set
      */
     function _setTokensSource(address tokensSource) internal override {
-        if (tokensSource != address(this)) revert TaskDepositBadTokensSource(tokensSource, address(this));
+        if (tokensSource != address(this)) revert TaskDepositorBadTokensSource(tokensSource, address(this));
         super._setTokensSource(tokensSource);
     }
 }

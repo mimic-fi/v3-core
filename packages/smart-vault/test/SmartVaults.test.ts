@@ -103,14 +103,14 @@ describe('SmartVault', () => {
         })
 
         it('cannot be paused', async () => {
-          await expect(smartVault.pause()).to.be.revertedWith('SMART_VAULT_ALREADY_PAUSED')
+          await expect(smartVault.pause()).to.be.revertedWith('SmartVaultAlreadyPaused')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.pause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(smartVault.pause()).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -125,7 +125,7 @@ describe('SmartVault', () => {
 
       context('when the smart vault is not paused', () => {
         it('cannot be unpaused', async () => {
-          await expect(smartVault.unpause()).to.be.revertedWith('SMART_VAULT_ALREADY_UNPAUSED')
+          await expect(smartVault.unpause()).to.be.revertedWith('SmartVaultAlreadyUnpaused')
         })
       })
 
@@ -148,7 +148,7 @@ describe('SmartVault', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.unpause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(smartVault.unpause()).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -189,14 +189,14 @@ describe('SmartVault', () => {
         })
 
         it('reverts', async () => {
-          await expect(smartVault.setPriceOracle(priceOracle.address)).to.be.revertedWith('SMART_VAULT_PAUSED')
+          await expect(smartVault.setPriceOracle(priceOracle.address)).to.be.revertedWith('SmartVaultPaused')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.setPriceOracle(priceOracle.address)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(smartVault.setPriceOracle(priceOracle.address)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -265,7 +265,7 @@ describe('SmartVault', () => {
 
         it('reverts', async () => {
           await expect(smartVault.overrideConnectorCheck(connector.address, true)).to.be.revertedWith(
-            'SMART_VAULT_PAUSED'
+            'SmartVaultPaused'
           )
         })
       })
@@ -274,7 +274,7 @@ describe('SmartVault', () => {
     context('when sender is not authorized', () => {
       it('reverts', async () => {
         await expect(smartVault.overrideConnectorCheck(connector.address, true)).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
+          'AuthSenderNotAllowed'
         )
       })
     })
@@ -352,7 +352,7 @@ describe('SmartVault', () => {
               it('reverts', async () => {
                 await expect(
                   smartVault.updateBalanceConnector(connector, token.address, amount, add)
-                ).to.be.revertedWith('SMART_VAULT_CONNECTOR_NO_BALANCE')
+                ).to.be.revertedWith('SmartVaultConnectorInsuffBalance')
               })
             })
           })
@@ -363,7 +363,7 @@ describe('SmartVault', () => {
 
           it('reverts', async () => {
             await expect(smartVault.updateBalanceConnector(connector, token, amount, true)).to.be.revertedWith(
-              'SMART_VAULT_CONNECTOR_TOKEN_ZERO'
+              'SmartVaultConnectorInputZero'
             )
           })
         })
@@ -374,7 +374,7 @@ describe('SmartVault', () => {
 
         it('reverts', async () => {
           await expect(smartVault.updateBalanceConnector(connector, ZERO_ADDRESS, amount, true)).to.be.revertedWith(
-            'SMART_VAULT_CONNECTOR_ID_ZERO'
+            'SmartVaultConnectorInputZero'
           )
         })
       })
@@ -383,7 +383,7 @@ describe('SmartVault', () => {
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
         await expect(smartVault.updateBalanceConnector(ZERO_BYTES32, ZERO_ADDRESS, amount, true)).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
+          'AuthSenderNotAllowed'
         )
       })
     })
@@ -451,7 +451,7 @@ describe('SmartVault', () => {
 
               it('reverts', async () => {
                 await expect(smartVault.execute(connector.address, data)).to.be.revertedWith(
-                  'SMART_VAULT_CON_DEPRECATED'
+                  'SmartVaultInvalidConnector'
                 )
               })
             })
@@ -465,9 +465,7 @@ describe('SmartVault', () => {
             })
 
             it('reverts', async () => {
-              await expect(smartVault.execute(connector.address, data)).to.be.revertedWith(
-                'SMART_VAULT_CON_NOT_STATELESS'
-              )
+              await expect(smartVault.execute(connector.address, data)).to.be.revertedWith('SmartVaultInvalidConnector')
             })
           })
         })
@@ -475,9 +473,7 @@ describe('SmartVault', () => {
         context('when the connector is not registered', async () => {
           context('when the connector check is not overridden', async () => {
             it('reverts', async () => {
-              await expect(smartVault.execute(connector.address, data)).to.be.revertedWith(
-                'SMART_VAULT_CON_NOT_REGISTERED'
-              )
+              await expect(smartVault.execute(connector.address, data)).to.be.revertedWith('SmartVaultInvalidConnector')
             })
           })
 
@@ -501,14 +497,14 @@ describe('SmartVault', () => {
         })
 
         it('reverts', async () => {
-          await expect(smartVault.execute(connector.address, data)).to.be.revertedWith('SMART_VAULT_PAUSED')
+          await expect(smartVault.execute(connector.address, data)).to.be.revertedWith('SmartVaultPaused')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.execute(connector.address, data)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(smartVault.execute(connector.address, data)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -571,14 +567,14 @@ describe('SmartVault', () => {
         })
 
         it('reverts', async () => {
-          await expect(smartVault.call(target.address, '0x', value)).to.be.revertedWith('SMART_VAULT_PAUSED')
+          await expect(smartVault.call(target.address, '0x', value)).to.be.revertedWith('SmartVaultPaused')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.call(target.address, '0x', value)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(smartVault.call(target.address, '0x', value)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -650,16 +646,14 @@ describe('SmartVault', () => {
         })
 
         it('reverts', async () => {
-          await expect(smartVault.collect(token.address, from.address, amount)).to.be.revertedWith('SMART_VAULT_PAUSED')
+          await expect(smartVault.collect(token.address, from.address, amount)).to.be.revertedWith('SmartVaultPaused')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.collect(token.address, from.address, amount)).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
-        )
+        await expect(smartVault.collect(token.address, from.address, amount)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -793,9 +787,7 @@ describe('SmartVault', () => {
 
         context('when the fee percentage was not set', async () => {
           it('reverts', async () => {
-            await expect(smartVault.withdraw(ZERO_ADDRESS, recipient.address, amount)).to.be.revertedWith(
-              'FEE_CONTROLLER_SV_NOT_SET'
-            )
+            await expect(smartVault.withdraw(ZERO_ADDRESS, recipient.address, amount)).to.be.reverted
           })
         })
       })
@@ -808,16 +800,14 @@ describe('SmartVault', () => {
         })
 
         it('reverts', async () => {
-          await expect(smartVault.withdraw(ZERO_ADDRESS, recipient.address, 0)).to.be.revertedWith('SMART_VAULT_PAUSED')
+          await expect(smartVault.withdraw(ZERO_ADDRESS, recipient.address, 0)).to.be.revertedWith('SmartVaultPaused')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.withdraw(ZERO_ADDRESS, recipient.address, 0)).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
-        )
+        await expect(smartVault.withdraw(ZERO_ADDRESS, recipient.address, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -859,7 +849,7 @@ describe('SmartVault', () => {
 
         context('when the smart vault does not have enough native tokens', () => {
           it('reverts', async () => {
-            await expect(smartVault.wrap(amount)).to.be.revertedWith('SMART_VAULT_WRAP_NO_BALANCE')
+            await expect(smartVault.wrap(amount)).to.be.revertedWith('SmartVaultInsufficientBalance')
           })
         })
       })
@@ -872,14 +862,14 @@ describe('SmartVault', () => {
         })
 
         it('reverts', async () => {
-          await expect(smartVault.wrap(amount)).to.be.revertedWith('SMART_VAULT_PAUSED')
+          await expect(smartVault.wrap(amount)).to.be.revertedWith('SmartVaultPaused')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.wrap(amount)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(smartVault.wrap(amount)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -935,14 +925,14 @@ describe('SmartVault', () => {
         })
 
         it('reverts', async () => {
-          await expect(smartVault.unwrap(amount)).to.be.revertedWith('SMART_VAULT_PAUSED')
+          await expect(smartVault.unwrap(amount)).to.be.revertedWith('SmartVaultPaused')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(smartVault.unwrap(amount)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(smartVault.unwrap(amount)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

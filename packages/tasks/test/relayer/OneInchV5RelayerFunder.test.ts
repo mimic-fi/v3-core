@@ -18,6 +18,8 @@ import { Contract } from 'ethers'
 import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
 import { itBehavesLikeBaseRelayerFundTask } from './BaseRelayerFundTask.behavior'
 
+/* eslint-disable no-secrets/no-secrets */
+
 describe('OneInchV5RelayerFunder', () => {
   let task: Contract, relayer: Contract
   let smartVault: Contract, authorizer: Contract, priceOracle: Contract, connector: Contract, owner: SignerWithAddress
@@ -73,7 +75,7 @@ describe('OneInchV5RelayerFunder', () => {
             taskConfig: buildEmptyTaskConfig(owner, smartVault),
           },
         })
-      ).to.be.revertedWith('SWAPPER_INITIALIZER_DISABLED')
+      ).to.be.revertedWith('TaskInitializerDisabled')
     })
 
     it('has a relayer reference', async () => {
@@ -249,7 +251,7 @@ describe('OneInchV5RelayerFunder', () => {
 
                     it('reverts', async () => {
                       await expect(task.call(tokenIn.address, amount, slippage, data)).to.be.revertedWith(
-                        'TASK_AMOUNT_ABOVE_THRESHOLD'
+                        'TaskAmountAboveMaxThreshold'
                       )
                     })
                   })
@@ -260,7 +262,7 @@ describe('OneInchV5RelayerFunder', () => {
 
                   it('reverts', async () => {
                     await expect(task.call(tokenIn.address, amountIn, slippage, '0x')).to.be.revertedWith(
-                      'TASK_SLIPPAGE_TOO_HIGH'
+                      'TaskSlippageTooHigh'
                     )
                   })
                 })
@@ -280,7 +282,7 @@ describe('OneInchV5RelayerFunder', () => {
 
                 it('reverts', async () => {
                   await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith(
-                    'TASK_TOKEN_THRESHOLD_NOT_MET'
+                    'TaskDepositedAboveMinThreshold'
                   )
                 })
               })
@@ -303,7 +305,7 @@ describe('OneInchV5RelayerFunder', () => {
               })
 
               it('reverts', async () => {
-                await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TASK_TOKEN_OUT_NOT_SET')
+                await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskTokenOutNotSet')
               })
             })
           })
@@ -316,7 +318,7 @@ describe('OneInchV5RelayerFunder', () => {
             })
 
             it('reverts', async () => {
-              await expect(task.call(tokenIn.address, 0, 0, '0x')).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+              await expect(task.call(tokenIn.address, 0, 0, '0x')).to.be.revertedWith('TaskTokenNotAllowed')
             })
           })
         })
@@ -339,7 +341,7 @@ describe('OneInchV5RelayerFunder', () => {
           })
 
           it('reverts', async () => {
-            await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TASK_AMOUNT_ZERO')
+            await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -355,7 +357,7 @@ describe('OneInchV5RelayerFunder', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 0, '0x')).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0, 0, '0x')).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

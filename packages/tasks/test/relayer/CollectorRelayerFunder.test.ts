@@ -17,6 +17,8 @@ import { Contract } from 'ethers'
 import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
 import { itBehavesLikeBaseRelayerFundTask } from './BaseRelayerFundTask.behavior'
 
+/* eslint-disable no-secrets/no-secrets */
+
 describe('CollectorRelayerFunder', () => {
   let task: Contract, relayer: Contract
   let smartVault: Contract, authorizer: Contract, priceOracle: Contract
@@ -54,7 +56,7 @@ describe('CollectorRelayerFunder', () => {
           tokensSource: tokensSource.address,
           taskConfig: buildEmptyTaskConfig(owner, smartVault),
         })
-      ).to.be.revertedWith('COLLECTOR_INITIALIZER_DISABLED')
+      ).to.be.revertedWith('TaskInitializerDisabled')
     })
 
     it('has a relayer reference', async () => {
@@ -187,7 +189,7 @@ describe('CollectorRelayerFunder', () => {
             const bigAmount = amount.add(diff.add(1))
 
             it('reverts', async () => {
-              await expect(task.call(token.address, bigAmount)).to.be.revertedWith('TASK_AMOUNT_ABOVE_THRESHOLD')
+              await expect(task.call(token.address, bigAmount)).to.be.revertedWith('TaskAmountAboveMaxThreshold')
             })
           })
         })
@@ -210,21 +212,21 @@ describe('CollectorRelayerFunder', () => {
           })
 
           it('reverts', async () => {
-            await expect(task.call(token.address, amount)).to.be.revertedWith('TASK_TOKEN_THRESHOLD_NOT_MET')
+            await expect(task.call(token.address, amount)).to.be.revertedWith('TaskDepositedAboveMinThreshold')
           })
         })
       })
 
       context('when the given token is not allowed', () => {
         it('reverts', async () => {
-          await expect(task.call(NATIVE_TOKEN_ADDRESS, 0)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+          await expect(task.call(NATIVE_TOKEN_ADDRESS, 0)).to.be.revertedWith('TaskTokenNotAllowed')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(token.address, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(token.address, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

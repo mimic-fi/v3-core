@@ -137,7 +137,7 @@ export function itBehavesLikeHopNativeConnector(
                   ZERO_ADDRESS,
                   0
                 )
-            ).to.be.revertedWith('HOP_BRIDGE_SAME_CHAIN')
+            ).to.be.revertedWith('HopBridgeSameChain').withArgs(destinationChainId)
           })
         }
       }
@@ -202,7 +202,7 @@ export function itBehavesLikeHopNativeConnector(
         this.connector
           .connect(whale)
           .execute(0, wrappedNativeTokenAddress, 0, 0, ZERO_ADDRESS, ZERO_ADDRESS, 0, ZERO_ADDRESS, 0)
-      ).to.be.revertedWith('HOP_BRIDGE_RECIPIENT_ZERO')
+      ).to.be.revertedWith('HopBridgeRecipientZero')
     })
   })
 }

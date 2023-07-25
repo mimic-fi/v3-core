@@ -140,8 +140,7 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
      */
     function _setTokenAmm(address hToken, address amm) internal {
         if (hToken == address(0)) revert TaskTokenZero();
-        address hopL2AmmHToken = IHopL2Amm(amm).hToken();
-        if (amm != address(0) && hToken != hopL2AmmHToken) revert TaskHopTokenAmmMismatch(hToken, amm, hopL2AmmHToken);
+        if (amm != address(0) && hToken != IHopL2Amm(amm).hToken()) revert TaskHopTokenAmmMismatch(hToken, amm);
 
         tokenAmm[hToken] = amm;
         emit TokenAmmSet(hToken, amm);

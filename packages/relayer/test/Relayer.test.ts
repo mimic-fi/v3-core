@@ -110,7 +110,7 @@ describe('Relayer', () => {
         const collector = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(relayer.setDefaultCollector(collector)).to.be.revertedWith('RELAYER_COLLECTOR_ZERO')
+          await expect(relayer.setDefaultCollector(collector)).to.be.revertedWith('RelayerInputZero')
         })
       })
     })
@@ -152,7 +152,7 @@ describe('Relayer', () => {
 
         it('reverts', async () => {
           await expect(relayer.setSmartVaultCollector(smartVault.address, collector)).to.be.revertedWith(
-            'RELAYER_COLLECTOR_ZERO'
+            'RelayerInputZero'
           )
         })
       })
@@ -352,7 +352,7 @@ describe('Relayer', () => {
 
       it('reverts', async () => {
         await expect(relayer.deposit(smartVault.address, amount, { value })).to.revertedWith(
-          'RELAYER_DEPOSIT_INVALID_AMOUNT'
+          'RelayerDepositInvalidAmount'
         )
       })
     })
@@ -411,7 +411,7 @@ describe('Relayer', () => {
       const amount = balance.add(1)
 
       it('reverts', async () => {
-        await expect(relayer.connect(smartVault).withdraw(amount)).to.revertedWith('RELAYER_SMART_VAULT_NO_BALANCE')
+        await expect(relayer.connect(smartVault).withdraw(amount)).to.revertedWith('RelayerWithdrawSvInsufficientBal')
       })
     })
   })
@@ -656,7 +656,7 @@ describe('Relayer', () => {
           context('when the available quota is not enough', () => {
             it('reverts', async () => {
               await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith(
-                'RELAYER_SMART_VAULT_NO_BALANCE'
+                'RelayerPaymentSvInsufficientBal'
               )
             })
           })
@@ -666,7 +666,7 @@ describe('Relayer', () => {
       context('when the task does not have permissions over the associated smart vault', () => {
         it('reverts', async () => {
           await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith(
-            'RELAYER_INVALID_TASK_PERMISSIONS'
+            'RelayerInvalidTask'
           )
         })
       })
@@ -674,7 +674,7 @@ describe('Relayer', () => {
 
     context('when the sender is not an executor', () => {
       it('reverts', async () => {
-        await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith('RELAYER_EXECUTOR_NOT_ALLOWED')
+        await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith('RelayerExecutorNotAllowed')
       })
     })
   })
@@ -769,7 +769,7 @@ describe('Relayer', () => {
             const amount = 0
             it('reverts', async () => {
               await expect(relayer.rescueFunds(token.address, recipient.address, amount)).to.be.revertedWith(
-                'RELAYER_EXT_WITHDRAW_AMOUNT_ZERO'
+                'RelayerInputZero'
               )
             })
           })
@@ -779,7 +779,7 @@ describe('Relayer', () => {
           const recipientAddr = ZERO_ADDRESS
           it('reverts', async () => {
             await expect(relayer.rescueFunds(token.address, recipientAddr, amount)).to.be.revertedWith(
-              'RELAYER_EXT_WITHDRAW_DEST_ZERO'
+              'RelayerInputZero'
             )
           })
         })
@@ -789,7 +789,7 @@ describe('Relayer', () => {
         const tokenAddr = ZERO_ADDRESS
         it('reverts', async () => {
           await expect(relayer.rescueFunds(tokenAddr, recipient.address, amount)).to.be.revertedWith(
-            'RELAYER_EXT_WITHDRAW_TOKEN_ZERO'
+            'RelayerInputZero'
           )
         })
       })

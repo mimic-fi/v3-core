@@ -96,7 +96,7 @@ contract Relayer is IRelayer, Ownable {
      * @param collector Address of the collector to be set for the given smart vault
      */
     function setSmartVaultCollector(address smartVault, address collector) external override onlyOwner {
-        if (collector == address(0)) revert RelayerCollectorZero();
+        if (collector == address(0)) revert RelayerInputZero();
         getSmartVaultCollector[smartVault] = collector;
         emit SmartVaultCollectorSet(smartVault, collector);
     }
@@ -117,7 +117,7 @@ contract Relayer is IRelayer, Ownable {
      * @param amount Amount of native tokens to be deposited, must match msg.value
      */
     function deposit(address smartVault, uint256 amount) external payable override {
-        if (msg.value != amount) revert RelayerInvalidAmount(msg.value, amount);
+        if (msg.value != amount) revert RelayerDepositInvalidAmount(msg.value, amount);
         uint256 amountPaid = _payQuota(smartVault, amount);
         uint256 toDeposit = amount - amountPaid;
         getSmartVaultBalance[smartVault] += toDeposit;
@@ -130,7 +130,7 @@ contract Relayer is IRelayer, Ownable {
      */
     function withdraw(uint256 amount) external override {
         uint256 balance = getSmartVaultBalance[msg.sender];
-        if (amount > balance) revert RelayerWithdrawSvInsufficentBalance(amount, balance);
+        if (amount > balance) revert RelayerWithdrawSvInsufficientBal(amount, balance);
         getSmartVaultBalance[msg.sender] = balance - amount;
         emit Withdrawn(msg.sender, amount);
         (bool success, ) = payable(msg.sender).call{ value: amount }('');
@@ -176,9 +176,8 @@ contract Relayer is IRelayer, Ownable {
      * @param amount Amount of tokens to withdraw
      */
     function rescueFunds(address token, address recipient, uint256 amount) external override onlyOwner {
-        if (token == address(0)) revert RelayerTokenZero();
-        if (recipient == address(0)) revert RelayerRecipientZero();
-        if (amount == 0) revert RelayerAmountZero();
+        if (token == address(0) || recipient == address(0) || amount == 0)
+            revert RelayerInputZero();
 
         IERC20(token).safeTransfer(recipient, amount);
         emit FundsRescued(token, recipient, amount);
@@ -190,7 +189,7 @@ contract Relayer is IRelayer, Ownable {
      * @param allowed Whether the given executor should be allowed or not
      */
     function _setExecutor(address executor, bool allowed) internal {
-        if (executor == address(0)) revert RelayerExecutorZero();
+        if (executor == address(0)) revert RelayerInputZero();
         isExecutorAllowed[executor] = allowed;
         emit ExecutorSet(executor, allowed);
     }
@@ -200,7 +199,7 @@ contract Relayer is IRelayer, Ownable {
      * @param collector Default fee collector to be set
      */
     function _setDefaultCollector(address collector) internal {
-        if (collector == address(0)) revert RelayerCollectorZero();
+        if (collector == address(0)) revert RelayerInputZero();
         defaultCollector = collector;
         emit DefaultCollectorSet(collector);
     }
@@ -215,8 +214,8 @@ contract Relayer is IRelayer, Ownable {
         uint256 maxQuota = getSmartVaultMaxQuota[smartVault];
         uint256 usedQuota = getSmartVaultUsedQuota[smartVault];
         uint256 availableQuota = usedQuota >= maxQuota ? 0 : (maxQuota - usedQuota);
-        if (amount <= balance + availableQuota)
-            revert RelayerPaymentSvInsufficentBalance(amount, balance, availableQuota);
+        if (amount > balance + availableQuota)
+            revert RelayerPaymentSvInsufficientBal(amount, balance, availableQuota);
 
         uint256 quota;
         if (balance >= amount) {

@@ -94,7 +94,7 @@ describe('HopBridger', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setRelayer(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setRelayer(ZERO_ADDRESS)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -127,14 +127,14 @@ describe('HopBridger', () => {
         const deadline = 0
 
         it('reverts', async () => {
-          await expect(task.setMaxDeadline(deadline)).to.be.revertedWith('TASK_MAX_DEADLINE_ZERO')
+          await expect(task.setMaxDeadline(deadline)).to.be.revertedWith('TaskMaxDeadlineZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setMaxDeadline(1)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setMaxDeadline(1)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -164,7 +164,7 @@ describe('HopBridger', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(task.setDefaultMaxFeePct(1)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setDefaultMaxFeePct(1)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -200,7 +200,7 @@ describe('HopBridger', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(task.setCustomMaxFeePct(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setCustomMaxFeePct(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -293,16 +293,14 @@ describe('HopBridger', () => {
         const token = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.setTokenHopEntrypoint(token, ZERO_ADDRESS)).to.be.revertedWith('TASK_HOP_TOKEN_ZERO')
+          await expect(task.setTokenHopEntrypoint(token, ZERO_ADDRESS)).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setTokenHopEntrypoint(ZERO_ADDRESS, ZERO_ADDRESS)).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
-        )
+        await expect(task.setTokenHopEntrypoint(ZERO_ADDRESS, ZERO_ADDRESS)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -419,7 +417,7 @@ describe('HopBridger', () => {
 
                 it('reverts', async () => {
                   await expect(task.call(token.address, amountIn, slippage, fee)).to.be.revertedWith(
-                    'TASK_TOKEN_THRESHOLD_NOT_MET'
+                    'TaskTokenThresholdNotMet'
                   )
                 })
               })
@@ -434,7 +432,7 @@ describe('HopBridger', () => {
 
               it('reverts', async () => {
                 await expect(task.call(token.address, amountIn, slippage, fee)).to.be.revertedWith(
-                  'TASK_TOKEN_NOT_ALLOWED'
+                  'TaskTokenNotAllowed'
                 )
               })
             })
@@ -443,7 +441,7 @@ describe('HopBridger', () => {
           context('when the destination chain was not set', () => {
             it('reverts', async () => {
               await expect(task.call(token.address, amountIn, slippage, fee)).to.be.revertedWith(
-                'TASK_DESTINATION_CHAIN_NOT_SET'
+                'TaskDestinationChainNotSet'
               )
             })
           })
@@ -453,7 +451,7 @@ describe('HopBridger', () => {
           const amount = 0
 
           it('reverts', async () => {
-            await expect(task.call(token.address, amount, 0, 0)).to.be.revertedWith('TASK_AMOUNT_ZERO')
+            await expect(task.call(token.address, amount, 0, 0)).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -462,14 +460,14 @@ describe('HopBridger', () => {
         const token = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(token, 0, 0, 0)).to.be.revertedWith('TASK_TOKEN_ZERO')
+          await expect(task.call(token, 0, 0, 0)).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 0, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0, 0, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

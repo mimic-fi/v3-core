@@ -55,14 +55,14 @@ describe('PausableTask', () => {
         })
 
         it('cannot be paused', async () => {
-          await expect(task.pause()).to.be.revertedWith('TASK_ALREADY_PAUSED')
+          await expect(task.pause()).to.be.revertedWith('TaskAlreadyPaused')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.pause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.pause()).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -77,7 +77,7 @@ describe('PausableTask', () => {
 
       context('when the task is not paused', () => {
         it('cannot be unpaused', async () => {
-          await expect(task.unpause()).to.be.revertedWith('TASK_ALREADY_UNPAUSED')
+          await expect(task.unpause()).to.be.revertedWith('TaskAlreadyUnpaused')
         })
       })
 
@@ -100,7 +100,7 @@ describe('PausableTask', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.unpause()).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.unpause()).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -124,7 +124,7 @@ describe('PausableTask', () => {
       })
 
       it('cannot be executed', async () => {
-        await expect(task.call(token, amount)).to.be.revertedWith('TASK_PAUSED')
+        await expect(task.call(token, amount)).to.be.revertedWith('TaskPaused')
       })
     })
   })

@@ -94,7 +94,7 @@ describe('TokenIndexedTask', () => {
 
     context('when the sender is not allowed', () => {
       it('reverts', async () => {
-        await expect(task.setTokensAcceptanceType(0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setTokensAcceptanceType(0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -170,7 +170,7 @@ describe('TokenIndexedTask', () => {
       context('when an address zero is given', () => {
         it('reverts', async () => {
           await expect(task.setTokensAcceptanceList([ZERO_ADDRESS], [true])).to.be.revertedWith(
-            'TASK_ACCEPTANCE_TOKEN_ZERO'
+            'TaskAcceptanceTokenZero'
           )
         })
       })
@@ -178,7 +178,7 @@ describe('TokenIndexedTask', () => {
 
     context('when the sender is not allowed', () => {
       it('reverts', async () => {
-        await expect(task.setTokensAcceptanceList([], [])).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setTokensAcceptanceList([], [])).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -203,8 +203,8 @@ describe('TokenIndexedTask', () => {
         expect(await task.isTokenAllowed(tokenB)).to.be.false
         expect(await task.isTokenAllowed(tokenC)).to.be.false
         await expect(task.call(tokenA)).not.to.be.reverted
-        await expect(task.call(tokenB)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
-        await expect(task.call(tokenC)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+        await expect(task.call(tokenB)).to.be.revertedWith('TaskTokenNotAllowed')
+        await expect(task.call(tokenC)).to.be.revertedWith('TaskTokenNotAllowed')
 
         await task.connect(owner).setTokensAcceptanceList([tokenC], [true])
 
@@ -212,7 +212,7 @@ describe('TokenIndexedTask', () => {
         expect(await task.isTokenAllowed(tokenB)).to.be.false
         expect(await task.isTokenAllowed(tokenC)).to.be.true
         await expect(task.call(tokenA)).not.to.be.reverted
-        await expect(task.call(tokenB)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+        await expect(task.call(tokenB)).to.be.revertedWith('TaskTokenNotAllowed')
         await expect(task.call(tokenC)).not.to.be.reverted
 
         await task.connect(owner).setTokensAcceptanceList([tokenB], [true])
@@ -230,8 +230,8 @@ describe('TokenIndexedTask', () => {
         expect(await task.isTokenAllowed(tokenA)).to.be.false
         expect(await task.isTokenAllowed(tokenB)).to.be.false
         expect(await task.isTokenAllowed(tokenC)).to.be.true
-        await expect(task.call(tokenA)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
-        await expect(task.call(tokenB)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+        await expect(task.call(tokenA)).to.be.revertedWith('TaskTokenNotAllowed')
+        await expect(task.call(tokenB)).to.be.revertedWith('TaskTokenNotAllowed')
         await expect(task.call(tokenC)).not.to.be.reverted
 
         await task.connect(owner).setTokensAcceptanceType(TYPE.DENY_LIST)
@@ -240,9 +240,9 @@ describe('TokenIndexedTask', () => {
         expect(await task.isTokenAllowed(tokenA)).to.be.false
         expect(await task.isTokenAllowed(tokenB)).to.be.true
         expect(await task.isTokenAllowed(tokenC)).to.be.false
-        await expect(task.call(tokenA)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+        await expect(task.call(tokenA)).to.be.revertedWith('TaskTokenNotAllowed')
         await expect(task.call(tokenB)).not.to.be.reverted
-        await expect(task.call(tokenC)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+        await expect(task.call(tokenC)).to.be.revertedWith('TaskTokenNotAllowed')
       })
     })
 
@@ -259,7 +259,7 @@ describe('TokenIndexedTask', () => {
         expect(await task.isTokenAllowed(tokenA)).to.be.false
         expect(await task.isTokenAllowed(tokenB)).to.be.true
         expect(await task.isTokenAllowed(tokenC)).to.be.true
-        await expect(task.call(tokenA)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+        await expect(task.call(tokenA)).to.be.revertedWith('TaskTokenNotAllowed')
         await expect(task.call(tokenB)).not.to.be.reverted
         await expect(task.call(tokenC)).not.to.be.reverted
 
@@ -268,18 +268,18 @@ describe('TokenIndexedTask', () => {
         expect(await task.isTokenAllowed(tokenA)).to.be.false
         expect(await task.isTokenAllowed(tokenB)).to.be.true
         expect(await task.isTokenAllowed(tokenC)).to.be.false
-        await expect(task.call(tokenA)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+        await expect(task.call(tokenA)).to.be.revertedWith('TaskTokenNotAllowed')
         await expect(task.call(tokenB)).not.to.be.reverted
-        await expect(task.call(tokenC)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+        await expect(task.call(tokenC)).to.be.revertedWith('TaskTokenNotAllowed')
 
         await task.connect(owner).setTokensAcceptanceList([tokenB], [true])
 
         expect(await task.isTokenAllowed(tokenA)).to.be.false
         expect(await task.isTokenAllowed(tokenB)).to.be.false
         expect(await task.isTokenAllowed(tokenC)).to.be.false
-        await expect(task.call(tokenA)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
-        await expect(task.call(tokenB)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
-        await expect(task.call(tokenC)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+        await expect(task.call(tokenA)).to.be.revertedWith('TaskTokenNotAllowed')
+        await expect(task.call(tokenB)).to.be.revertedWith('TaskTokenNotAllowed')
+        await expect(task.call(tokenC)).to.be.revertedWith('TaskTokenNotAllowed')
 
         await task.connect(owner).setTokensAcceptanceList([tokenA], [false])
         await task.connect(owner).setTokensAcceptanceList([tokenB], [false])
@@ -289,7 +289,7 @@ describe('TokenIndexedTask', () => {
         expect(await task.isTokenAllowed(tokenC)).to.be.false
         await expect(task.call(tokenA)).not.to.be.reverted
         await expect(task.call(tokenB)).not.to.be.reverted
-        await expect(task.call(tokenC)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+        await expect(task.call(tokenC)).to.be.revertedWith('TaskTokenNotAllowed')
 
         await task.connect(owner).setTokensAcceptanceType(TYPE.ALLOW_LIST)
         await task.connect(owner).setTokensAcceptanceList([tokenA, tokenB], [true, false])
@@ -298,7 +298,7 @@ describe('TokenIndexedTask', () => {
         expect(await task.isTokenAllowed(tokenB)).to.be.false
         expect(await task.isTokenAllowed(tokenC)).to.be.true
         await expect(task.call(tokenA)).not.to.be.reverted
-        await expect(task.call(tokenB)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+        await expect(task.call(tokenB)).to.be.revertedWith('TaskTokenNotAllowed')
         await expect(task.call(tokenC)).not.to.be.reverted
       })
     })

@@ -31,14 +31,14 @@ interface ISmartVault is IAuthorized {
     error SmartVaultAlreadyPaused(address smartVault);
 
     /**
-     * @dev The connector ID is zero
+     * @dev The smart vault is already unpaused
      */
-    error SmartVaultConnectorIdZero(address smartVault);
+    error SmartVaultAlreadyUnpaused(address smartVault);
 
     /**
-     * @dev The connector token is zero
+     * @dev The connector token or ID is zero
      */
-    error SmartVaultConnectorTokenZero(address smartVault);
+    error SmartVaultConnectorInputZero(address smartVault);
 
     /**
      * @dev The amount is zero
@@ -48,7 +48,7 @@ interface ISmartVault is IAuthorized {
     /**
      * @dev The smart vault balance is lower than the amount
      */
-    error SmartVaultInsufficentBalance(address smartVault, uint256 balance, uint256 amount);
+    error SmartVaultInsufficientBalance(address smartVault, uint256 balance, uint256 amount);
 
     /**
      * @dev The recipient is zero
@@ -58,7 +58,7 @@ interface ISmartVault is IAuthorized {
     /**
      * @dev The connector balance is lower than the amount
      */
-    error SmartVaultConnectorInsufficentBalance(
+    error SmartVaultConnectorInsuffBalance(
         address smartVault,
         bytes32 id,
         address token,

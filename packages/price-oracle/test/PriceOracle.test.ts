@@ -113,7 +113,7 @@ describe('PriceOracle', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(priceOracle.setSigner(owner.address, true)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(priceOracle.setSigner(owner.address, true)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -169,7 +169,7 @@ describe('PriceOracle', () => {
 
     context('when sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(priceOracle.setFeed(BASE, QUOTE, FEED)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(priceOracle.setFeed(BASE, QUOTE, FEED)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -194,7 +194,7 @@ describe('PriceOracle', () => {
       })
 
       it('reverts', async () => {
-        await expect(getPrice()).to.be.revertedWith('ORACLE_MISSING_FEED')
+        await expect(getPrice()).to.be.revertedWith('OracleMissingFeed')
       })
     })
 
@@ -208,7 +208,7 @@ describe('PriceOracle', () => {
         })
 
         it('reverts', async () => {
-          await expect(getPrice()).to.be.revertedWith('BASE_DECIMALS_TOO_BIG')
+          await expect(getPrice()).to.be.revertedWith('BaseDecimalsTooBig')
         })
       }
 
@@ -491,7 +491,7 @@ describe('PriceOracle', () => {
         })
 
         it('reverts', async () => {
-          await expect(getPrice()).to.be.revertedWith('BASE_DECIMALS_TOO_BIG')
+          await expect(getPrice()).to.be.revertedWith('BaseDecimalsTooBig')
         })
       }
 
@@ -787,7 +787,7 @@ describe('PriceOracle', () => {
         })
 
         it('reverts', async () => {
-          await expect(getPrice()).to.be.revertedWith('BASE_DECIMALS_TOO_BIG')
+          await expect(getPrice()).to.be.revertedWith('BaseDecimalsTooBig')
         })
       }
 
@@ -1591,13 +1591,13 @@ describe('PriceOracle', () => {
 
     const itRevertsDueToMissingFeed = () => {
       it('reverts due to missing feed', async () => {
-        await expect(getPrice()).to.be.revertedWith('ORACLE_MISSING_FEED')
+        await expect(getPrice()).to.be.revertedWith('OracleMissingFeed')
       })
     }
 
     const itRevertsDueToInvalidSignature = () => {
       it('reverts due to invalid signature', async () => {
-        await expect(getPrice()).to.be.revertedWith('ORACLE_INVALID_SIGNER')
+        await expect(getPrice()).to.be.revertedWith('OracleInvalidSigner')
       })
     }
 
@@ -1633,7 +1633,7 @@ describe('PriceOracle', () => {
 
           const itRevertsDueToOutdatedFeed = () => {
             it('reverts due to outdated feed', async () => {
-              await expect(getPrice()).to.be.revertedWith('ORACLE_PRICE_OUTDATED')
+              await expect(getPrice()).to.be.revertedWith('OraclePriceOutdated')
             })
           }
 

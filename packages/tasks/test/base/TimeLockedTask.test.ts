@@ -16,6 +16,8 @@ import { BigNumber, Contract } from 'ethers'
 
 import { deployEnvironment } from '../../src/setup'
 
+/* eslint-disable no-secrets/no-secrets */
+
 describe('TimeLockedTask', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, owner: SignerWithAddress
@@ -95,14 +97,14 @@ describe('TimeLockedTask', () => {
         })
 
         it('reverts', async () => {
-          await expect(task.setTimeLockDelay(delay)).to.be.revertedWith('TASK_DELAY_GT_EXECUTION_PERIOD')
+          await expect(task.setTimeLockDelay(delay)).to.be.revertedWith('TaskExecutionPeriodGtDelay')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setTimeLockDelay(delay)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setTimeLockDelay(delay)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -137,7 +139,7 @@ describe('TimeLockedTask', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setTimeLockExpiration(0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setTimeLockExpiration(0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -189,14 +191,14 @@ describe('TimeLockedTask', () => {
         })
 
         it('reverts', async () => {
-          await expect(task.setTimeLockExecutionPeriod(period)).to.be.revertedWith('TASK_EXECUTION_PERIOD_GT_DELAY')
+          await expect(task.setTimeLockExecutionPeriod(period)).to.be.revertedWith('TaskExecutionPeriodGtDelay')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setTimeLockExecutionPeriod(0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setTimeLockExecutionPeriod(0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -253,7 +255,7 @@ describe('TimeLockedTask', () => {
 
           const tx = await task.call()
           await assertEvent(tx, 'TimeLockExpirationSet')
-          await expect(task.call()).to.be.revertedWith('TASK_TIME_LOCK_NOT_EXPIRED')
+          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
 
           const previousExpiration = await task.timeLockExpiration()
           await advanceTime(newTimeLockDelay)
@@ -284,7 +286,7 @@ describe('TimeLockedTask', () => {
 
         it('must wait to be valid again after the first execution', async () => {
           await task.call()
-          await expect(task.call()).to.be.revertedWith('TASK_TIME_LOCK_NOT_EXPIRED')
+          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
 
           const previousExpiration = await task.timeLockExpiration()
           await advanceTime(delay)
@@ -359,7 +361,7 @@ describe('TimeLockedTask', () => {
           const initialDelay = await task.timeLockDelay()
           const initialExpiration = await task.timeLockExpiration()
 
-          await expect(task.call()).to.be.revertedWith('TASK_TIME_LOCK_NOT_EXPIRED')
+          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
 
           await advanceTime(initialExpirationTimestamp)
           const tx = await task.call()
@@ -404,7 +406,7 @@ describe('TimeLockedTask', () => {
         })
 
         it('can be validated once right after the initial delay', async () => {
-          await expect(task.call()).to.be.revertedWith('TASK_TIME_LOCK_NOT_EXPIRED')
+          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
 
           await setNextBlockTimestamp(initialExpirationTimestamp)
           const tx = await task.call()
@@ -414,7 +416,7 @@ describe('TimeLockedTask', () => {
           expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp.add(delay))
           expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
 
-          await expect(task.call()).to.be.revertedWith('TASK_TIME_LOCK_NOT_EXPIRED')
+          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
 
           await setNextBlockTimestamp(initialExpirationTimestamp.add(delay * 2).add(executionPeriod))
           const tx2 = await task.call()
@@ -426,10 +428,10 @@ describe('TimeLockedTask', () => {
         })
 
         it('cannot be validated after the execution period', async () => {
-          await expect(task.call()).to.be.revertedWith('TASK_TIME_LOCK_NOT_EXPIRED')
+          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
 
           await setNextBlockTimestamp(initialExpirationTimestamp.add(executionPeriod).add(1))
-          await expect(task.call()).to.be.revertedWith('TASK_TIME_LOCK_WAIT_NEXT_PERIOD')
+          await expect(task.call()).to.be.revertedWith('TaskTimeLockWaitNextPeriod')
 
           await setNextBlockTimestamp(initialExpirationTimestamp.add(delay))
           const tx = await task.call()
@@ -439,7 +441,7 @@ describe('TimeLockedTask', () => {
           expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp.add(delay * 2))
           expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
 
-          await expect(task.call()).to.be.revertedWith('TASK_TIME_LOCK_NOT_EXPIRED')
+          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
         })
 
         it('can be changed at any time in the future without affecting the previous expiration date', async () => {

@@ -170,7 +170,7 @@ describe('Curve2CrvJoiner', () => {
                 const slippage = fp(0.01)
 
                 it('reverts', async () => {
-                  await expect(task.call(token.address, amount, slippage)).to.be.revertedWith('TASK_SLIPPAGE_TOO_HIGH')
+                  await expect(task.call(token.address, amount, slippage)).to.be.revertedWith('TaskSlippageTooHigh')
                 })
               })
             })
@@ -185,14 +185,14 @@ describe('Curve2CrvJoiner', () => {
               })
 
               it('reverts', async () => {
-                await expect(task.call(token.address, amount, 0)).to.be.revertedWith('TASK_TOKEN_THRESHOLD_NOT_MET')
+                await expect(task.call(token.address, amount, 0)).to.be.revertedWith('TaskTokenThresholdNotMet')
               })
             })
           })
 
           context('when there is no token out set', () => {
             it('reverts', async () => {
-              await expect(task.call(token.address, amount, 0)).to.be.revertedWith('TASK_TOKEN_OUT_NOT_SET')
+              await expect(task.call(token.address, amount, 0)).to.be.revertedWith('TaskTokenOutNotSet')
             })
           })
         })
@@ -201,7 +201,7 @@ describe('Curve2CrvJoiner', () => {
           const amount = 0
 
           it('reverts', async () => {
-            await expect(task.call(token.address, amount, 0)).to.be.revertedWith('TASK_AMOUNT_ZERO')
+            await expect(task.call(token.address, amount, 0)).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -210,14 +210,14 @@ describe('Curve2CrvJoiner', () => {
         const token = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(token, 0, 0)).to.be.revertedWith('TASK_TOKEN_ZERO')
+          await expect(task.call(token, 0, 0)).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

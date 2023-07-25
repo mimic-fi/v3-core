@@ -28,7 +28,7 @@ interface IHopL2Swapper is IBaseSwapTask {
     /**
      * @dev The hToken to be set is not the Hop L2 amm hToken
      */
-    error TaskHopTokenAmmMismatch(address hToken, address amm, address hopL2AmmHToken);
+    error TaskHopTokenAmmMismatch(address hToken, address amm);
 
     /**
      * @dev Emitted every time an AMM is set for a token

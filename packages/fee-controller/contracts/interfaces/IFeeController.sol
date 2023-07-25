@@ -21,7 +21,7 @@ interface IFeeController {
     /**
      * @dev The smart vault's fee maxPct is zero
      */
-    error FeeControllerSvNotSet(address smartVault);
+    error FeeControllerSvMaxPctNotSet(address smartVault);
 
     /**
      * @dev The maxPct to be set is zero

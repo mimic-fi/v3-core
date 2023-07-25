@@ -78,7 +78,7 @@ describe('Withdrawer', () => {
           const next = '0x0000000000000000000000000000000000000000000000000000000000000002'
 
           it('reverts', async () => {
-            await expect(task.setBalanceConnectors(previous, next)).to.be.revertedWith('TASK_NEXT_CONNECTOR_NOT_ZERO')
+            await expect(task.setBalanceConnectors(previous, next)).to.be.revertedWith('TaskNextConnectorNotZero')
           })
         })
       })
@@ -93,9 +93,7 @@ describe('Withdrawer', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setBalanceConnectors(ZERO_BYTES32, ZERO_BYTES32)).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
-        )
+        await expect(task.setBalanceConnectors(ZERO_BYTES32, ZERO_BYTES32)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -135,7 +133,7 @@ describe('Withdrawer', () => {
           })
 
           it('reverts', async () => {
-            await expect(task.setRecipient(newRecipient)).to.be.revertedWith('TASK_RECIPIENT_SMART_VAULT')
+            await expect(task.setRecipient(newRecipient)).to.be.revertedWith('TaskRecipientSmartVault')
           })
         })
       })
@@ -144,14 +142,14 @@ describe('Withdrawer', () => {
         const newRecipient = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.setRecipient(newRecipient)).to.be.revertedWith('TASK_RECIPIENT_ZERO')
+          await expect(task.setRecipient(newRecipient)).to.be.revertedWith('TaskRecipientZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setRecipient(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setRecipient(ZERO_ADDRESS)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -240,21 +238,21 @@ describe('Withdrawer', () => {
           })
 
           it('reverts', async () => {
-            await expect(task.call(token.address, amount)).to.be.revertedWith('TASK_TOKEN_THRESHOLD_NOT_MET')
+            await expect(task.call(token.address, amount)).to.be.revertedWith('TaskTokenThresholdNotMet')
           })
         })
       })
 
       context('when the given token is not allowed', () => {
         it('reverts', async () => {
-          await expect(task.call(NATIVE_TOKEN_ADDRESS, 0)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+          await expect(task.call(NATIVE_TOKEN_ADDRESS, 0)).to.be.revertedWith('TaskTokenNotAllowed')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(token.address, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(token.address, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

@@ -47,7 +47,7 @@ export function itBehavesLikeAxelarConnector(
         it('reverts', async function () {
           await expect(
             this.connector.connect(whale).execute(destinationChainId, tokenAddress, amountIn, whale.address)
-          ).to.be.revertedWith('AXELAR_BRIDGE_SAME_CHAIN')
+          ).to.be.revertedWith('AxelarBridgeSameChain').withArgs(destinationChainId)
         })
       }
     }
@@ -94,7 +94,7 @@ export function itBehavesLikeAxelarConnector(
       it('reverts', async function () {
         await expect(
           this.connector.connect(whale).execute(destinationChainId, tokenAddress, amountIn, whale.address)
-        ).to.be.revertedWith('AXELAR_UNKNOWN_CHAIN_ID')
+        ).to.be.revertedWith('AxelarBridgeUnknownChainId').withArgs(destinationChainId)
       })
     })
   })
@@ -102,7 +102,7 @@ export function itBehavesLikeAxelarConnector(
   context('when the recipient is the zero address', async () => {
     it('reverts', async function () {
       await expect(this.connector.connect(whale).execute(0, tokenAddress, 0, ZERO_ADDRESS)).to.be.revertedWith(
-        'AXELAR_BRIDGE_RECIPIENT_ZERO'
+        'AxelarBridgeRecipientZero'
       )
     })
   })

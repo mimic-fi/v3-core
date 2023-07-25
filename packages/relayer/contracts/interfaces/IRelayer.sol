@@ -19,19 +19,19 @@ pragma solidity >=0.8.0;
  */
 interface IRelayer {
     /**
-     * @dev The collector address is zero
+     * @dev The parameter is zero
      */
-    error RelayerCollectorZero();
+    error RelayerInputZero();
 
     /**
      * @dev The value sent and the amount differ
      */
-    error RelayerInvalidAmount(uint256 value, uint256 amount);
+    error RelayerDepositInvalidAmount(uint256 value, uint256 amount);
 
     /**
      * @dev The smart vault balance is lower than the amount to withdraw
      */
-    error RelayerWithdrawSvInsufficentBalance(uint256 amount, uint256 balance);
+    error RelayerWithdrawSvInsufficientBal(uint256 amount, uint256 balance);
 
     /**
      * @dev It failed to send the amount to the sender
@@ -54,29 +54,9 @@ interface IRelayer {
     error RelayerInvalidTask(address task, address smartVault);
 
     /**
-     * @dev The token is zero
-     */
-    error RelayerTokenZero();
-
-    /**
-     * @dev The recipient is zero
-     */
-    error RelayerRecipientZero();
-
-    /**
-     * @dev The amount is zero
-     */
-    error RelayerAmountZero();
-
-    /**
-     * @dev The executor is zero
-     */
-    error RelayerExecutorZero();
-
-    /**
      * @dev The smart vault balance plus the available quota are lower than the amount to pay the relayer
      */
-    error RelayerPaymentSvInsufficentBalance(uint256 amount, uint256 balance, uint256 availableQuota);
+    error RelayerPaymentSvInsufficientBal(uint256 amount, uint256 balance, uint256 availableQuota);
 
     /**
      * @dev It failed to send amount minus quota to the smart vault's collector
