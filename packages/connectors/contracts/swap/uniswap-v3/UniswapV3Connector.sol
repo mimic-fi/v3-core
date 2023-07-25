@@ -99,7 +99,8 @@ contract UniswapV3Connector {
             : _batchSwap(tokenIn, tokenOut, amountIn, minAmountOut, fee, hopTokens, hopFees);
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn) revert UniswapV3BadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+        if (postBalanceIn < preBalanceIn - amountIn)
+            revert UniswapV3BadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;

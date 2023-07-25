@@ -176,8 +176,7 @@ contract Relayer is IRelayer, Ownable {
      * @param amount Amount of tokens to withdraw
      */
     function rescueFunds(address token, address recipient, uint256 amount) external override onlyOwner {
-        if (token == address(0) || recipient == address(0) || amount == 0)
-            revert RelayerInputZero();
+        if (token == address(0) || recipient == address(0) || amount == 0) revert RelayerInputZero();
 
         IERC20(token).safeTransfer(recipient, amount);
         emit FundsRescued(token, recipient, amount);
@@ -214,8 +213,7 @@ contract Relayer is IRelayer, Ownable {
         uint256 maxQuota = getSmartVaultMaxQuota[smartVault];
         uint256 usedQuota = getSmartVaultUsedQuota[smartVault];
         uint256 availableQuota = usedQuota >= maxQuota ? 0 : (maxQuota - usedQuota);
-        if (amount > balance + availableQuota)
-            revert RelayerPaymentSvInsufficientBal(amount, balance, availableQuota);
+        if (amount > balance + availableQuota) revert RelayerPaymentSvInsufficientBal(amount, balance, availableQuota);
 
         uint256 quota;
         if (balance >= amount) {

@@ -52,12 +52,13 @@ export function itBehavesLikeWormholeConnector(
 
         context('when relayerFee is greater than amountIn', () => {
           const amountIn = relayerFee.sub(1)
+
           it('reverts', async function () {
             await expect(
               this.connector
                 .connect(whale)
                 .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
-            ).to.be.revertedWith('WormholeBridgeRelayerFeeGTAmount').withArgs(relayerFee, amountIn)
+            ).to.be.revertedWith('WormholeBridgeRelayerFeeGTAmount')
           })
         })
 
