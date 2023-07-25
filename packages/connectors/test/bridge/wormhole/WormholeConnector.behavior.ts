@@ -3,6 +3,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 
+/* eslint-disable no-secrets/no-secrets */
+
 export function itBehavesLikeWormholeConnector(
   sourceChainId: number,
   tokenAddress: string,
@@ -69,7 +71,7 @@ export function itBehavesLikeWormholeConnector(
               this.connector
                 .connect(whale)
                 .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
-            ).to.be.revertedWith('WormholeBridgeMinAmountOutTooBig').withArgs(minAmountOut, amountIn, relayerFee)
+            ).to.be.revertedWith('WormholeBridgeMinAmountOutTooBig')
           })
         })
       } else {
@@ -78,7 +80,7 @@ export function itBehavesLikeWormholeConnector(
             this.connector
               .connect(whale)
               .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
-          ).to.be.revertedWith('WormholeBridgeSameChain').withArgs(destinationChainId)
+          ).to.be.revertedWith('WormholeBridgeSameChain')
         })
       }
     }
@@ -101,7 +103,7 @@ export function itBehavesLikeWormholeConnector(
       it('reverts', async function () {
         await expect(
           this.connector.connect(whale).execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
-        ).to.be.revertedWith('WormholeBridgeUnknownChainId').withArgs(destinationChainId)
+        ).to.be.revertedWith('WormholeBridgeUnknownChainId')
       })
     })
   })

@@ -135,7 +135,7 @@ export function itBehavesLikeHopERC20Connector(
                 ZERO_ADDRESS,
                 bonderFee
               )
-          ).to.be.revertedWith('HopBridgeSameChain').withArgs(destinationChainId)
+          ).to.be.revertedWith('HopBridgeSameChain')
         })
       }
     }

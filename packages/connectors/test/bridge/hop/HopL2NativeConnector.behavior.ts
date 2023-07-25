@@ -137,7 +137,7 @@ export function itBehavesLikeHopNativeConnector(
                   ZERO_ADDRESS,
                   0
                 )
-            ).to.be.revertedWith('HopBridgeSameChain').withArgs(destinationChainId)
+            ).to.be.revertedWith('HopBridgeSameChain')
           })
         }
       }

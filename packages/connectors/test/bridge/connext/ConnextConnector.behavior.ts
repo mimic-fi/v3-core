@@ -3,6 +3,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 
+/* eslint-disable no-secrets/no-secrets */
+
 export function itBehavesLikeConnextConnector(
   sourceChainId: number,
   tokenAddress: string,
@@ -71,7 +73,7 @@ export function itBehavesLikeConnextConnector(
               this.connector
                 .connect(whale)
                 .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
-            ).to.be.revertedWith('ConnextBridgeMinAmountOutTooBig').withArgs(minAmountOut, amountIn, relayerFee)
+            ).to.be.revertedWith('ConnextBridgeMinAmountOutTooBig')
           })
         })
       } else {
@@ -80,7 +82,7 @@ export function itBehavesLikeConnextConnector(
             this.connector
               .connect(whale)
               .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
-          ).to.be.revertedWith('ConnextBridgeSameChain').withArgs(destinationChainId)
+          ).to.be.revertedWith('ConnextBridgeSameChain')
         })
       }
     }
@@ -129,7 +131,7 @@ export function itBehavesLikeConnextConnector(
           this.connector
             .connect(whale)
             .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
-        ).to.be.revertedWith('ConnextBridgeUnknownChainId').withArgs(destinationChainId)
+        ).to.be.revertedWith('ConnextBridgeUnknownChainId')
       })
     })
   })

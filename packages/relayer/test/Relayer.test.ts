@@ -18,6 +18,8 @@ import { BigNumber, Contract } from 'ethers'
 import { defaultAbiCoder } from 'ethers/lib/utils'
 import { ethers } from 'hardhat'
 
+/* eslint-disable no-secrets/no-secrets */
+
 describe('Relayer', () => {
   let relayer: Contract
   let executor: SignerWithAddress, collector: SignerWithAddress, owner: SignerWithAddress
@@ -665,9 +667,7 @@ describe('Relayer', () => {
 
       context('when the task does not have permissions over the associated smart vault', () => {
         it('reverts', async () => {
-          await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith(
-            'RelayerInvalidTask'
-          )
+          await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith('RelayerInvalidTask')
         })
       })
     })
@@ -788,9 +788,7 @@ describe('Relayer', () => {
       context('when the token is the zero address', () => {
         const tokenAddr = ZERO_ADDRESS
         it('reverts', async () => {
-          await expect(relayer.rescueFunds(tokenAddr, recipient.address, amount)).to.be.revertedWith(
-            'RelayerInputZero'
-          )
+          await expect(relayer.rescueFunds(tokenAddr, recipient.address, amount)).to.be.revertedWith('RelayerInputZero')
         })
       })
     })

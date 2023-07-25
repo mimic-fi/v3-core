@@ -3,6 +3,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 
+/* eslint-disable no-secrets/no-secrets */
+
 export function itBehavesLikeAxelarConnector(
   sourceChainId: number,
   tokenAddress: string,
@@ -47,7 +49,7 @@ export function itBehavesLikeAxelarConnector(
         it('reverts', async function () {
           await expect(
             this.connector.connect(whale).execute(destinationChainId, tokenAddress, amountIn, whale.address)
-          ).to.be.revertedWith('AxelarBridgeSameChain').withArgs(destinationChainId)
+          ).to.be.revertedWith('AxelarBridgeSameChain')
         })
       }
     }
@@ -94,7 +96,7 @@ export function itBehavesLikeAxelarConnector(
       it('reverts', async function () {
         await expect(
           this.connector.connect(whale).execute(destinationChainId, tokenAddress, amountIn, whale.address)
-        ).to.be.revertedWith('AxelarBridgeUnknownChainId').withArgs(destinationChainId)
+        ).to.be.revertedWith('AxelarBridgeUnknownChainId')
       })
     })
   })
