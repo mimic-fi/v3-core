@@ -1551,10 +1551,8 @@ describe('PriceOracle', () => {
   })
 
   describe('getPrice (off-chain)', () => {
-    let base: Contract,
-      quote: Contract,
-      feed: Contract,
-      data = '0x'
+    let data = '0x'
+    let base: Contract, quote: Contract, feed: Contract
 
     const OFF_CHAIN_ORACLE_PRICE = fp(5)
     const SMART_VAULT_ORACLE_PRICE = fp(10)
