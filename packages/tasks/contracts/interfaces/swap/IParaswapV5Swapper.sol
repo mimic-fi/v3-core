@@ -28,7 +28,7 @@ interface IParaswapV5Swapper is IBaseSwapTask {
     /**
      * @dev The deadline is in the past
      */
-    error TaskQuoteSignerDeadline(uint256 deadline);
+    error TaskQuoteSignerPastDeadline(uint256 deadline, uint256 now);
 
     /**
      * @dev The quote signer is zero

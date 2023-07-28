@@ -158,7 +158,9 @@ describe('WormholeBridger', () => {
 
                 context('when the slippage is above the limit', () => {
                   it('reverts', async () => {
-                    await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith('TaskSlippageTooHigh')
+                    await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith(
+                      'TaskSlippageAboveMax'
+                    )
                   })
                 })
               })

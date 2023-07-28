@@ -46,7 +46,7 @@ abstract contract PausableTask is IPausableTask, Authorized {
      * @dev Pauses a task
      */
     function pause() external override auth {
-        if (isPaused) revert TaskAlreadyPaused();
+        if (isPaused) revert TaskPaused();
         isPaused = true;
         emit Paused();
     }
@@ -55,7 +55,7 @@ abstract contract PausableTask is IPausableTask, Authorized {
      * @dev Unpauses a task
      */
     function unpause() external override auth {
-        if (!isPaused) revert TaskAlreadyUnpaused();
+        if (!isPaused) revert TaskUnpaused();
         isPaused = false;
         emit Unpaused();
     }

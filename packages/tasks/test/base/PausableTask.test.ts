@@ -55,7 +55,7 @@ describe('PausableTask', () => {
         })
 
         it('cannot be paused', async () => {
-          await expect(task.pause()).to.be.revertedWith('TaskAlreadyPaused')
+          await expect(task.pause()).to.be.revertedWith('TaskPaused')
         })
       })
     })
@@ -77,7 +77,7 @@ describe('PausableTask', () => {
 
       context('when the task is not paused', () => {
         it('cannot be unpaused', async () => {
-          await expect(task.unpause()).to.be.revertedWith('TaskAlreadyUnpaused')
+          await expect(task.unpause()).to.be.revertedWith('TaskUnpaused')
         })
       })
 

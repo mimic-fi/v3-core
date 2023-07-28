@@ -299,7 +299,7 @@ describe('HopL2Swapper', () => {
 
                     it('reverts', async () => {
                       await expect(task.call(tokenIn.address, amountIn, slippage)).to.be.revertedWith(
-                        'TaskSlippageTooHigh'
+                        'TaskSlippageAboveMax'
                       )
                     })
                   })

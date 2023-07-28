@@ -26,6 +26,11 @@ interface IWithdrawer is ITask {
     error TaskRecipientSmartVault(address recipient);
 
     /**
+     * @dev The next connector is not zero
+     */
+    error TaskNextConnectorNotZero(bytes32 next);
+
+    /**
      * @dev Emitted every time the recipient is set
      */
     event RecipientSet(address indexed recipient);

@@ -51,11 +51,6 @@ interface IGasLimitedTask is IBaseTask {
     error TaskTxCostLimitPctAboveOne();
 
     /**
-     * @dev The amount is zero
-     */
-    error GasLimitedTaskAmountZero();
-
-    /**
      * @dev Emitted every time the gas price limit is set
      */
     event GasPriceLimitSet(uint256 gasPriceLimit);

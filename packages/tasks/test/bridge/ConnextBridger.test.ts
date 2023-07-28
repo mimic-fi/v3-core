@@ -247,7 +247,7 @@ describe('ConnextBridger', () => {
                 context('when the slippage is above the limit', () => {
                   it('reverts', async () => {
                     await expect(task.call(token.address, amountIn, slippage, 0)).to.be.revertedWith(
-                      'TaskSlippageTooHigh'
+                      'TaskSlippageAboveMax'
                     )
                   })
                 })

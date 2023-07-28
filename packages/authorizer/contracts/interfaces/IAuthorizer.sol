@@ -67,19 +67,19 @@ interface IAuthorizer {
     error AuthorizerSenderNotAllowed(address who, address where, bytes4 what, uint256[] how);
 
     /**
-     * @dev The param operation is invalid
+     * @dev The operation param is invalid
      */
     error AuthorizerInvalidParamOp(uint8 op);
 
     /**
      * @dev Emitted every time `who`'s permission to perform `what` on `where` is granted with `params`
      */
-    event Authorized(address who, address where, bytes4 indexed what, Param[] params);
+    event Authorized(address indexed who, address indexed where, bytes4 indexed what, Param[] params);
 
     /**
      * @dev Emitted every time `who`'s permission to perform `what` on `where` is revoked
      */
-    event Unauthorized(address who, address where, bytes4 indexed what);
+    event Unauthorized(address indexed who, address indexed where, bytes4 indexed what);
 
     /**
      * @dev Tells whether `who` has any permission on `where`

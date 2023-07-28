@@ -21,6 +21,21 @@ import '../../ITask.sol';
  */
 interface IBaseCurveTask is ITask {
     /**
+     * @dev The token out is not set
+     */
+    error TaskTokenOutNotSet();
+
+    /**
+     * @dev The slippage is higher than the maximum slippage
+     */
+    error TaskSlippageAboveMax(uint256 slippage, uint256 maxSlippage);
+
+    /**
+     * @dev The slippage to be set is higher than one
+     */
+    error TaskSlippageAboveOne();
+
+    /**
      * @dev Emitted every time the connector is set
      */
     event ConnectorSet(address indexed connector);

@@ -27,7 +27,7 @@ import './IWormhole.sol';
  */
 contract WormholeConnector {
     /**
-     * @dev The chain ID is the same of the current chain
+     * @dev The source and destination chains are the same
      */
     error WormholeBridgeSameChain(uint256 chainId);
 
@@ -47,9 +47,9 @@ contract WormholeConnector {
     error WormholeBridgeMinAmountOutTooBig(uint256 minAmountOut, uint256 amountIn, uint256 relayerFee);
 
     /**
-     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
+     * @dev The post token balance is lower than the previous token balance minus the amount bridged
      */
-    error WormholeBridgeBadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+    error WormholeBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
 
     /**
      * @dev The chain ID is not supported
@@ -118,7 +118,7 @@ contract WormholeConnector {
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
         if (postBalanceIn < preBalanceIn - amountIn)
-            revert WormholeBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+            revert WormholeBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**

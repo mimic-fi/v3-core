@@ -154,7 +154,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
 
         // No need for checked math as an uint8 + FP_DECIMALS (constant) will always fit in an uint256
         if (baseDecimals > quoteDecimals + FP_DECIMALS)
-            revert BaseDecimalsTooBig(base, quote, baseDecimals, quoteDecimals);
+            revert PriceOracleBaseDecimalsTooBig(base, quote, baseDecimals, quoteDecimals);
 
         // No need for checked math as we are checking it manually beforehand
         uint256 resultDecimals = quoteDecimals + FP_DECIMALS - baseDecimals;
@@ -177,7 +177,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         for (uint256 i = 0; i < prices.length; i++) {
             PriceData memory price = prices[i];
             if (price.base == base && price.quote == quote) {
-                if (price.deadline < block.timestamp) revert OraclePriceOutdated(base, quote, price.deadline);
+                if (price.deadline < block.timestamp) revert PriceOraclePriceOutdated(base, quote, price.deadline);
                 return price.rate;
             }
         }
@@ -227,7 +227,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         address quoteFeed = getFeed[quote][pivot];
         if (baseFeed != address(0) && quoteFeed != address(0)) return _getPivotPrice(baseFeed, quoteFeed);
 
-        revert OracleMissingFeed(base, quote);
+        revert PriceOracleMissingFeed(base, quote);
     }
 
     /**
@@ -251,7 +251,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
     function _getInversePrice(address inverseFeed) internal view returns (uint256 price, uint256 decimals) {
         (uint256 inversePrice, uint256 inverseFeedDecimals) = _getFeedData(inverseFeed);
         if (inverseFeedDecimals > INVERSE_FEED_MAX_DECIMALS)
-            revert FeedDecimalsTooBig(inverseFeed, inverseFeedDecimals);
+            revert PriceOracleInverseFeedDecimalsTooBig(inverseFeed, inverseFeedDecimals);
 
         // Prices are requested for different purposes, we are rounding down always to follow a single strategy
         price = FixedPoint.ONE.divDown(inversePrice);
@@ -276,7 +276,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
 
         // No need for checked math as an uint8 + FP_DECIMALS (constant) will always fit in an uint256
         if (quoteFeedDecimals > baseFeedDecimals + FP_DECIMALS)
-            revert QuoteFeedDecimalsTooBig(quoteFeed, quoteFeedDecimals, baseFeed, baseFeedDecimals);
+            revert PriceOracleQuoteFeedDecimalsTooBig(quoteFeed, quoteFeedDecimals, baseFeed, baseFeedDecimals);
 
         // Price is base/quote = (base/pivot) / (quote/pivot)
         // Prices are requested for different purposes, we are rounding down always to follow a single strategy

@@ -112,7 +112,7 @@ describe('Relayer', () => {
         const collector = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(relayer.setDefaultCollector(collector)).to.be.revertedWith('RelayerInputZero')
+          await expect(relayer.setDefaultCollector(collector)).to.be.revertedWith('RelayerCollectorZero')
         })
       })
     })
@@ -154,7 +154,7 @@ describe('Relayer', () => {
 
         it('reverts', async () => {
           await expect(relayer.setSmartVaultCollector(smartVault.address, collector)).to.be.revertedWith(
-            'RelayerInputZero'
+            'RelayerCollectorZero'
           )
         })
       })
@@ -354,7 +354,7 @@ describe('Relayer', () => {
 
       it('reverts', async () => {
         await expect(relayer.deposit(smartVault.address, amount, { value })).to.revertedWith(
-          'RelayerDepositInvalidAmount'
+          'RelayerValueDoesNotMatchAmount'
         )
       })
     })
@@ -413,7 +413,7 @@ describe('Relayer', () => {
       const amount = balance.add(1)
 
       it('reverts', async () => {
-        await expect(relayer.connect(smartVault).withdraw(amount)).to.revertedWith('RelayerWithdrawSvInsufficientBal')
+        await expect(relayer.connect(smartVault).withdraw(amount)).to.revertedWith('RelayerWithdrawInsufficientBalance')
       })
     })
   })
@@ -658,7 +658,7 @@ describe('Relayer', () => {
           context('when the available quota is not enough', () => {
             it('reverts', async () => {
               await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith(
-                'RelayerPaymentSvInsufficientBal'
+                'RelayerPaymentInsufficientBal'
               )
             })
           })
@@ -667,7 +667,9 @@ describe('Relayer', () => {
 
       context('when the task does not have permissions over the associated smart vault', () => {
         it('reverts', async () => {
-          await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith('RelayerInvalidTask')
+          await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith(
+            'RelayerInvalidTaskPermissions'
+          )
         })
       })
     })
@@ -769,7 +771,7 @@ describe('Relayer', () => {
             const amount = 0
             it('reverts', async () => {
               await expect(relayer.rescueFunds(token.address, recipient.address, amount)).to.be.revertedWith(
-                'RelayerInputZero'
+                'RelayerAmountZero'
               )
             })
           })
@@ -779,7 +781,7 @@ describe('Relayer', () => {
           const recipientAddr = ZERO_ADDRESS
           it('reverts', async () => {
             await expect(relayer.rescueFunds(token.address, recipientAddr, amount)).to.be.revertedWith(
-              'RelayerInputZero'
+              'RelayerRecipientZero'
             )
           })
         })
@@ -788,7 +790,7 @@ describe('Relayer', () => {
       context('when the token is the zero address', () => {
         const tokenAddr = ZERO_ADDRESS
         it('reverts', async () => {
-          await expect(relayer.rescueFunds(tokenAddr, recipient.address, amount)).to.be.revertedWith('RelayerInputZero')
+          await expect(relayer.rescueFunds(tokenAddr, recipient.address, amount)).to.be.revertedWith('RelayerTokenZero')
         })
       })
     })

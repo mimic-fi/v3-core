@@ -125,7 +125,7 @@ describe('SmartVault', () => {
 
       context('when the smart vault is not paused', () => {
         it('cannot be unpaused', async () => {
-          await expect(smartVault.unpause()).to.be.revertedWith('SmartVaultAlreadyUnpaused')
+          await expect(smartVault.unpause()).to.be.revertedWith('SmartVaultUnpaused')
         })
       })
 
@@ -363,7 +363,7 @@ describe('SmartVault', () => {
 
           it('reverts', async () => {
             await expect(smartVault.updateBalanceConnector(connector, token, amount, true)).to.be.revertedWith(
-              'SmartVaultConnectorInputZero'
+              'SmartVaultConnectorTokenZero'
             )
           })
         })
@@ -374,7 +374,7 @@ describe('SmartVault', () => {
 
         it('reverts', async () => {
           await expect(smartVault.updateBalanceConnector(connector, ZERO_ADDRESS, amount, true)).to.be.revertedWith(
-            'SmartVaultConnectorInputZero'
+            'SmartVaultConnectorIdZero'
           )
         })
       })
@@ -451,7 +451,7 @@ describe('SmartVault', () => {
 
               it('reverts', async () => {
                 await expect(smartVault.execute(connector.address, data)).to.be.revertedWith(
-                  'SmartVaultInvalidConnector'
+                  'SmartVaultConnectorDeprecated'
                 )
               })
             })
@@ -465,7 +465,9 @@ describe('SmartVault', () => {
             })
 
             it('reverts', async () => {
-              await expect(smartVault.execute(connector.address, data)).to.be.revertedWith('SmartVaultInvalidConnector')
+              await expect(smartVault.execute(connector.address, data)).to.be.revertedWith(
+                'SmartVaultConnectorNotStateless'
+              )
             })
           })
         })
@@ -473,7 +475,9 @@ describe('SmartVault', () => {
         context('when the connector is not registered', async () => {
           context('when the connector check is not overridden', async () => {
             it('reverts', async () => {
-              await expect(smartVault.execute(connector.address, data)).to.be.revertedWith('SmartVaultInvalidConnector')
+              await expect(smartVault.execute(connector.address, data)).to.be.revertedWith(
+                'SmartVaultConnectorNotRegistered'
+              )
             })
           })
 

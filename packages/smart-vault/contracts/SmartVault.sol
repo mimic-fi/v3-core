@@ -63,7 +63,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @dev Modifier to tag smart vault functions in order to check if it is paused
      */
     modifier notPaused() {
-        if (isPaused) revert SmartVaultPaused(address(this));
+        if (isPaused) revert SmartVaultPaused();
         _;
     }
 
@@ -125,7 +125,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @dev Pauses a smart vault. Sender must be authorized.
      */
     function pause() external override auth {
-        if (isPaused) revert SmartVaultAlreadyPaused(address(this));
+        if (isPaused) revert SmartVaultAlreadyPaused();
         isPaused = true;
         emit Paused();
     }
@@ -134,7 +134,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @dev Unpauses a samrt vault. Sender must be authorized.
      */
     function unpause() external override auth {
-        if (!isPaused) revert SmartVaultAlreadyUnpaused(address(this));
+        if (!isPaused) revert SmartVaultUnpaused();
         isPaused = false;
         emit Unpaused();
     }
@@ -183,7 +183,8 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         notPaused
         authP(authParams(id, token, amount, add))
     {
-        if (id == bytes32(0) || token == address(0)) revert SmartVaultConnectorInputZero(address(this));
+        if (id == bytes32(0)) revert SmartVaultConnectorIdZero();
+        if (token == address(0)) revert SmartVaultConnectorTokenZero();
         (add ? _increaseBalanceConnector : _decreaseBalanceConnector)(id, token, amount);
     }
 
@@ -230,9 +231,9 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @param amount Amount of native tokens to be wrapped
      */
     function wrap(uint256 amount) external override nonReentrant notPaused authP(authParams(amount)) {
-        if (amount == 0) revert SmartVaultAmountZero(address(this));
+        if (amount == 0) revert SmartVaultAmountZero();
         uint256 balance = address(this).balance;
-        if (balance < amount) revert SmartVaultInsufficientBalance(address(this), balance, amount);
+        if (balance < amount) revert SmartVaultInsufficientBalance(balance, amount);
         IWrappedNativeToken(wrappedNativeToken).deposit{ value: amount }();
         emit Wrapped(amount);
     }
@@ -242,7 +243,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @param amount Amount of wrapped native tokens to unwrapped
      */
     function unwrap(uint256 amount) external override nonReentrant notPaused authP(authParams(amount)) {
-        if (amount == 0) revert SmartVaultAmountZero(address(this));
+        if (amount == 0) revert SmartVaultAmountZero();
         IWrappedNativeToken(wrappedNativeToken).withdraw(amount);
         emit Unwrapped(amount);
     }
@@ -260,7 +261,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         notPaused
         authP(authParams(token, from, amount))
     {
-        if (amount == 0) revert SmartVaultAmountZero(address(this));
+        if (amount == 0) revert SmartVaultAmountZero();
         IERC20(token).safeTransferFrom(from, address(this), amount);
         emit Collected(token, from, amount);
     }
@@ -278,8 +279,8 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         notPaused
         authP(authParams(token, recipient, amount))
     {
-        if (amount == 0) revert SmartVaultAmountZero(address(this));
-        if (recipient == address(0)) revert SmartVaultRecipientZero(address(this));
+        if (amount == 0) revert SmartVaultAmountZero();
+        if (recipient == address(0)) revert SmartVaultRecipientZero();
 
         (, uint256 pct, address collector) = IFeeController(feeController).getFee(address(this));
         uint256 feeAmount = amount.mulDown(pct);
@@ -329,7 +330,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      */
     function _decreaseBalanceConnector(bytes32 id, address token, uint256 amount) internal {
         uint256 value = getBalanceConnector[id][token];
-        if (value < amount) revert SmartVaultConnectorInsuffBalance(address(this), id, token, value, amount);
+        if (value < amount) revert SmartVaultConnectorInsuffBalance(id, token, value, amount);
         getBalanceConnector[id][token] = value - amount;
         emit BalanceConnectorUpdated(id, token, amount, false);
     }
@@ -340,10 +341,8 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      */
     function _validateConnector(address connector) private view {
         if (isConnectorCheckIgnored[connector]) return;
-        if (
-            !IRegistry(registry).isRegistered(connector) ||
-            !IRegistry(registry).isStateless(connector) ||
-            IRegistry(registry).isDeprecated(connector)
-        ) revert SmartVaultInvalidConnector(address(this), connector);
+        if (!IRegistry(registry).isRegistered(connector)) revert SmartVaultConnectorNotRegistered(connector);
+        if (!IRegistry(registry).isStateless(connector)) revert SmartVaultConnectorNotStateless(connector);
+        if (IRegistry(registry).isDeprecated(connector)) revert SmartVaultConnectorDeprecated(connector);
     }
 }

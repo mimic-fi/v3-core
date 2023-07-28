@@ -26,7 +26,7 @@ import './IConnext.sol';
  */
 contract ConnextConnector {
     /**
-     * @dev The chain ID is the same of the current chain
+     * @dev The source and destination chains are the same
      */
     error ConnextBridgeSameChain(uint256 chainId);
 
@@ -38,7 +38,7 @@ contract ConnextConnector {
     /**
      * @dev The relayer fee is greater than the amount to be bridged
      */
-    error ConnextBridgeRelayerFeeGTAmount(uint256 relayerFee, uint256 amountIn);
+    error ConnextBridgeRelayerFeeGtAmount(uint256 relayerFee, uint256 amountIn);
 
     /**
      * @dev The minimum amount out is greater than the amount to be bridged minus the relayer fee
@@ -46,9 +46,9 @@ contract ConnextConnector {
     error ConnextBridgeMinAmountOutTooBig(uint256 minAmountOut, uint256 amountIn, uint256 relayerFee);
 
     /**
-     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
+     * @dev The post token balance is lower than the previous token balance minus the amount bridged
      */
-    error ConnextBridgeBadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+    error ConnextBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
 
     /**
      * @dev The chain ID is not supported
@@ -101,7 +101,7 @@ contract ConnextConnector {
     ) external {
         if (block.chainid == chainId) revert ConnextBridgeSameChain(chainId);
         if (recipient == address(0)) revert ConnextBridgeRecipientZero();
-        if (relayerFee > amountIn) revert ConnextBridgeRelayerFeeGTAmount(relayerFee, amountIn);
+        if (relayerFee > amountIn) revert ConnextBridgeRelayerFeeGtAmount(relayerFee, amountIn);
         if (minAmountOut > amountIn - relayerFee)
             revert ConnextBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
 
@@ -128,7 +128,7 @@ contract ConnextConnector {
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
         if (postBalanceIn < preBalanceIn - amountIn)
-            revert ConnextBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+            revert ConnextBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**

@@ -170,7 +170,7 @@ describe('Curve2CrvExiter', () => {
                 const slippage = fp(0.01)
 
                 it('reverts', async () => {
-                  await expect(task.call(token.address, amount, slippage)).to.be.revertedWith('TaskSlippageTooHigh')
+                  await expect(task.call(token.address, amount, slippage)).to.be.revertedWith('TaskSlippageAboveMax')
                 })
               })
             })

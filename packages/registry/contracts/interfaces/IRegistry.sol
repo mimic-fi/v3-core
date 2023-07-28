@@ -23,22 +23,22 @@ interface IRegistry {
     /**
      * @dev The implementation address is zero
      */
-    error RegistryImplAddressZero();
+    error RegistryImplementationAddressZero();
 
     /**
      * @dev The implementation is not registered
      */
-    error RegistryImplNotRegistered(address implementation);
+    error RegistryImplementationNotRegistered(address implementation);
 
     /**
      * @dev The implementation is already deprecated
      */
-    error RegistryImplAlreadyDeprecated(address implementation);
+    error RegistryImplementationDeprecated(address implementation);
 
     /**
      * @dev The implementation is already registered
      */
-    error RegistryImplAlreadyRegistered(address implementation);
+    error RegistryImplementationRegistered(address implementation);
 
     /**
      * @dev Emitted every time an implementation is registered

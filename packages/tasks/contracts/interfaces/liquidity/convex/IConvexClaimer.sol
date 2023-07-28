@@ -21,6 +21,11 @@ import './IBaseConvexTask.sol';
  */
 interface IConvexClaimer is IBaseConvexTask {
     /**
+     * @dev The previous connector is not zero
+     */
+    error TaskPreviousConnectorNotZero(bytes32 previous);
+
+    /**
      * @dev The amount is not zero
      */
     error TaskAmountNotZero();

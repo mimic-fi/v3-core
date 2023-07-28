@@ -28,17 +28,17 @@ contract Deployer {
     /**
      * @dev The implementation is not registered
      */
-    error DeployerImplNotRegistered(address implementation);
+    error DeployerImplementationNotRegistered(address implementation);
 
     /**
      * @dev The implementation is stateless
      */
-    error DeployerImplStateless(address implementation);
+    error DeployerImplementationStateless(address implementation);
 
     /**
      * @dev The implementation is deprecated
      */
-    error DeployerImplDeprecated(address implementation);
+    error DeployerImplementationDeprecated(address implementation);
 
     /**
      * @dev The namespace is empty
@@ -190,9 +190,9 @@ contract Deployer {
      * @param implementation Address of the implementation to be checked
      */
     function _validateImplementation(address implementation) internal view {
-        if (!registry.isRegistered(implementation)) revert DeployerImplNotRegistered(implementation);
-        if (registry.isStateless(implementation)) revert DeployerImplStateless(implementation);
-        if (registry.isDeprecated(implementation)) revert DeployerImplDeprecated(implementation);
+        if (!registry.isRegistered(implementation)) revert DeployerImplementationNotRegistered(implementation);
+        if (registry.isStateless(implementation)) revert DeployerImplementationStateless(implementation);
+        if (registry.isDeprecated(implementation)) revert DeployerImplementationDeprecated(implementation);
     }
 
     /**

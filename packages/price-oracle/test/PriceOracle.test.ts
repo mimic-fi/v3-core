@@ -194,7 +194,7 @@ describe('PriceOracle', () => {
       })
 
       it('reverts', async () => {
-        await expect(getPrice()).to.be.revertedWith('OracleMissingFeed')
+        await expect(getPrice()).to.be.revertedWith('PriceOracleMissingFeed')
       })
     })
 
@@ -208,7 +208,7 @@ describe('PriceOracle', () => {
         })
 
         it('reverts', async () => {
-          await expect(getPrice()).to.be.revertedWith('BaseDecimalsTooBig')
+          await expect(getPrice()).to.be.revertedWith('PriceOracleBaseDecimalsTooBig')
         })
       }
 
@@ -491,7 +491,7 @@ describe('PriceOracle', () => {
         })
 
         it('reverts', async () => {
-          await expect(getPrice()).to.be.revertedWith('BaseDecimalsTooBig')
+          await expect(getPrice()).to.be.revertedWith('PriceOracleBaseDecimalsTooBig')
         })
       }
 
@@ -787,7 +787,7 @@ describe('PriceOracle', () => {
         })
 
         it('reverts', async () => {
-          await expect(getPrice()).to.be.revertedWith('BaseDecimalsTooBig')
+          await expect(getPrice()).to.be.revertedWith('PriceOracleBaseDecimalsTooBig')
         })
       }
 
@@ -1591,7 +1591,7 @@ describe('PriceOracle', () => {
 
     const itRevertsDueToMissingFeed = () => {
       it('reverts due to missing feed', async () => {
-        await expect(getPrice()).to.be.revertedWith('OracleMissingFeed')
+        await expect(getPrice()).to.be.revertedWith('PriceOracleMissingFeed')
       })
     }
 
@@ -1633,7 +1633,7 @@ describe('PriceOracle', () => {
 
           const itRevertsDueToOutdatedFeed = () => {
             it('reverts due to outdated feed', async () => {
-              await expect(getPrice()).to.be.revertedWith('OraclePriceOutdated')
+              await expect(getPrice()).to.be.revertedWith('PriceOraclePriceOutdated')
             })
           }
 

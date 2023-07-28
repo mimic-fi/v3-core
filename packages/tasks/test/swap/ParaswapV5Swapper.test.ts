@@ -322,7 +322,7 @@ describe('ParaswapV5Swapper', () => {
                             data,
                             signature
                           )
-                        ).to.be.revertedWith('TaskQuoteSignerDeadline')
+                        ).to.be.revertedWith('TaskQuoteSignerPastDeadline')
                       })
                     })
                   })
@@ -333,7 +333,7 @@ describe('ParaswapV5Swapper', () => {
 
                       await expect(
                         task.call(tokenIn.address, amountIn, minAmountOut, expectedAmountOut, 0, data, signature)
-                      ).to.be.revertedWith('TaskQuoteSignerDeadline')
+                      ).to.be.revertedWith('TaskQuoteSignerPastDeadline')
                     })
                   })
                 })
@@ -345,7 +345,7 @@ describe('ParaswapV5Swapper', () => {
                   it('reverts', async () => {
                     await expect(
                       task.call(tokenIn.address, amountIn, minAmountOut, expectedAmountOut, 0, '0x', '0x')
-                    ).to.be.revertedWith('TaskSlippageTooHigh')
+                    ).to.be.revertedWith('TaskSlippageAboveMax')
                   })
                 })
               })

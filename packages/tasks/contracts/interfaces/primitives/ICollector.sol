@@ -31,6 +31,11 @@ interface ICollector is ITask {
     event TokensSourceSet(address indexed tokensSource);
 
     /**
+     * @dev The previous connector is not zero
+     */
+    error TaskPreviousConnectorNotZero(bytes32 previous);
+
+    /**
      * @dev Sets the tokens source address
      * @param tokensSource Address of the tokens source to be set
      */

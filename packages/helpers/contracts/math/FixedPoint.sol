@@ -25,17 +25,17 @@ library FixedPoint {
     /**
      * @dev Multiplication overflow
      */
-    error MulOverflow(uint256 a, uint256 b);
+    error FixedPointMulOverflow(uint256 a, uint256 b);
 
     /**
      * @dev Division by zero
      */
-    error ZeroDivision();
+    error FixedPointZeroDivision();
 
     /**
      * @dev Division internal error
      */
-    error DivInternal(uint256 a, uint256 aInflated);
+    error FixedPointDivInternal(uint256 a, uint256 aInflated);
 
     /**
      * @dev Multiplies two fixed point numbers rounding down
@@ -43,7 +43,7 @@ library FixedPoint {
     function mulDown(uint256 a, uint256 b) internal pure returns (uint256) {
         unchecked {
             uint256 product = a * b;
-            if (a != 0 && product / a != b) revert MulOverflow(a, b);
+            if (a != 0 && product / a != b) revert FixedPointMulOverflow(a, b);
             return product / ONE;
         }
     }
@@ -54,7 +54,7 @@ library FixedPoint {
     function mulUp(uint256 a, uint256 b) internal pure returns (uint256) {
         unchecked {
             uint256 product = a * b;
-            if (a != 0 && product / a != b) revert MulOverflow(a, b);
+            if (a != 0 && product / a != b) revert FixedPointMulOverflow(a, b);
             return product == 0 ? 0 : (((product - 1) / ONE) + 1);
         }
     }
@@ -64,10 +64,10 @@ library FixedPoint {
      */
     function divDown(uint256 a, uint256 b) internal pure returns (uint256) {
         unchecked {
-            if (b == 0) revert ZeroDivision();
+            if (b == 0) revert FixedPointZeroDivision();
             if (a == 0) return 0;
             uint256 aInflated = a * ONE;
-            if (aInflated / a != ONE) revert DivInternal(a, aInflated);
+            if (aInflated / a != ONE) revert FixedPointDivInternal(a, aInflated);
             return aInflated / b;
         }
     }
@@ -77,10 +77,10 @@ library FixedPoint {
      */
     function divUp(uint256 a, uint256 b) internal pure returns (uint256) {
         unchecked {
-            if (b == 0) revert ZeroDivision();
+            if (b == 0) revert FixedPointZeroDivision();
             if (a == 0) return 0;
             uint256 aInflated = a * ONE;
-            if (aInflated / a != ONE) revert DivInternal(a, aInflated);
+            if (aInflated / a != ONE) revert FixedPointDivInternal(a, aInflated);
             return ((aInflated - 1) / b) + 1;
         }
     }

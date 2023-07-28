@@ -164,7 +164,7 @@ abstract contract BaseCurveTask is IBaseCurveTask, Task {
         if (amount == 0) revert TaskAmountZero();
         if (getTokenOut(token) == address(0)) revert TaskTokenOutNotSet();
         uint256 maxSlippage = getMaxSlippage(token);
-        if (slippage > maxSlippage) revert TaskSlippageTooHigh(slippage, maxSlippage);
+        if (slippage > maxSlippage) revert TaskSlippageAboveMax(slippage, maxSlippage);
     }
 
     /**

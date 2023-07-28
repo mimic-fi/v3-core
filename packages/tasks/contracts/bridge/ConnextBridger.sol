@@ -82,10 +82,10 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Tells the relayer fee that should be used for a token
+     * @dev Tells the max fee percentage that should be used for a token
      * @param token Address of the token being queried
      */
-    function getRelayerFee(address token) public view virtual override returns (uint256) {
+    function getMaxFeePct(address token) public view virtual override returns (uint256) {
         uint256 relayerFee = customRelayerFee[token];
         return relayerFee == 0 ? defaultRelayerFee : relayerFee;
     }
@@ -140,9 +140,9 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
         virtual
     {
         _beforeBaseBridgeTask(token, amount, slippage);
-        uint256 maxRelayerFee = getRelayerFee(token);
+        uint256 maxFeePct = getMaxFeePct(token);
         uint256 relayerFeePct = relayerFee.divUp(amount);
-        if (relayerFeePct > maxRelayerFee) revert TaskFeeTooHigh(relayerFeePct, maxRelayerFee);
+        if (relayerFeePct > maxFeePct) revert TaskFeeTooHigh(relayerFeePct, maxFeePct);
     }
 
     /**

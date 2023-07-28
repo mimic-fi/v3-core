@@ -19,19 +19,39 @@ pragma solidity >=0.8.0;
  */
 interface IRelayer {
     /**
-     * @dev The parameter is zero
+     * @dev The collector is zero
      */
-    error RelayerInputZero();
+    error RelayerCollectorZero();
+
+    /**
+     * @dev The token is zero
+     */
+    error RelayerTokenZero();
+
+    /**
+     * @dev The recipient is zero
+     */
+    error RelayerRecipientZero();
+
+    /**
+     * @dev The amount is zero
+     */
+    error RelayerAmountZero();
+
+    /**
+     * @dev The executor is zero
+     */
+    error RelayerExecutorZero();
 
     /**
      * @dev The value sent and the amount differ
      */
-    error RelayerDepositInvalidAmount(uint256 value, uint256 amount);
+    error RelayerValueDoesNotMatchAmount(uint256 value, uint256 amount);
 
     /**
      * @dev The smart vault balance is lower than the amount to withdraw
      */
-    error RelayerWithdrawSvInsufficientBal(uint256 amount, uint256 balance);
+    error RelayerWithdrawInsufficientBalance(address sender, uint256 balance, uint256 amount);
 
     /**
      * @dev It failed to send the amount to the sender
@@ -49,19 +69,24 @@ interface IRelayer {
     error RelayerExecuteInputBadLength(uint256 tasksLength, uint256 datasLength);
 
     /**
-     * @dev The task's smart vault is wrong or the smart vault is not allowed to execute the task
+     * @dev The task's smart vault is wrong
      */
-    error RelayerInvalidTask(address task, address smartVault);
+    error RelayerInvalidTaskSmartVault(address task, address smartVault);
+
+    /**
+     * @dev The smart vault is not allowed to execute the task
+     */
+    error RelayerInvalidTaskPermissions(address task, address smartVault);
 
     /**
      * @dev The smart vault balance plus the available quota are lower than the amount to pay the relayer
      */
-    error RelayerPaymentSvInsufficientBal(uint256 amount, uint256 balance, uint256 availableQuota);
+    error RelayerPaymentInsufficientBal(address smartVault, uint256 balance, uint256 availableQuota, uint256 amount);
 
     /**
      * @dev It failed to send amount minus quota to the smart vault's collector
      */
-    error RelayerCollectorFailed(address smartVault, uint256 amount, uint256 quota);
+    error RelayerPaymentFailed(address smartVault, uint256 amount, uint256 quota);
 
     /**
      * @dev Emitted every time an executor is configured

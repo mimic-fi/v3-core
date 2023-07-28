@@ -23,53 +23,62 @@ interface ISmartVault is IAuthorized {
     /**
      * @dev The smart vault is paused
      */
-    error SmartVaultPaused(address smartVault);
+    error SmartVaultPaused();
 
     /**
      * @dev The smart vault is already paused
      */
-    error SmartVaultAlreadyPaused(address smartVault);
+    error SmartVaultAlreadyPaused();
 
     /**
-     * @dev The smart vault is already unpaused
+     * @dev The smart vault is unpaused
      */
-    error SmartVaultAlreadyUnpaused(address smartVault);
-
-    /**
-     * @dev The connector token or ID is zero
-     */
-    error SmartVaultConnectorInputZero(address smartVault);
+    error SmartVaultUnpaused();
 
     /**
      * @dev The amount is zero
      */
-    error SmartVaultAmountZero(address smartVault);
+    error SmartVaultAmountZero();
 
     /**
      * @dev The smart vault balance is lower than the amount
      */
-    error SmartVaultInsufficientBalance(address smartVault, uint256 balance, uint256 amount);
+    error SmartVaultInsufficientBalance(uint256 balance, uint256 amount);
 
     /**
      * @dev The recipient is zero
      */
-    error SmartVaultRecipientZero(address smartVault);
+    error SmartVaultRecipientZero();
 
     /**
      * @dev The connector balance is lower than the amount
      */
-    error SmartVaultConnectorInsuffBalance(
-        address smartVault,
-        bytes32 id,
-        address token,
-        uint256 balance,
-        uint256 amount
-    );
+    error SmartVaultConnectorInsuffBalance(bytes32 id, address token, uint256 balance, uint256 amount);
 
     /**
-     * @dev The connector is either not registered, non stateless or deprecated
+     * @dev The connector ID is zero
      */
-    error SmartVaultInvalidConnector(address smartVault, address connector);
+    error SmartVaultConnectorIdZero();
+
+    /**
+     * @dev The connector token is zero
+     */
+    error SmartVaultConnectorTokenZero();
+
+    /**
+     * @dev The connector is not registered
+     */
+    error SmartVaultConnectorNotRegistered(address connector);
+
+    /**
+     * @dev The connector is not stateless
+     */
+    error SmartVaultConnectorNotStateless(address connector);
+
+    /**
+     * @dev The connector is deprecated
+     */
+    error SmartVaultConnectorDeprecated(address connector);
 
     /**
      * @dev Emitted every time a smart vault is paused

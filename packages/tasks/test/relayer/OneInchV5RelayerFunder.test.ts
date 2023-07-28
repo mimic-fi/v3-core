@@ -262,7 +262,7 @@ describe('OneInchV5RelayerFunder', () => {
 
                   it('reverts', async () => {
                     await expect(task.call(tokenIn.address, amountIn, slippage, '0x')).to.be.revertedWith(
-                      'TaskSlippageTooHigh'
+                      'TaskSlippageAboveMax'
                     )
                   })
                 })

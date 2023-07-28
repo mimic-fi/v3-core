@@ -34,7 +34,7 @@ contract HopConnector {
     using Denominations for address;
 
     /**
-     * @dev The chain ID is the same of the current chain
+     * @dev The source and destination chains are the same
      */
     error HopBridgeSameChain(uint256 chainId);
 
@@ -46,12 +46,12 @@ contract HopConnector {
     /**
      * @dev The relayer was sent when not needed
      */
-    error HopRelayerNotNeeded();
+    error HopBridgeRelayerNotNeeded();
 
     /**
      * @dev The deadline was sent when not needed
      */
-    error HopDeadlineNotNeeded();
+    error HopBirdgeDeadlineNotNeeded();
 
     /**
      * @dev The bridge operation is not supported
@@ -59,19 +59,14 @@ contract HopConnector {
     error HopBridgeOpNotSupported();
 
     /**
-     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
+     * @dev The post token balance is lower than the previous token balance minus the amount bridged
      */
-    error HopBadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+    error HopBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
 
     /**
-     * @dev The deadline is in the future
+     * @dev The deadline is in the past
      */
     error HopBridgeInvalidDeadline(uint256 deadline, uint256 blockTimestamp);
-
-    /**
-     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount in
-     */
-    error HopBridgeBadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
 
     // Ethereum mainnet chain ID = 1
     uint256 private constant MAINNET_CHAIN_ID = 1;
@@ -131,16 +126,16 @@ contract HopConnector {
         if (fromL1 && toL2)
             _bridgeFromL1ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, relayer, fee);
         else if (!fromL1 && toL2) {
-            if (relayer != address(0)) revert HopRelayerNotNeeded();
+            if (relayer != address(0)) revert HopBridgeRelayerNotNeeded();
             _bridgeFromL2ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, fee);
         } else if (!fromL1 && !toL2) {
-            if (deadline != 0) revert HopDeadlineNotNeeded();
+            if (deadline != 0) revert HopBirdgeDeadlineNotNeeded();
             _bridgeFromL2ToL1(chainId, token, amountIn, minAmountOut, recipient, bridge, fee);
         } else revert HopBridgeOpNotSupported();
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
         if (postBalanceIn < preBalanceIn - amountIn)
-            revert HopBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+            revert HopBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**

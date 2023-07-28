@@ -26,14 +26,9 @@ interface IPausableTask is IBaseTask {
     error TaskPaused();
 
     /**
-     * @dev The task is already paused
+     * @dev The task is unpaused
      */
-    error TaskAlreadyPaused();
-
-    /**
-     * @dev The task is already unpaused
-     */
-    error TaskAlreadyUnpaused();
+    error TaskUnpaused();
 
     /**
      * @dev Emitted every time a task is paused

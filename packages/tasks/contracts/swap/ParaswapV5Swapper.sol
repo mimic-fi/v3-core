@@ -138,7 +138,7 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
         );
         address signer = ECDSA.recover(ECDSA.toEthSignedMessageHash(message), sig);
         if (signer != quoteSigner) revert TaskInvalidQuoteSigner(signer, quoteSigner);
-        if (block.timestamp > deadline) revert TaskQuoteSignerDeadline(deadline);
+        if (block.timestamp > deadline) revert TaskQuoteSignerPastDeadline(deadline, block.timestamp);
     }
 
     /**

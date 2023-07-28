@@ -36,9 +36,9 @@ contract OneInchV5Connector {
     error OneInchV5SwapSameToken(address token);
 
     /**
-     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
+     * @dev The post token in balance is lower than the previous token in balance minus the amount in
      */
-    error OneInchV5BadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+    error OneInchV5BadPostTokenInBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
 
     /**
      * @dev The amount out is less than the minimum amount out
@@ -75,7 +75,7 @@ contract OneInchV5Connector {
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         if (postBalanceIn < preBalanceIn - amountIn)
-            revert OneInchV5BadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+            revert OneInchV5BadPostTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;

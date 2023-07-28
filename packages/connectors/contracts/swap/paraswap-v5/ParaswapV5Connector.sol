@@ -32,7 +32,7 @@ contract ParaswapV5Connector {
     error ParaswapV5SwapSameToken(address token);
 
     /**
-     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
+     * @dev The post token in balance is lower than the previous token in balance minus the amount in
      */
     error ParaswapV5BadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
 

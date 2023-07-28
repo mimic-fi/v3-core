@@ -133,8 +133,7 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
         if (txCostLimit > 0 && totalCost > txCostLimit) revert TaskTxCostLimit(totalCost, txCostLimit);
         delete __initialGas__;
 
-        if (txCostLimitPct > 0) {
-            if (amount == 0) revert GasLimitedTaskAmountZero();
+        if (txCostLimitPct > 0 && amount > 0) {
             uint256 price = _getPrice(ISmartVault(this.smartVault()).wrappedNativeToken(), token);
             uint256 totalCostInToken = totalCost.mulUp(price);
             if (totalCostInToken.divUp(amount) > txCostLimitPct)

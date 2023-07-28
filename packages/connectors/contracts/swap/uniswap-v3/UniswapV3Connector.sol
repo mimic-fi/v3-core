@@ -42,7 +42,7 @@ contract UniswapV3Connector {
     error UniswapV3BadHopTokensFeesLength(uint256 hopTokensLength, uint256 hopFeesLength);
 
     /**
-     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
+     * @dev The post token in balance is lower than the previous token in balance minus the amount in
      */
     error UniswapV3BadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
 

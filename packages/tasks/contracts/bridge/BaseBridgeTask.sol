@@ -191,7 +191,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
         if (amount == 0) revert TaskAmountZero();
         if (getDestinationChain(token) == 0) revert TaskDestinationChainNotSet();
         uint256 maxSlippage = getMaxSlippage(token);
-        if (slippage > maxSlippage) revert TaskSlippageTooHigh(slippage, maxSlippage);
+        if (slippage > maxSlippage) revert TaskSlippageAboveMax(slippage, maxSlippage);
     }
 
     /**

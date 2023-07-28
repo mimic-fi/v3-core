@@ -28,17 +28,17 @@ import './ICvxBooster.sol';
 contract ConvexConnector {
     using FixedPoint for uint256;
     /**
-     * @dev Failed to deposit tokens into Convex booster
+     * @dev Failed to deposit tokens into the Convex booster
      */
     error ConvexBoosterDepositFailed(uint256 poolId, uint256 amount);
 
     /**
-     * @dev Failed to withdraw tokens from Convex pool in the Convex booster
+     * @dev Failed to withdraw tokens from Convex pool
      */
     error ConvexCvxPoolWithdrawFailed(address cvxPool, uint256 amount);
 
     /**
-     * @dev Convex pool associated with the given Curve pool not found
+     * @dev Missing Convex pool for the requested Curve pool
      */
     error ConvexCvxPoolNotFound(address curvePool);
 

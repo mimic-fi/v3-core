@@ -36,6 +36,21 @@ interface IBaseBridgeTask is ITask {
     error TaskDestinationChainNotSet();
 
     /**
+     * @dev The slippage is higher than the maximum slippage
+     */
+    error TaskSlippageAboveMax(uint256 slippage, uint256 maxSlippage);
+
+    /**
+     * @dev The slippage to be set is higher than one
+     */
+    error TaskSlippageAboveOne();
+
+    /**
+     * @dev The next connector is not zero
+     */
+    error TaskNextConnectorNotZero(bytes32 next);
+
+    /**
      * @dev Emitted every time the connector is set
      */
     event ConnectorSet(address indexed connector);

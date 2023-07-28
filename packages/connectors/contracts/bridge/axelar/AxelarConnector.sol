@@ -27,7 +27,7 @@ import './IAxelarGateway.sol';
  */
 contract AxelarConnector {
     /**
-     * @dev The chain ID is the same of the current chain
+     * @dev The source and destination chains are the same
      */
     error AxelarBridgeSameChain(uint256 chainId);
 
@@ -37,9 +37,9 @@ contract AxelarConnector {
     error AxelarBridgeRecipientZero();
 
     /**
-     * @dev The token balance after the bridge is less than the token balance before the bridge minus the amount bridged
+     * @dev The post token balance is lower than the previous token balance minus the amount bridged
      */
-    error AxelarBridgeBadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+    error AxelarBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
 
     /**
      * @dev The chain ID is not supported
@@ -94,7 +94,7 @@ contract AxelarConnector {
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
         if (postBalanceIn < preBalanceIn - amountIn)
-            revert AxelarBridgeBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+            revert AxelarBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**
