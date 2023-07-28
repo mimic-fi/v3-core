@@ -90,6 +90,7 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
         bytes memory data,
         bytes memory sig
     ) external override authP(authParams(tokenIn, amountIn, minAmountOut, expectedAmountOut, deadline)) {
+        if (amountIn == 0) amountIn = getTaskAmount(tokenIn);
         address tokenOut = getTokenOut(tokenIn);
         uint256 slippage = FixedPoint.ONE - minAmountOut.divUp(expectedAmountOut);
         _beforeParaswapV5Swapper(

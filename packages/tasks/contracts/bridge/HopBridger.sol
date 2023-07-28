@@ -176,7 +176,9 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
         override
         authP(authParams(token, amount, slippage, fee))
     {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforeHopBridger(token, amount, slippage, fee);
+
         uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
             HopConnector.execute.selector,

@@ -62,6 +62,7 @@ contract Unwrapper is IUnwrapper, Task {
      * @dev Execute Unwrapper
      */
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforeUnwrapper(token, amount);
         ISmartVault(smartVault).unwrap(amount);
         _afterUnwrapper(token, amount);

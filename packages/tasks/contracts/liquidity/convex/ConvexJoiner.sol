@@ -68,6 +68,7 @@ contract ConvexJoiner is IConvexJoiner, BaseConvexTask {
      * @param amount Amount of Curve pool tokens to be joined with
      */
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforeConvexJoiner(token, amount);
         bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.join.selector, token, amount);
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);

@@ -18,6 +18,7 @@ contract PausableTaskMock is BaseTask, PausableTask {
     }
 
     function call(address token, uint256 amount) external {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforePausableTaskMock(token, amount);
         _afterPausableTaskMock(token, amount);
     }

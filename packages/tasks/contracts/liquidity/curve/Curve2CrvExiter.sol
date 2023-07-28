@@ -72,7 +72,9 @@ contract Curve2CrvExiter is ICurve2CrvExiter, BaseCurveTask {
         override
         authP(authParams(token, amount, slippage))
     {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforeCurve2CrvExiter(token, amount, slippage);
+
         address tokenOut = getTokenOut(token);
         bytes memory connectorData = abi.encodeWithSelector(
             Curve2CrvConnector.exit.selector,

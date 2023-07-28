@@ -2,6 +2,8 @@ import { OP } from '@mimic-fi/v3-authorizer'
 import {
   assertEvent,
   assertIndirectEvent,
+  assertNoEvent,
+  BigNumberish,
   currentTimestamp,
   deploy,
   deployProxy,
@@ -10,6 +12,7 @@ import {
   getSigners,
   MAX_UINT256,
   ZERO_ADDRESS,
+  ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
@@ -362,45 +365,100 @@ describe('HopBridger', () => {
                   await task.connect(owner).setTokenHopEntrypoint(token.address, entrypoint.address)
                 })
 
-                it('executes the expected connector', async () => {
-                  const tx = await task.call(token.address, amountIn, slippage, fee)
+                const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
+                  it('executes the expected connector', async () => {
+                    const tx = await task.call(token.address, requestedAmount, slippage, fee)
 
-                  const deadline = (await currentTimestamp()).add(MAX_UINT256.div(10))
-                  const minAmountOut = amountIn.mul(fp(1).sub(slippage)).div(fp(1))
+                    const deadline = (await currentTimestamp()).add(MAX_UINT256.div(10))
+                    const minAmountOut = amountIn.mul(fp(1).sub(slippage)).div(fp(1))
 
-                  const connectorData = connector.interface.encodeFunctionData('execute', [
-                    chainId,
-                    token.address,
-                    amountIn,
-                    minAmountOut,
-                    smartVault.address,
-                    entrypoint.address,
-                    deadline,
-                    relayer.address,
-                    fee,
-                  ])
-                  await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
-                    connector,
-                    data: connectorData,
+                    const connectorData = connector.interface.encodeFunctionData('execute', [
+                      chainId,
+                      token.address,
+                      amountIn,
+                      minAmountOut,
+                      smartVault.address,
+                      entrypoint.address,
+                      deadline,
+                      relayer.address,
+                      fee,
+                    ])
+                    await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
+                      connector,
+                      data: connectorData,
+                    })
+
+                    await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
+                      chainId,
+                      token,
+                      amountIn,
+                      minAmountOut,
+                      recipient: smartVault,
+                      bridge: entrypoint,
+                      deadline,
+                      relayer,
+                      fee,
+                    })
                   })
 
-                  await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
-                    chainId,
-                    token,
-                    amountIn,
-                    minAmountOut,
-                    recipient: smartVault,
-                    bridge: entrypoint,
-                    deadline,
-                    relayer,
-                    fee,
+                  it('emits an Executed event', async () => {
+                    const tx = await task.call(token.address, requestedAmount, slippage, fee)
+
+                    await assertEvent(tx, 'Executed')
+                  })
+                }
+
+                context('without balance connectors', () => {
+                  const requestedAmount = amountIn
+
+                  itExecutesTheTaskProperly(requestedAmount)
+
+                  it('does not update any balance connectors', async () => {
+                    const tx = await task.call(token.address, requestedAmount, slippage, fee)
+
+                    await assertNoEvent(tx, 'BalanceConnectorUpdated')
                   })
                 })
 
-                it('emits an Executed event', async () => {
-                  const tx = await task.call(token.address, amountIn, slippage, fee)
+                context('with balance connectors', () => {
+                  const requestedAmount = 0
+                  const prevConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000001'
 
-                  await assertEvent(tx, 'Executed')
+                  beforeEach('set balance connectors', async () => {
+                    const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+                    await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+                    await task.connect(owner).setBalanceConnectors(prevConnectorId, ZERO_BYTES32)
+                  })
+
+                  beforeEach('authorize task to update balance connectors', async () => {
+                    const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                    await authorizer
+                      .connect(owner)
+                      .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+                  })
+
+                  beforeEach('assign amount in to previous balance connector', async () => {
+                    const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                    await authorizer
+                      .connect(owner)
+                      .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
+                    await smartVault
+                      .connect(owner)
+                      .updateBalanceConnector(prevConnectorId, token.address, amountIn, true)
+                  })
+
+                  itExecutesTheTaskProperly(requestedAmount)
+
+                  it('updates the balance connectors properly', async () => {
+                    const tx = await task.call(token.address, amountIn, slippage, fee)
+
+                    await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+                      id: prevConnectorId,
+                      token,
+                      amount: amountIn,
+                      added: false,
+                    })
+                  })
                 })
               })
 

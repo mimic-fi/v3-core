@@ -70,7 +70,9 @@ contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
         override
         authP(authParams(token, amountIn, slippage))
     {
+        if (amountIn == 0) amountIn = getTaskAmount(token);
         _beforeWormholeBridger(token, amountIn, slippage);
+
         uint256 minAmountOut = amountIn.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
             WormholeConnector.execute.selector,

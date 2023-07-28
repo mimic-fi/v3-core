@@ -66,7 +66,9 @@ contract AxelarBridger is IAxelarBridger, BaseBridgeTask {
      * @dev Execute Axelar bridger
      */
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforeAxelarBridger(token, amount);
+
         bytes memory connectorData = abi.encodeWithSelector(
             AxelarConnector.execute.selector,
             getDestinationChain(token),

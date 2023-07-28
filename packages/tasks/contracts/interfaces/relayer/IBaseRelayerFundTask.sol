@@ -31,6 +31,11 @@ interface IBaseRelayerFundTask is ITask {
     error TaskInitializerDisabled();
 
     /**
+     * @dev There is no threshold set for the given token
+     */
+    error TaskTokenThresholdNotSet(address token);
+
+    /**
      * @dev The deposited amount is above the minimum threshold
      */
     error TaskDepositAboveMinThreshold(uint256 deposited, uint256 min);

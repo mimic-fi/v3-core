@@ -76,12 +76,7 @@ contract CollectorRelayerFunder is BaseRelayerFundTask, Collector {
      * @dev Tells the `token` amount to be funded
      * @param token Address of the token to be used to fund the relayer
      */
-    function getTaskAmount(address token)
-        public
-        view
-        override(BaseRelayerFundTask, IBaseTask, BaseTask)
-        returns (uint256)
-    {
+    function getTaskAmount(address token) public view override(BaseRelayerFundTask, Collector) returns (uint256) {
         return BaseRelayerFundTask.getTaskAmount(token);
     }
 

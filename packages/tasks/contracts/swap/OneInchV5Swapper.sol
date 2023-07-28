@@ -72,11 +72,12 @@ contract OneInchV5Swapper is IOneInchV5Swapper, BaseSwapTask {
         override
         authP(authParams(tokenIn, amountIn, slippage))
     {
+        if (amountIn == 0) amountIn = getTaskAmount(tokenIn);
         _beforeOneInchV5Swapper(tokenIn, amountIn, slippage);
+
         address tokenOut = getTokenOut(tokenIn);
         uint256 price = _getPrice(tokenIn, tokenOut);
         uint256 minAmountOut = amountIn.mulUp(price).mulUp(FixedPoint.ONE - slippage);
-
         bytes memory connectorData = abi.encodeWithSelector(
             OneInchV5Connector.execute.selector,
             tokenIn,

@@ -72,7 +72,9 @@ contract Curve2CrvJoiner is ICurve2CrvJoiner, BaseCurveTask {
         override
         authP(authParams(token, amount, slippage))
     {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforeCurve2CrvJoiner(token, amount, slippage);
+
         address tokenOut = getTokenOut(token);
         bytes memory connectorData = abi.encodeWithSelector(
             Curve2CrvConnector.join.selector,

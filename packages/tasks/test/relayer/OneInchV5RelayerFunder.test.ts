@@ -9,7 +9,6 @@ import {
   fp,
   getSigners,
   ZERO_ADDRESS,
-  ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
@@ -96,7 +95,7 @@ describe('OneInchV5RelayerFunder', () => {
     itBehavesLikeBaseRelayerFundTask('1INCH_V5_SWAPPER')
   })
 
-  describe('1inch v5 swappper', () => {
+  describe('1inch v5 swapper', () => {
     beforeEach('authorize task', async () => {
       const executeRole = smartVault.interface.getSighash('execute')
       const params = [{ op: OP.EQ, value: connector.address }]
@@ -121,227 +120,177 @@ describe('OneInchV5RelayerFunder', () => {
       })
 
       context('when the token in is not the zero address', () => {
-        context('when the amount in is not zero', () => {
-          const tokenRate = 2 // 1 token in = 2 token out
-          const thresholdMin = fp(100) // in token out
-          const thresholdMax = fp(1000) // in token out
-          const thresholdMinInTokenIn = thresholdMin.div(tokenRate)
-          const thresholdMaxInTokenIn = thresholdMax.div(tokenRate)
-          const amountIn = thresholdMinInTokenIn
-          const tokenInNativeRate = 2 // 2 token in = 1 native
-          const tokenOutNativeRate = 1 // 1 token out = 1 native
+        const tokenRate = 2 // 1 token in = 2 token out
+        const thresholdMin = fp(100) // in token out
+        const thresholdMax = fp(1000) // in token out
+        const thresholdMinInTokenIn = thresholdMin.div(tokenRate)
+        const thresholdMaxInTokenIn = thresholdMax.div(tokenRate)
+        const amountIn = thresholdMinInTokenIn
+        const tokenInNativeRate = 2 // 2 token in = 1 native
+        const tokenOutNativeRate = 1 // 1 token out = 1 native
 
-          context('when the token in is allowed', () => {
-            context('when there is a token out set', () => {
-              let tokenOut: Contract
+        context('when the token in is allowed', () => {
+          context('when there is a token out set', () => {
+            let tokenOut: Contract
 
-              beforeEach('set default token out', async () => {
-                tokenOut = await deployTokenMock('TKN')
-                const setDefaultTokenOutRole = task.interface.getSighash('setDefaultTokenOut')
-                await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenOutRole, [])
-                await task.connect(owner).setDefaultTokenOut(tokenOut.address)
+            beforeEach('set default token out', async () => {
+              tokenOut = await deployTokenMock('TKN')
+              const setDefaultTokenOutRole = task.interface.getSighash('setDefaultTokenOut')
+              await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenOutRole, [])
+              await task.connect(owner).setDefaultTokenOut(tokenOut.address)
+            })
+
+            beforeEach('set price feed', async function () {
+              const feed = await deployFeedMock(fp(tokenOutNativeRate), 18)
+              const setFeedRole = priceOracle.interface.getSighash('setFeed')
+              await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
+              await priceOracle.connect(owner).setFeed(wrappedNT, tokenOut.address, feed.address)
+            })
+
+            beforeEach('set price feed', async () => {
+              const feed = await deployFeedMock(fp(tokenRate), 18)
+              const setFeedRole = priceOracle.interface.getSighash('setFeed')
+              await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
+              await priceOracle.connect(owner).setFeed(tokenIn.address, tokenOut.address, feed.address)
+            })
+
+            beforeEach('set threshold', async () => {
+              const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
+              await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
+              await task.connect(owner).setDefaultTokenThreshold(tokenOut.address, thresholdMin, thresholdMax)
+            })
+
+            context('when the balance is below the min threshold', () => {
+              beforeEach('fund smart vault', async () => {
+                await tokenIn.mint(smartVault.address, amountIn)
               })
 
-              beforeEach('set price feed', async function () {
-                const feed = await deployFeedMock(fp(tokenOutNativeRate), 18)
-                const setFeedRole = priceOracle.interface.getSighash('setFeed')
-                await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
-                await priceOracle.connect(owner).setFeed(wrappedNT, tokenOut.address, feed.address)
+              beforeEach('set smart vault balance in relayer', async function () {
+                const balance = await relayer.getSmartVaultBalance(smartVault.address)
+                await relayer.withdraw(smartVault.address, balance)
+
+                const amountInNativeToken = amountIn.div(tokenInNativeRate)
+                await relayer.deposit(smartVault.address, amountInNativeToken)
               })
 
-              beforeEach('set price feed', async () => {
-                const feed = await deployFeedMock(fp(tokenRate), 18)
-                const setFeedRole = priceOracle.interface.getSighash('setFeed')
-                await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
-                await priceOracle.connect(owner).setFeed(tokenIn.address, tokenOut.address, feed.address)
-              })
+              context('when the slippage is below the limit', () => {
+                const data = '0xaabb'
+                const slippage = fp(0.01)
+                const expectedAmountOut = amountIn.mul(tokenRate)
+                const minAmountOut = expectedAmountOut.mul(fp(1).sub(slippage)).div(fp(1))
 
-              beforeEach('set threshold', async () => {
-                const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
-                await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-                await task.connect(owner).setDefaultTokenThreshold(tokenOut.address, thresholdMin, thresholdMax)
-              })
-
-              context('when the balance is below the min threshold', () => {
-                beforeEach('fund smart vault', async () => {
-                  await tokenIn.mint(smartVault.address, amountIn)
+                beforeEach('set max slippage', async () => {
+                  const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
+                  await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
+                  await task.connect(owner).setDefaultMaxSlippage(slippage)
                 })
 
-                beforeEach('set smart vault balance in relayer', async function () {
-                  const balance = await relayer.getSmartVaultBalance(smartVault.address)
-                  await relayer.withdraw(smartVault.address, balance)
+                context('when the resulting balance is below the max threshold', () => {
+                  it('executes the expected connector', async () => {
+                    const tx = await task.call(tokenIn.address, amountIn, slippage, data)
 
-                  const amountInNativeToken = amountIn.div(tokenInNativeRate)
-                  await relayer.deposit(smartVault.address, amountInNativeToken)
-                })
+                    const connectorData = connector.interface.encodeFunctionData('execute', [
+                      tokenIn.address,
+                      tokenOut.address,
+                      amountIn,
+                      minAmountOut,
+                      data,
+                    ])
 
-                context('when the slippage is below the limit', () => {
-                  const data = '0xaabb'
-                  const slippage = fp(0.01)
-                  const expectedAmountOut = amountIn.mul(tokenRate)
-                  const minAmountOut = expectedAmountOut.mul(fp(1).sub(slippage)).div(fp(1))
-
-                  beforeEach('set max slippage', async () => {
-                    const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
-                    await authorizer
-                      .connect(owner)
-                      .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
-                    await task.connect(owner).setDefaultMaxSlippage(slippage)
-                  })
-
-                  context('when the resulting balance is below the max threshold', () => {
-                    it('executes the expected connector', async () => {
-                      const tx = await task.call(tokenIn.address, amountIn, slippage, data)
-
-                      const connectorData = connector.interface.encodeFunctionData('execute', [
-                        tokenIn.address,
-                        tokenOut.address,
-                        amountIn,
-                        minAmountOut,
-                        data,
-                      ])
-
-                      await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
-                        connector,
-                        data: connectorData,
-                      })
-
-                      await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
-                        tokenIn,
-                        tokenOut,
-                        amountIn,
-                        minAmountOut,
-                        data,
-                      })
+                    await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
+                      connector,
+                      data: connectorData,
                     })
 
-                    it('emits an Executed event', async () => {
-                      const tx = await task.call(tokenIn.address, amountIn, slippage, data)
-
-                      await assertEvent(tx, 'Executed')
-                    })
-
-                    it('updates the balance connectors properly', async () => {
-                      const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
-                      const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
-                      await authorizer
-                        .connect(owner)
-                        .authorize(owner.address, task.address, setBalanceConnectorsRole, [])
-                      await task.connect(owner).setBalanceConnectors(ZERO_BYTES32, nextConnectorId)
-
-                      const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-                      await authorizer
-                        .connect(owner)
-                        .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
-
-                      const tx = await task.call(tokenIn.address, amountIn, slippage, data)
-
-                      await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
-                        id: nextConnectorId,
-                        token: tokenOut.address,
-                        amount: minAmountOut,
-                        added: true,
-                      })
+                    await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
+                      tokenIn,
+                      tokenOut,
+                      amountIn,
+                      minAmountOut,
+                      data,
                     })
                   })
 
-                  context('when the resulting balance is above the max threshold', async () => {
-                    const diff = thresholdMax.sub(amountIn)
-                    const amount = amountIn.add(diff.add(1))
+                  it('emits an Executed event', async () => {
+                    const tx = await task.call(tokenIn.address, amountIn, slippage, data)
 
-                    it('reverts', async () => {
-                      await expect(task.call(tokenIn.address, amount, slippage, data)).to.be.revertedWith(
-                        'TaskDepositAboveMaxThreshold'
-                      )
-                    })
+                    await assertEvent(tx, 'Executed')
                   })
                 })
 
-                context('when the slippage is above the limit', () => {
-                  const slippage = fp(0.01)
+                context('when the resulting balance is above the max threshold', async () => {
+                  const diff = thresholdMax.sub(amountIn)
+                  const amount = amountIn.add(diff.add(1))
 
                   it('reverts', async () => {
-                    await expect(task.call(tokenIn.address, amountIn, slippage, '0x')).to.be.revertedWith(
-                      'TaskSlippageAboveMax'
+                    await expect(task.call(tokenIn.address, amount, slippage, data)).to.be.revertedWith(
+                      'TaskDepositAboveMaxThreshold'
                     )
                   })
                 })
               })
 
-              context('when the balance is above the min threshold', () => {
-                const diff = thresholdMaxInTokenIn.sub(thresholdMinInTokenIn)
-                const amountIn = thresholdMinInTokenIn.add(diff.div(2))
-
-                beforeEach('set smart vault balance in relayer', async function () {
-                  const balance = await relayer.getSmartVaultBalance(smartVault.address)
-                  await relayer.withdraw(smartVault.address, balance)
-
-                  const amountInNativeToken = amountIn.div(tokenInNativeRate)
-                  await relayer.deposit(smartVault.address, amountInNativeToken)
-                })
+              context('when the slippage is above the limit', () => {
+                const slippage = fp(0.01)
 
                 it('reverts', async () => {
-                  await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith(
-                    'TaskDepositAboveMinThreshold'
+                  await expect(task.call(tokenIn.address, amountIn, slippage, '0x')).to.be.revertedWith(
+                    'TaskSlippageAboveMax'
                   )
                 })
               })
             })
 
-            context('when the token out is not set', () => {
-              const threshold = fp(10000)
+            context('when the balance is above the min threshold', () => {
+              const diff = thresholdMaxInTokenIn.sub(thresholdMinInTokenIn)
+              const amountIn = thresholdMinInTokenIn.add(diff.div(2))
 
-              beforeEach('set price feed', async function () {
-                const feed = await deployFeedMock(fp(1), 18)
-                const setFeedRole = priceOracle.interface.getSighash('setFeed')
-                await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
-                await priceOracle.connect(owner).setFeed(wrappedNT, tokenIn.address, feed.address)
-              })
-
-              beforeEach('set threshold', async () => {
-                const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
-                await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-                await task.connect(owner).setDefaultTokenThreshold(tokenIn.address, threshold, threshold)
+              beforeEach('set smart vault balance in relayer', async function () {
+                const balance = await relayer.getSmartVaultBalance(smartVault.address)
+                await relayer.withdraw(smartVault.address, balance)
+                const amountInNativeToken = amountIn.div(tokenInNativeRate)
+                await relayer.deposit(smartVault.address, amountInNativeToken)
               })
 
               it('reverts', async () => {
-                await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskTokenOutNotSet')
+                await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith(
+                  'TaskDepositAboveMinThreshold'
+                )
               })
             })
           })
 
-          context('when the token in is denied', () => {
-            beforeEach('deny token in', async () => {
-              const setTokensAcceptanceListRole = task.interface.getSighash('setTokensAcceptanceList')
-              await authorizer.connect(owner).authorize(owner.address, task.address, setTokensAcceptanceListRole, [])
-              await task.connect(owner).setTokensAcceptanceList([tokenIn.address], [true])
+          context('when the token out is not set', () => {
+            const threshold = fp(10000)
+
+            beforeEach('set price feed', async function () {
+              const feed = await deployFeedMock(fp(1), 18)
+              const setFeedRole = priceOracle.interface.getSighash('setFeed')
+              await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
+              await priceOracle.connect(owner).setFeed(wrappedNT, tokenIn.address, feed.address)
+            })
+
+            beforeEach('set threshold', async () => {
+              const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
+              await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
+              await task.connect(owner).setDefaultTokenThreshold(tokenIn.address, threshold, threshold)
             })
 
             it('reverts', async () => {
-              await expect(task.call(tokenIn.address, 0, 0, '0x')).to.be.revertedWith('TaskTokenNotAllowed')
+              await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskTokenOutNotSet')
             })
           })
         })
 
-        context('when the amount in is zero', () => {
-          const amountIn = 0
-          const threshold = fp(10000)
-
-          beforeEach('set price feed', async function () {
-            const feed = await deployFeedMock(fp(1), 18)
-            const setFeedRole = priceOracle.interface.getSighash('setFeed')
-            await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
-            await priceOracle.connect(owner).setFeed(wrappedNT, tokenIn.address, feed.address)
-          })
-
-          beforeEach('set threshold', async () => {
-            const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
-            await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-            await task.connect(owner).setDefaultTokenThreshold(tokenIn.address, threshold, threshold)
+        context('when the token in is denied', () => {
+          beforeEach('deny token in', async () => {
+            const setTokensAcceptanceListRole = task.interface.getSighash('setTokensAcceptanceList')
+            await authorizer.connect(owner).authorize(owner.address, task.address, setTokensAcceptanceListRole, [])
+            await task.connect(owner).setTokensAcceptanceList([tokenIn.address], [true])
           })
 
           it('reverts', async () => {
-            await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskAmountZero')
+            await expect(task.call(tokenIn.address, 0, 0, '0x')).to.be.revertedWith('TaskTokenNotAllowed')
           })
         })
       })
