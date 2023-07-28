@@ -61,7 +61,7 @@ export function itBehavesLikeConnextConnector(
               this.connector
                 .connect(whale)
                 .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
-            ).to.be.revertedWith('ConnextBridgeRelayerFeeGTAmount')
+            ).to.be.revertedWith('ConnextBridgeRelayerFeeGtAmount')
           })
         })
 
