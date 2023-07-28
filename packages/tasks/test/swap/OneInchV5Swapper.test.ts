@@ -3,6 +3,7 @@ import {
   assertIndirectEvent,
   BigNumberish,
   deploy,
+  deployFeedMock,
   deployProxy,
   deployTokenMock,
   fp,
@@ -246,9 +247,106 @@ describe('OneInchV5Swapper', () => {
                 })
               })
 
-              context('when no off-chain-oracle is given', () => {
-                it('reverts', async () => {
-                  await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('ORACLE_MISSING_FEED')
+              context('when no off-chain oracle is given', () => {
+                context('when an on-chain oracle is given', () => {
+                  beforeEach('set price feed', async () => {
+                    const feed = await deployFeedMock(fp(tokenRate), 18)
+                    const setFeedRole = priceOracle.interface.getSighash('setFeed')
+                    await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
+                    await priceOracle.connect(owner).setFeed(tokenIn.address, tokenOut.address, feed.address)
+                  })
+
+                  beforeEach('set threshold', async () => {
+                    const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
+                    await authorizer
+                      .connect(owner)
+                      .authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
+                    await task.connect(owner).setDefaultTokenThreshold(tokenOut.address, thresholdAmount, 0)
+                  })
+
+                  context('when the smart vault balance passes the threshold', () => {
+                    beforeEach('fund smart vault', async () => {
+                      await tokenIn.mint(smartVault.address, amountIn)
+                    })
+
+                    context('when the slippage is below the limit', () => {
+                      const data = '0xaabb'
+                      const slippage = fp(0.01)
+                      const expectedAmountOut = amountIn.mul(tokenRate)
+                      const minAmountOut = expectedAmountOut.mul(fp(1).sub(slippage)).div(fp(1))
+
+                      beforeEach('set max slippage', async () => {
+                        const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
+                        await authorizer
+                          .connect(owner)
+                          .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
+                        await task.connect(owner).setDefaultMaxSlippage(slippage)
+                      })
+
+                      it('executes the expected connector', async () => {
+                        const tx = await task.call(tokenIn.address, amountIn, slippage, data)
+
+                        const connectorData = connector.interface.encodeFunctionData('execute', [
+                          tokenIn.address,
+                          tokenOut.address,
+                          amountIn,
+                          minAmountOut,
+                          data,
+                        ])
+
+                        await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
+                          connector,
+                          data: connectorData,
+                        })
+
+                        await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
+                          tokenIn,
+                          tokenOut,
+                          amountIn,
+                          minAmountOut,
+                          data,
+                        })
+                      })
+
+                      it('emits an Executed event', async () => {
+                        const tx = await task.call(tokenIn.address, amountIn, slippage, data)
+
+                        await assertIndirectEvent(tx, task.interface, 'Executed')
+                      })
+                    })
+
+                    context('when the slippage is above the limit', () => {
+                      const slippage = fp(0.01)
+
+                      it('reverts', async () => {
+                        await expect(task.call(tokenIn.address, amountIn, slippage, '0x')).to.be.revertedWith(
+                          'TASK_SLIPPAGE_TOO_HIGH'
+                        )
+                      })
+                    })
+                  })
+
+                  context('when the smart vault balance does not pass the threshold', () => {
+                    const amountIn = thresholdAmountInTokenIn.div(2)
+
+                    beforeEach('fund smart vault', async () => {
+                      await tokenIn.mint(smartVault.address, amountIn)
+                    })
+
+                    it('reverts', async () => {
+                      await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith(
+                        'TASK_TOKEN_THRESHOLD_NOT_MET'
+                      )
+                    })
+                  })
+                })
+
+                context('when no on-chain oracle is given', () => {
+                  it('reverts', async () => {
+                    await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith(
+                      'ORACLE_MISSING_FEED'
+                    )
+                  })
                 })
               })
             })
