@@ -21,8 +21,8 @@ describe('BytesHelpers', () => {
     })
 
     it('reverts if out of bounds', async () => {
-      await expect(library.toUint256(bytes, 64)).to.be.revertedWith('BYTES_OUT_OF_BOUNDS')
-      await expect(library.toUint256(bytes, 33)).to.be.revertedWith('BYTES_OUT_OF_BOUNDS')
+      await expect(library.toUint256(bytes, 64)).to.be.revertedWith('BytesOutOfBounds')
+      await expect(library.toUint256(bytes, 33)).to.be.revertedWith('BytesOutOfBounds')
     })
   })
 

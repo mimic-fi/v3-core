@@ -21,6 +21,26 @@ import '../ITask.sol';
  */
 interface IBaseRelayerFundTask is ITask {
     /**
+     * @dev The relayer is zero
+     */
+    error TaskRelayerZero();
+
+    /**
+     * @dev The task initializer is disabled
+     */
+    error TaskInitializerDisabled();
+
+    /**
+     * @dev The deposited amount is above the minimum threshold
+     */
+    error TaskDepositAboveMinThreshold(uint256 deposited, uint256 min);
+
+    /**
+     * @dev The requested amount would result in a new balance above the maximum threshold plus the used quota
+     */
+    error TaskDepositAboveMaxThreshold(uint256 newBalance, uint256 max, uint256 usedQuota);
+
+    /**
      * @dev Emitted every time the relayer is set
      */
     event RelayerSet(address indexed relayer);

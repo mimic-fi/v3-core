@@ -31,6 +31,31 @@ import './IUniswapV3PeripheryImmutableState.sol';
 contract UniswapV3Connector {
     using BytesHelpers for bytes;
 
+    /**
+     * @dev The input length mismatch
+     */
+    error UniswapV3InputLengthMismatch();
+
+    /**
+     * @dev The token in is the same as the token out
+     */
+    error UniswapV3SwapSameToken(address token);
+
+    /**
+     * @dev A pool with the given tokens and fee does not exist
+     */
+    error UniswapV3InvalidPoolFee(address token0, address token1, uint24 fee);
+
+    /**
+     * @dev The amount out is lower than the minimum amount out
+     */
+    error UniswapV3BadAmountOut(uint256 amountOut, uint256 minAmountOut);
+
+    /**
+     * @dev The post token in balance is lower than the previous token in balance minus the amount in
+     */
+    error UniswapV3BadPostTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+
     // Reference to UniswapV3 router
     IUniswapV3SwapRouter public immutable uniswapV3Router;
 
@@ -61,8 +86,8 @@ contract UniswapV3Connector {
         address[] memory hopTokens,
         uint24[] memory hopFees
     ) external returns (uint256 amountOut) {
-        require(tokenIn != tokenOut, 'UNI_V3_SWAP_SAME_TOKEN');
-        require(hopTokens.length == hopFees.length, 'UNI_V3_BAD_HOP_TOKENS_FEES_LEN');
+        if (tokenIn == tokenOut) revert UniswapV3SwapSameToken(tokenIn);
+        if (hopTokens.length != hopFees.length) revert UniswapV3InputLengthMismatch();
 
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
@@ -73,11 +98,12 @@ contract UniswapV3Connector {
             : _batchSwap(tokenIn, tokenOut, amountIn, minAmountOut, fee, hopTokens, hopFees);
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
-        require(postBalanceIn >= preBalanceIn - amountIn, 'UNI_V3_BAD_TOKEN_IN_BALANCE');
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert UniswapV3BadPostTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;
-        require(amountOut >= minAmountOut, 'UNI_V3_MIN_AMOUNT_OUT');
+        if (amountOut < minAmountOut) revert UniswapV3BadAmountOut(amountOut, minAmountOut);
     }
 
     /**
@@ -160,7 +186,8 @@ contract UniswapV3Connector {
      */
     function _validatePool(address factory, address tokenA, address tokenB, uint24 fee) internal view {
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        require(IUniswapV3Factory(factory).getPool(token0, token1, fee) != address(0), 'UNI_V3_INVALID_POOL_FEE');
+        address pool = IUniswapV3Factory(factory).getPool(token0, token1, fee);
+        if (pool == address(0)) revert UniswapV3InvalidPoolFee(token0, token1, fee);
     }
 
     /**

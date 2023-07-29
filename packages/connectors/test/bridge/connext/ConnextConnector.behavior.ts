@@ -3,6 +3,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 
+/* eslint-disable no-secrets/no-secrets */
+
 export function itBehavesLikeConnextConnector(
   sourceChainId: number,
   tokenAddress: string,
@@ -52,22 +54,26 @@ export function itBehavesLikeConnextConnector(
         })
 
         context('when relayerFee is greater than amountIn', () => {
+          const relayerFee = amountIn.add(1)
+
           it('reverts', async function () {
             await expect(
               this.connector
                 .connect(whale)
-                .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, amountIn.add(1))
-            ).to.be.revertedWith('CONNEXT_RELAYER_FEE_GT_AMOUNT_IN')
+                .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
+            ).to.be.revertedWith('ConnextBridgeRelayerFeeGtAmount')
           })
         })
 
         context('when minAmountOut is greater than amountIn minus relayerFee', () => {
+          const minAmountOut = amountIn.add(1)
+
           it('reverts', async function () {
             await expect(
               this.connector
                 .connect(whale)
-                .execute(destinationChainId, tokenAddress, amountIn, amountIn.add(1), whale.address, relayerFee)
-            ).to.be.revertedWith('CONNEXT_MIN_AMOUNT_OUT_TOO_BIG')
+                .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
+            ).to.be.revertedWith('ConnextBridgeMinAmountOutTooBig')
           })
         })
       } else {
@@ -76,7 +82,7 @@ export function itBehavesLikeConnextConnector(
             this.connector
               .connect(whale)
               .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
-          ).to.be.revertedWith('CONNEXT_BRIDGE_SAME_CHAIN')
+          ).to.be.revertedWith('ConnextBridgeSameChain')
         })
       }
     }
@@ -125,7 +131,7 @@ export function itBehavesLikeConnextConnector(
           this.connector
             .connect(whale)
             .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
-        ).to.be.revertedWith('CONNEXT_UNKNOWN_CHAIN_ID')
+        ).to.be.revertedWith('ConnextBridgeUnknownChainId')
       })
     })
   })
@@ -133,7 +139,7 @@ export function itBehavesLikeConnextConnector(
   context('when the recipient is the zero address', async () => {
     it('reverts', async function () {
       await expect(this.connector.connect(whale).execute(0, tokenAddress, 0, 0, ZERO_ADDRESS, 0)).to.be.revertedWith(
-        'CONNEXT_BRIDGE_RECIPIENT_ZERO'
+        'ConnextBridgeRecipientZero'
       )
     })
   })

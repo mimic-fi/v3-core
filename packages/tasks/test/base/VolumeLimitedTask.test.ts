@@ -112,7 +112,7 @@ describe('VolumeLimitedTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setDefaultVolumeLimit(token, amount, period)).to.be.revertedWith(
-                  'TASK_INVALID_VOLUME_LIMIT_INPUT'
+                  'TaskInvalidVolumeLimitInput'
                 )
               })
             })
@@ -126,7 +126,7 @@ describe('VolumeLimitedTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setDefaultVolumeLimit(token, amount, period)).to.be.revertedWith(
-                  'TASK_INVALID_VOLUME_LIMIT_INPUT'
+                  'TaskInvalidVolumeLimitInput'
                 )
               })
             })
@@ -136,7 +136,7 @@ describe('VolumeLimitedTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setDefaultVolumeLimit(token, amount, period)).to.be.revertedWith(
-                  'TASK_INVALID_VOLUME_LIMIT_INPUT'
+                  'TaskInvalidVolumeLimitInput'
                 )
               })
             })
@@ -154,7 +154,7 @@ describe('VolumeLimitedTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setDefaultVolumeLimit(token, amount, period)).to.be.revertedWith(
-                  'TASK_INVALID_VOLUME_LIMIT_INPUT'
+                  'TaskInvalidVolumeLimitInput'
                 )
               })
             })
@@ -164,7 +164,7 @@ describe('VolumeLimitedTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setDefaultVolumeLimit(token, amount, period)).to.be.revertedWith(
-                  'TASK_INVALID_VOLUME_LIMIT_INPUT'
+                  'TaskInvalidVolumeLimitInput'
                 )
               })
             })
@@ -178,7 +178,7 @@ describe('VolumeLimitedTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setDefaultVolumeLimit(token, amount, period)).to.be.revertedWith(
-                  'TASK_INVALID_VOLUME_LIMIT_INPUT'
+                  'TaskInvalidVolumeLimitInput'
                 )
               })
             })
@@ -308,7 +308,7 @@ describe('VolumeLimitedTask', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setDefaultVolumeLimit(ZERO_ADDRESS, 0, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setDefaultVolumeLimit(ZERO_ADDRESS, 0, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -376,7 +376,7 @@ describe('VolumeLimitedTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setCustomVolumeLimit(token.address, limitToken, amount, period)).to.be.revertedWith(
-                  'TASK_INVALID_VOLUME_LIMIT_INPUT'
+                  'TaskInvalidVolumeLimitInput'
                 )
               })
             })
@@ -390,7 +390,7 @@ describe('VolumeLimitedTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setCustomVolumeLimit(token.address, limitToken, amount, period)).to.be.revertedWith(
-                  'TASK_INVALID_VOLUME_LIMIT_INPUT'
+                  'TaskInvalidVolumeLimitInput'
                 )
               })
             })
@@ -400,7 +400,7 @@ describe('VolumeLimitedTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setCustomVolumeLimit(token.address, limitToken, amount, period)).to.be.revertedWith(
-                  'TASK_INVALID_VOLUME_LIMIT_INPUT'
+                  'TaskInvalidVolumeLimitInput'
                 )
               })
             })
@@ -418,7 +418,7 @@ describe('VolumeLimitedTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setCustomVolumeLimit(token.address, limitToken, amount, period)).to.be.revertedWith(
-                  'TASK_INVALID_VOLUME_LIMIT_INPUT'
+                  'TaskInvalidVolumeLimitInput'
                 )
               })
             })
@@ -428,7 +428,7 @@ describe('VolumeLimitedTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setCustomVolumeLimit(token.address, limitToken, amount, period)).to.be.revertedWith(
-                  'TASK_INVALID_VOLUME_LIMIT_INPUT'
+                  'TaskInvalidVolumeLimitInput'
                 )
               })
             })
@@ -442,7 +442,7 @@ describe('VolumeLimitedTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setCustomVolumeLimit(token.address, limitToken, amount, period)).to.be.revertedWith(
-                  'TASK_INVALID_VOLUME_LIMIT_INPUT'
+                  'TaskInvalidVolumeLimitInput'
                 )
               })
             })
@@ -584,7 +584,7 @@ describe('VolumeLimitedTask', () => {
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
         await expect(task.setCustomVolumeLimit(ZERO_ADDRESS, ZERO_ADDRESS, 0, 0)).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
+          'AuthSenderNotAllowed'
         )
       })
     })
@@ -608,7 +608,7 @@ describe('VolumeLimitedTask', () => {
 
     const itCannotBeExecuted = () => {
       it('reverts', async () => {
-        await expect(task.call(token.address, amount)).to.be.revertedWith('TASK_VOLUME_LIMIT_EXCEEDED')
+        await expect(task.call(token.address, amount)).to.be.revertedWith('TaskVolumeLimitExceeded')
       })
     }
 

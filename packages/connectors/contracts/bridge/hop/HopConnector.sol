@@ -33,6 +33,41 @@ contract HopConnector {
     using FixedPoint for uint256;
     using Denominations for address;
 
+    /**
+     * @dev The source and destination chains are the same
+     */
+    error HopBridgeSameChain(uint256 chainId);
+
+    /**
+     * @dev The bridge operation is not supported
+     */
+    error HopBridgeOpNotSupported();
+
+    /**
+     * @dev The recipient address is zero
+     */
+    error HopBridgeRecipientZero();
+
+    /**
+     * @dev The relayer was sent when not needed
+     */
+    error HopBridgeRelayerNotNeeded();
+
+    /**
+     * @dev The deadline was sent when not needed
+     */
+    error HopBridgeDeadlineNotNeeded();
+
+    /**
+     * @dev The deadline is in the past
+     */
+    error HopBridgePastDeadline(uint256 deadline, uint256 currentTimestamp);
+
+    /**
+     * @dev The post token balance is lower than the previous token balance minus the amount bridged
+     */
+    error HopBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
+
     // Ethereum mainnet chain ID = 1
     uint256 private constant MAINNET_CHAIN_ID = 1;
 
@@ -66,7 +101,7 @@ contract HopConnector {
      * @param recipient Address that will receive the tokens on the destination chain
      * @param bridge Address of the bridge component (i.e. hopBridge or hopAMM)
      * @param deadline Deadline to be used when bridging to L2 in order to swap the corresponding hToken
-     * @param relayer Only used when transfering from L1 to L2 if a 3rd party is relaying the transfer on the user's behalf
+     * @param relayer Only used when transferring from L1 to L2 if a 3rd party is relaying the transfer on the user's behalf
      * @param fee Fee to be sent to the bridge based on the source and destination chain (i.e. relayerFee or bonderFee)
      */
     function execute(
@@ -80,26 +115,26 @@ contract HopConnector {
         address relayer,
         uint256 fee
     ) external {
-        require(block.chainid != chainId, 'HOP_BRIDGE_SAME_CHAIN');
-        require(recipient != address(0), 'HOP_BRIDGE_RECIPIENT_ZERO');
+        if (block.chainid == chainId) revert HopBridgeSameChain(chainId);
+        if (recipient == address(0)) revert HopBridgeRecipientZero();
 
         bool toL2 = !_isL1(chainId);
         bool fromL1 = _isL1(block.chainid);
-
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
 
         if (fromL1 && toL2)
             _bridgeFromL1ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, relayer, fee);
         else if (!fromL1 && toL2) {
-            require(relayer == address(0), 'HOP_RELAYER_NOT_NEEDED');
+            if (relayer != address(0)) revert HopBridgeRelayerNotNeeded();
             _bridgeFromL2ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, fee);
         } else if (!fromL1 && !toL2) {
-            require(deadline == 0, 'HOP_DEADLINE_NOT_NEEDED');
+            if (deadline != 0) revert HopBridgeDeadlineNotNeeded();
             _bridgeFromL2ToL1(chainId, token, amountIn, minAmountOut, recipient, bridge, fee);
-        } else revert('HOP_BRIDGE_OP_NOT_SUPPORTED');
+        } else revert HopBridgeOpNotSupported();
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        require(postBalanceIn >= preBalanceIn - amountIn, 'HOP_BAD_TOKEN_IN_BALANCE');
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert HopBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**
@@ -125,7 +160,7 @@ contract HopConnector {
         address relayer,
         uint256 relayerFee
     ) internal {
-        require(deadline > block.timestamp, 'HOP_BRIDGE_INVALID_DEADLINE');
+        if (deadline <= block.timestamp) revert HopBridgePastDeadline(deadline, block.timestamp);
 
         uint256 value = _unwrapOrApproveTokens(hopBridge, token, amountIn);
         IHopL1Bridge(hopBridge).sendToL2{ value: value }(
@@ -193,7 +228,7 @@ contract HopConnector {
         uint256 deadline,
         uint256 bonderFee
     ) internal {
-        require(deadline > block.timestamp, 'HOP_BRIDGE_INVALID_DEADLINE');
+        if (deadline <= block.timestamp) revert HopBridgePastDeadline(deadline, block.timestamp);
 
         uint256 intermediateMinAmountOut = amountIn - ((amountIn - minAmountOut) / 2);
         IHopL2AMM(hopAMM).swapAndSend{ value: _unwrapOrApproveTokens(hopAMM, token, amountIn) }(

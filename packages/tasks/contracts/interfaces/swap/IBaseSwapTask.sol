@@ -21,6 +21,36 @@ import '../ITask.sol';
  */
 interface IBaseSwapTask is ITask {
     /**
+     * @dev The token is zero
+     */
+    error TaskTokenZero();
+
+    /**
+     * @dev The amount is zero
+     */
+    error TaskAmountZero();
+
+    /**
+     * @dev The connector is zero
+     */
+    error TaskConnectorZero();
+
+    /**
+     * @dev The token out is not set
+     */
+    error TaskTokenOutNotSet();
+
+    /**
+     * @dev The slippage to be set is greater than one
+     */
+    error TaskSlippageAboveOne();
+
+    /**
+     * @dev The slippage is greater than the maximum slippage
+     */
+    error TaskSlippageAboveMax(uint256 slippage, uint256 maxSlippage);
+
+    /**
      * @dev Emitted every time the connector is set
      */
     event ConnectorSet(address indexed connector);

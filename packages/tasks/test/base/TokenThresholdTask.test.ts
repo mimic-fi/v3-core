@@ -123,7 +123,7 @@ describe('TokenThresholdTask', () => {
 
             it('reverts', async () => {
               await expect(task.setDefaultTokenThreshold(token, min, max)).to.be.revertedWith(
-                'TASK_INVALID_THRESHOLD_INPUT'
+                'TaskInvalidThresholdInput'
               )
             })
           })
@@ -133,7 +133,7 @@ describe('TokenThresholdTask', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setDefaultTokenThreshold(token, 0, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setDefaultTokenThreshold(token, 0, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -210,7 +210,7 @@ describe('TokenThresholdTask', () => {
 
               it('reverts', async () => {
                 await expect(task.setCustomTokenThreshold(token, thresholdToken, min, max)).to.be.revertedWith(
-                  'TASK_INVALID_THRESHOLD_INPUT'
+                  'TaskInvalidThresholdInput'
                 )
               })
             })
@@ -223,7 +223,7 @@ describe('TokenThresholdTask', () => {
 
         it('reverts', async () => {
           await expect(task.setCustomTokenThreshold(token, ZERO_ADDRESS, 0, 0)).to.be.revertedWith(
-            'TASK_THRESHOLD_TOKEN_ZERO'
+            'TaskThresholdTokenZero'
           )
         })
       })
@@ -232,7 +232,7 @@ describe('TokenThresholdTask', () => {
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
         await expect(task.setCustomTokenThreshold(ZERO_ADDRESS, ZERO_ADDRESS, 0, 0)).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
+          'AuthSenderNotAllowed'
         )
       })
     })
@@ -252,7 +252,7 @@ describe('TokenThresholdTask', () => {
     }
 
     const assertInvalid = async (token: Contract | string, amount: BigNumberish) => {
-      await expect(task.call(token, amount)).to.be.revertedWith('TASK_TOKEN_THRESHOLD_NOT_MET')
+      await expect(task.call(token, amount)).to.be.revertedWith('TaskTokenThresholdNotMet')
     }
 
     context('when there is no default threshold set', () => {

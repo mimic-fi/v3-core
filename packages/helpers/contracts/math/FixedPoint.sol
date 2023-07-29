@@ -23,12 +23,27 @@ library FixedPoint {
     uint256 internal constant ONE = 1e18;
 
     /**
+     * @dev Multiplication overflow
+     */
+    error FixedPointMulOverflow(uint256 a, uint256 b);
+
+    /**
+     * @dev Division by zero
+     */
+    error FixedPointZeroDivision();
+
+    /**
+     * @dev Division internal error
+     */
+    error FixedPointDivInternal(uint256 a, uint256 aInflated);
+
+    /**
      * @dev Multiplies two fixed point numbers rounding down
      */
     function mulDown(uint256 a, uint256 b) internal pure returns (uint256) {
         unchecked {
             uint256 product = a * b;
-            require(a == 0 || product / a == b, 'MUL_OVERFLOW');
+            if (a != 0 && product / a != b) revert FixedPointMulOverflow(a, b);
             return product / ONE;
         }
     }
@@ -39,7 +54,7 @@ library FixedPoint {
     function mulUp(uint256 a, uint256 b) internal pure returns (uint256) {
         unchecked {
             uint256 product = a * b;
-            require(a == 0 || product / a == b, 'MUL_OVERFLOW');
+            if (a != 0 && product / a != b) revert FixedPointMulOverflow(a, b);
             return product == 0 ? 0 : (((product - 1) / ONE) + 1);
         }
     }
@@ -49,10 +64,10 @@ library FixedPoint {
      */
     function divDown(uint256 a, uint256 b) internal pure returns (uint256) {
         unchecked {
-            require(b != 0, 'ZERO_DIVISION');
+            if (b == 0) revert FixedPointZeroDivision();
             if (a == 0) return 0;
             uint256 aInflated = a * ONE;
-            require(aInflated / a == ONE, 'DIV_INTERNAL');
+            if (aInflated / a != ONE) revert FixedPointDivInternal(a, aInflated);
             return aInflated / b;
         }
     }
@@ -62,10 +77,10 @@ library FixedPoint {
      */
     function divUp(uint256 a, uint256 b) internal pure returns (uint256) {
         unchecked {
-            require(b != 0, 'ZERO_DIVISION');
+            if (b == 0) revert FixedPointZeroDivision();
             if (a == 0) return 0;
             uint256 aInflated = a * ONE;
-            require(aInflated / a == ONE, 'DIV_INTERNAL');
+            if (aInflated / a != ONE) revert FixedPointDivInternal(a, aInflated);
             return ((aInflated - 1) / b) + 1;
         }
     }

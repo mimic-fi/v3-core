@@ -35,14 +35,14 @@ export function itBehavesLikeBaseRelayerFundTask(executionType: string): void {
 
       context('when the relayer is zero', () => {
         it('reverts', async function () {
-          await expect(this.task.setRelayer(ZERO_ADDRESS)).to.be.revertedWith('TASK_FUNDER_RELAYER_ZERO')
+          await expect(this.task.setRelayer(ZERO_ADDRESS)).to.be.revertedWith('TaskRelayerZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(this.task.setRelayer(this.relayer.address)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(this.task.setRelayer(this.relayer.address)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

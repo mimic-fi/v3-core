@@ -142,7 +142,7 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, Authorized {
 
         uint256 convertedAmount = threshold.token == token ? amount : amount.mulDown(_getPrice(token, threshold.token));
         bool isValid = convertedAmount >= threshold.min && (threshold.max == 0 || convertedAmount <= threshold.max);
-        require(isValid, 'TASK_TOKEN_THRESHOLD_NOT_MET');
+        if (!isValid) revert TaskTokenThresholdNotMet(threshold.token, convertedAmount, threshold.min, threshold.max);
     }
 
     /**
@@ -173,7 +173,7 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, Authorized {
     function _setCustomTokenThreshold(address token, address thresholdToken, uint256 thresholdMin, uint256 thresholdMax)
         internal
     {
-        require(token != address(0), 'TASK_THRESHOLD_TOKEN_ZERO');
+        if (token == address(0)) revert TaskThresholdTokenZero();
         _setTokenThreshold(_customThresholds[token], thresholdToken, thresholdMin, thresholdMax);
         emit CustomTokenThresholdSet(token, thresholdToken, thresholdMin, thresholdMax);
     }
@@ -189,7 +189,7 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, Authorized {
         // If there is no threshold, all values must be zero
         bool isZeroThreshold = token == address(0) && min == 0 && max == 0;
         bool isNonZeroThreshold = token != address(0) && (max == 0 || max >= min);
-        require(isZeroThreshold || isNonZeroThreshold, 'TASK_INVALID_THRESHOLD_INPUT');
+        if (!isZeroThreshold && !isNonZeroThreshold) revert TaskInvalidThresholdInput(token, min, max);
 
         threshold.token = token;
         threshold.min = min;

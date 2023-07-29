@@ -40,7 +40,7 @@ export function itBehavesLikeBaseSwapTask(executionType: string): void {
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(this.task.setConnector(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(this.task.setConnector(ZERO_ADDRESS)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -76,7 +76,7 @@ export function itBehavesLikeBaseSwapTask(executionType: string): void {
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(this.task.setDefaultTokenOut(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(this.task.setDefaultTokenOut(ZERO_ADDRESS)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -114,7 +114,7 @@ export function itBehavesLikeBaseSwapTask(executionType: string): void {
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
         await expect(this.task.setCustomTokenOut(token.address, tokenOut.address)).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
+          'AuthSenderNotAllowed'
         )
       })
     })
@@ -150,14 +150,14 @@ export function itBehavesLikeBaseSwapTask(executionType: string): void {
         const slippage = fp(1).add(1)
 
         it('reverts', async function () {
-          await expect(this.task.setDefaultMaxSlippage(slippage)).to.be.revertedWith('TASK_SLIPPAGE_ABOVE_ONE')
+          await expect(this.task.setDefaultMaxSlippage(slippage)).to.be.revertedWith('TaskSlippageAboveOne')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(this.task.setDefaultMaxSlippage(1)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(this.task.setDefaultMaxSlippage(1)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -199,7 +199,7 @@ export function itBehavesLikeBaseSwapTask(executionType: string): void {
 
         it('reverts', async function () {
           await expect(this.task.setCustomMaxSlippage(token.address, slippage)).to.be.revertedWith(
-            'TASK_SLIPPAGE_ABOVE_ONE'
+            'TaskSlippageAboveOne'
           )
         })
       })
@@ -207,7 +207,7 @@ export function itBehavesLikeBaseSwapTask(executionType: string): void {
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(this.task.setCustomMaxSlippage(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(this.task.setCustomMaxSlippage(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

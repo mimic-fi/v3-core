@@ -21,6 +21,21 @@ import './IBaseConvexTask.sol';
  */
 interface IConvexClaimer is IBaseConvexTask {
     /**
+     * @dev The amount is not zero
+     */
+    error TaskAmountNotZero();
+
+    /**
+     * @dev The previous balance connector is not zero
+     */
+    error TaskPreviousConnectorNotZero(bytes32 id);
+
+    /**
+     * @dev The length of the claim result mismatch
+     */
+    error TaskClaimResultLengthMismatch();
+
+    /**
      * @dev Executes the Convex claimer task
      */
     function call(address token, uint256 amount) external;

@@ -33,6 +33,21 @@ interface IVolumeLimitedTask is IBaseTask {
     }
 
     /**
+     * @dev The volume limit token is zero
+     */
+    error TaskVolumeLimitTokenZero();
+
+    /**
+     * @dev The volume limit to be set is invalid
+     */
+    error TaskInvalidVolumeLimitInput(address token, uint256 amount, uint256 period);
+
+    /**
+     * @dev The volume limit has been exceeded
+     */
+    error TaskVolumeLimitExceeded(address token, uint256 limit, uint256 volume);
+
+    /**
      * @dev Emitted every time a default volume limit is set
      */
     event DefaultVolumeLimitSet(address indexed token, uint256 amount, uint256 period);

@@ -79,7 +79,7 @@ contract ConvexExiter is IConvexExiter, BaseConvexTask {
      */
     function _beforeConvexExiter(address token, uint256 amount) internal virtual {
         _beforeBaseConvexTask(token, amount);
-        require(amount > 0, 'TASK_AMOUNT_ZERO');
+        if (amount == 0) revert TaskAmountZero();
     }
 
     /**

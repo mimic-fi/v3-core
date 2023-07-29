@@ -164,10 +164,12 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
      */
     function _beforeBaseSwapTask(address token, uint256 amount, uint256 slippage) internal virtual {
         _beforeTask(token, amount);
-        require(token != address(0), 'TASK_TOKEN_ZERO');
-        require(amount > 0, 'TASK_AMOUNT_ZERO');
-        require(getTokenOut(token) != address(0), 'TASK_TOKEN_OUT_NOT_SET');
-        require(slippage <= getMaxSlippage(token), 'TASK_SLIPPAGE_TOO_HIGH');
+        if (token == address(0)) revert TaskTokenZero();
+        if (amount == 0) revert TaskAmountZero();
+        if (getTokenOut(token) == address(0)) revert TaskTokenOutNotSet();
+
+        uint256 maxSlippage = getMaxSlippage(token);
+        if (slippage > maxSlippage) revert TaskSlippageAboveMax(slippage, maxSlippage);
     }
 
     /**
@@ -186,7 +188,7 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
      * @param newConnector Address of the connector to be set
      */
     function _setConnector(address newConnector) internal {
-        require(newConnector != address(0), 'TASK_CONNECTOR_ZERO');
+        if (newConnector == address(0)) revert TaskConnectorZero();
         connector = newConnector;
         emit ConnectorSet(newConnector);
     }
@@ -205,7 +207,7 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
      * @param maxSlippage Default max slippage to be set
      */
     function _setDefaultMaxSlippage(uint256 maxSlippage) internal {
-        require(maxSlippage <= FixedPoint.ONE, 'TASK_SLIPPAGE_ABOVE_ONE');
+        if (maxSlippage > FixedPoint.ONE) revert TaskSlippageAboveOne();
         defaultMaxSlippage = maxSlippage;
         emit DefaultMaxSlippageSet(maxSlippage);
     }
@@ -216,7 +218,7 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
      * @param tokenOut Address of the token out to be set
      */
     function _setCustomTokenOut(address token, address tokenOut) internal {
-        require(token != address(0), 'TASK_TOKEN_ZERO');
+        if (token == address(0)) revert TaskTokenZero();
         customTokenOut[token] = tokenOut;
         emit CustomTokenOutSet(token, tokenOut);
     }
@@ -227,8 +229,8 @@ abstract contract BaseSwapTask is IBaseSwapTask, Task {
      * @param maxSlippage Max slippage to be set
      */
     function _setCustomMaxSlippage(address token, uint256 maxSlippage) internal {
-        require(token != address(0), 'TASK_TOKEN_ZERO');
-        require(maxSlippage <= FixedPoint.ONE, 'TASK_SLIPPAGE_ABOVE_ONE');
+        if (token == address(0)) revert TaskTokenZero();
+        if (maxSlippage > FixedPoint.ONE) revert TaskSlippageAboveOne();
         customMaxSlippage[token] = maxSlippage;
         emit CustomMaxSlippageSet(token, maxSlippage);
     }

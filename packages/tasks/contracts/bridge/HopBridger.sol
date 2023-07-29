@@ -200,8 +200,10 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      */
     function _beforeHopBridger(address token, uint256 amount, uint256 slippage, uint256 fee) internal virtual {
         _beforeBaseBridgeTask(token, amount, slippage);
-        require(tokenHopEntrypoint[token] != address(0), 'TASK_MISSING_HOP_ENTRYPOINT');
-        require(fee.divUp(amount) <= getMaxFeePct(token), 'TASK_FEE_TOO_HIGH');
+        if (tokenHopEntrypoint[token] == address(0)) revert TaskMissingHopEntrypoint();
+        uint256 maxFeePct = getMaxFeePct(token);
+        uint256 feePct = fee.divUp(amount);
+        if (feePct > maxFeePct) revert TaskFeePctAboveMax(feePct, maxFeePct);
     }
 
     /**
@@ -223,7 +225,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      * @dev Sets the max deadline
      */
     function _setMaxDeadline(uint256 _maxDeadline) internal {
-        require(_maxDeadline > 0, 'TASK_MAX_DEADLINE_ZERO');
+        if (_maxDeadline == 0) revert TaskMaxDeadlineZero();
         maxDeadline = _maxDeadline;
         emit MaxDeadlineSet(_maxDeadline);
     }
@@ -243,7 +245,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      * @param entrypoint Hop entrypoint to be set
      */
     function _setTokenHopEntrypoint(address token, address entrypoint) internal {
-        require(token != address(0), 'TASK_HOP_TOKEN_ZERO');
+        if (token == address(0)) revert TaskTokenZero();
         tokenHopEntrypoint[token] = entrypoint;
         emit TokenHopEntrypointSet(token, entrypoint);
     }
@@ -254,7 +256,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      * @param maxFeePct Max fee percentage to be set for the given token
      */
     function _setCustomMaxFeePct(address token, uint256 maxFeePct) internal {
-        require(token != address(0), 'TASK_HOP_TOKEN_ZERO');
+        if (token == address(0)) revert TaskTokenZero();
         customMaxFeePct[token] = maxFeePct;
         emit CustomMaxFeePctSet(token, maxFeePct);
     }

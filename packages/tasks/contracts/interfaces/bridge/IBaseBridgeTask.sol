@@ -21,6 +21,56 @@ import '../ITask.sol';
  */
 interface IBaseBridgeTask is ITask {
     /**
+     * @dev The token is zero
+     */
+    error TaskTokenZero();
+
+    /**
+     * @dev The amount is zero
+     */
+    error TaskAmountZero();
+
+    /**
+     * @dev The recipient is zero
+     */
+    error TaskRecipientZero();
+
+    /**
+     * @dev The connector is zero
+     */
+    error TaskConnectorZero();
+
+    /**
+     * @dev The next balance connector is not zero
+     */
+    error TaskNextConnectorNotZero(bytes32 id);
+
+    /**
+     * @dev The destination chain is not set
+     */
+    error TaskDestinationChainNotSet();
+
+    /**
+     * @dev The destination chain id is the same as the current chain id
+     */
+    error TaskBridgeCurrentChainId(uint256 destinationChain);
+
+    /**
+     * @dev The slippage to be set is greater than one
+     */
+    error TaskSlippageAboveOne();
+
+    /**
+     * @dev The requested slippage is greater than the maximum slippage
+     */
+    error TaskSlippageAboveMax(uint256 slippage, uint256 maxSlippage);
+
+    /**
+     * @dev The requested fee percentage is greater than the maximum fee percentage
+     */
+    error TaskFeePctAboveMax(uint256 feePct, uint256 maxFeePct);
+
+    /**
      * @dev Emitted every time the connector is set
      */
     event ConnectorSet(address indexed connector);

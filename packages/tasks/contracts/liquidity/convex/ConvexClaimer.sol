@@ -91,7 +91,7 @@ contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
      */
     function _beforeConvexClaimer(address token, uint256 amount) internal virtual {
         _beforeBaseConvexTask(token, amount);
-        require(amount == 0, 'TASK_AMOUNT_NOT_ZERO');
+        if (amount != 0) revert TaskAmountNotZero();
     }
 
     /**
@@ -103,7 +103,7 @@ contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
         address[] memory tokensOut,
         uint256[] memory amountsOut
     ) internal virtual {
-        require(tokensOut.length == amountsOut.length, 'CLAIMER_INVALID_RESULT_LEN');
+        if (tokensOut.length != amountsOut.length) revert TaskClaimResultLengthMismatch();
         for (uint256 i = 0; i < tokensOut.length; i++) _increaseBalanceConnector(tokensOut[i], amountsOut[i]);
         _afterBaseConvexTask(tokenIn, amountIn);
     }
@@ -114,7 +114,7 @@ contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
      * @param next Balance connector id of the next task in the workflow
      */
     function _setBalanceConnectors(bytes32 previous, bytes32 next) internal virtual override {
-        require(previous == bytes32(0), 'TASK_PREVIOUS_CONNECTOR_NOT_ZERO');
+        if (previous != bytes32(0)) revert TaskPreviousConnectorNotZero(previous);
         super._setBalanceConnectors(previous, next);
     }
 }

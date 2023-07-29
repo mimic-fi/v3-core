@@ -19,6 +19,81 @@ pragma solidity >=0.8.0;
  */
 interface IRelayer {
     /**
+     * @dev The token is zero
+     */
+    error RelayerTokenZero();
+
+    /**
+     * @dev The amount is zero
+     */
+    error RelayerAmountZero();
+
+    /**
+     * @dev The collector is zero
+     */
+    error RelayerCollectorZero();
+
+    /**
+     * @dev The recipient is zero
+     */
+    error RelayerRecipientZero();
+
+    /**
+     * @dev The executor is zero
+     */
+    error RelayerExecutorZero();
+
+    /**
+     * @dev Relayer no task given to execute
+     */
+    error RelayerNoTaskGiven();
+
+    /**
+     * @dev Relayer input length mismatch
+     */
+    error RelayerInputLengthMismatch();
+
+    /**
+     * @dev The sender is not allowed
+     */
+    error RelayerExecutorNotAllowed(address sender);
+
+    /**
+     * @dev Trying to execute tasks from different smart vaults
+     */
+    error RelayerMultipleTaskSmartVaults(address task, address taskSmartVault, address expectedSmartVault);
+
+    /**
+     * @dev The task to execute does not have permissions on the associated smart vault
+     */
+    error RelayerTaskDoesNotHavePermissions(address task, address smartVault);
+
+    /**
+     * @dev The smart vault balance plus the available quota are lower than the amount to pay the relayer
+     */
+    error RelayerPaymentInsufficientBalance(address smartVault, uint256 balance, uint256 quota, uint256 amount);
+
+    /**
+     * @dev It failed to send amount minus quota to the smart vault's collector
+     */
+    error RelayerPaymentFailed(address smartVault, uint256 amount, uint256 quota);
+
+    /**
+     * @dev The smart vault balance is lower than the amount to withdraw
+     */
+    error RelayerWithdrawInsufficientBalance(address sender, uint256 balance, uint256 amount);
+
+    /**
+     * @dev It failed to send the amount to the sender
+     */
+    error RelayerWithdrawFailed(address sender, uint256 amount);
+
+    /**
+     * @dev The value sent and the amount differ
+     */
+    error RelayerValueDoesNotMatchAmount(uint256 value, uint256 amount);
+
+    /**
      * @dev Emitted every time an executor is configured
      */
     event ExecutorSet(address indexed executor, bool allowed);
@@ -159,10 +234,10 @@ interface IRelayer {
     /**
      * @dev Executes a list of tasks
      * @param tasks Addresses of the tasks to execute
-     * @param datas List of calldata to execute each of the given tasks
+     * @param data List of calldata to execute each of the given tasks
      * @param continueIfFailed Whether the execution should fail in case one of the tasks fail
      */
-    function execute(address[] memory tasks, bytes[] memory datas, bool continueIfFailed) external;
+    function execute(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external;
 
     /**
      * @dev Withdraw ERC20 tokens to an external account. To be used in case of accidental token transfers.

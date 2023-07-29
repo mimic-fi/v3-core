@@ -154,7 +154,7 @@ describe('AxelarBridger', () => {
                 })
 
                 it('reverts', async () => {
-                  await expect(task.call(token.address, amountIn)).to.be.revertedWith('TASK_TOKEN_THRESHOLD_NOT_MET')
+                  await expect(task.call(token.address, amountIn)).to.be.revertedWith('TaskTokenThresholdNotMet')
                 })
               })
             })
@@ -167,14 +167,14 @@ describe('AxelarBridger', () => {
               })
 
               it('reverts', async () => {
-                await expect(task.call(token.address, amountIn)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+                await expect(task.call(token.address, amountIn)).to.be.revertedWith('TaskTokenNotAllowed')
               })
             })
           })
 
           context('when the destination chain was not set', () => {
             it('reverts', async () => {
-              await expect(task.call(token.address, amountIn)).to.be.revertedWith('TASK_DESTINATION_CHAIN_NOT_SET')
+              await expect(task.call(token.address, amountIn)).to.be.revertedWith('TaskDestinationChainNotSet')
             })
           })
         })
@@ -183,7 +183,7 @@ describe('AxelarBridger', () => {
           const amount = 0
 
           it('reverts', async () => {
-            await expect(task.call(token.address, amount)).to.be.revertedWith('TASK_AMOUNT_ZERO')
+            await expect(task.call(token.address, amount)).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -192,14 +192,14 @@ describe('AxelarBridger', () => {
         const token = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(token, 0)).to.be.revertedWith('TASK_TOKEN_ZERO')
+          await expect(task.call(token, 0)).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

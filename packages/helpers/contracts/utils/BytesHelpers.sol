@@ -20,6 +20,11 @@ pragma solidity ^0.8.0;
  */
 library BytesHelpers {
     /**
+     * @dev The length is shorter than start plus 32
+     */
+    error BytesOutOfBounds(uint256 start, uint256 length);
+
+    /**
      * @dev Concatenates an address to a bytes array
      */
     function concat(bytes memory self, address value) internal pure returns (bytes memory) {
@@ -44,7 +49,7 @@ library BytesHelpers {
      * @dev Reads an uint256 from a bytes array starting at a given position
      */
     function toUint256(bytes memory self, uint256 start) internal pure returns (uint256 result) {
-        require(self.length >= start + 32, 'BYTES_OUT_OF_BOUNDS');
+        if (self.length < start + 32) revert BytesOutOfBounds(start, self.length);
         assembly {
             result := mload(add(add(self, 0x20), start))
         }

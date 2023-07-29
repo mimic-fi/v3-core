@@ -154,7 +154,7 @@ abstract contract VolumeLimitedTask is IVolumeLimitedTask, Authorized {
 
         uint256 amountInLimitToken = limit.token == token ? amount : amount.mulDown(_getPrice(token, limit.token));
         uint256 processedVolume = amountInLimitToken + (block.timestamp < limit.nextResetTime ? limit.accrued : 0);
-        require(processedVolume <= limit.amount, 'TASK_VOLUME_LIMIT_EXCEEDED');
+        if (processedVolume > limit.amount) revert TaskVolumeLimitExceeded(limit.token, limit.amount, processedVolume);
     }
 
     /**
@@ -193,7 +193,7 @@ abstract contract VolumeLimitedTask is IVolumeLimitedTask, Authorized {
     function _setCustomVolumeLimit(address token, address limitToken, uint256 limitAmount, uint256 limitPeriod)
         internal
     {
-        require(token != address(0), 'TASK_VOLUME_LIMIT_TOKEN_ZERO');
+        if (token == address(0)) revert TaskVolumeLimitTokenZero();
         _setVolumeLimit(_customVolumeLimits[token], limitToken, limitAmount, limitPeriod);
         emit CustomVolumeLimitSet(token, limitToken, limitAmount, limitPeriod);
     }
@@ -209,7 +209,7 @@ abstract contract VolumeLimitedTask is IVolumeLimitedTask, Authorized {
         // If there is no limit, all values must be zero
         bool isZeroLimit = token == address(0) && amount == 0 && period == 0;
         bool isNonZeroLimit = token != address(0) && amount > 0 && period > 0;
-        require(isZeroLimit || isNonZeroLimit, 'TASK_INVALID_VOLUME_LIMIT_INPUT');
+        if (!isZeroLimit && !isNonZeroLimit) revert TaskInvalidVolumeLimitInput(token, amount, period);
 
         // Changing the period only affects the end time of the next period, but not the end date of the current one
         limit.period = period;

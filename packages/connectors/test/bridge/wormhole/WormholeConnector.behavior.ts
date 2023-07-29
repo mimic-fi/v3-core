@@ -3,6 +3,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 
+/* eslint-disable no-secrets/no-secrets */
+
 export function itBehavesLikeWormholeConnector(
   sourceChainId: number,
   tokenAddress: string,
@@ -51,22 +53,26 @@ export function itBehavesLikeWormholeConnector(
         })
 
         context('when relayerFee is greater than amountIn', () => {
+          const amountIn = relayerFee.sub(1)
+
           it('reverts', async function () {
             await expect(
               this.connector
                 .connect(whale)
-                .execute(destinationChainId, tokenAddress, relayerFee.sub(1), minAmountOut, whale.address)
-            ).to.be.revertedWith('WORMHOLE_RELAYER_FEE_GT_AMT_IN')
+                .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
+            ).to.be.revertedWith('WormholeBridgeRelayerFeeGtAmount')
           })
         })
 
         context('when minAmountOut is greater than amountIn minus relayerFee', () => {
+          const minAmountOut = amountIn.add(1)
+
           it('reverts', async function () {
             await expect(
               this.connector
                 .connect(whale)
-                .execute(destinationChainId, tokenAddress, amountIn, amountIn.add(1), whale.address)
-            ).to.be.revertedWith('WORMHOLE_MIN_AMOUNT_OUT_TOO_BIG')
+                .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
+            ).to.be.revertedWith('WormholeBridgeMinAmountOutTooBig')
           })
         })
       } else {
@@ -75,7 +81,7 @@ export function itBehavesLikeWormholeConnector(
             this.connector
               .connect(whale)
               .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
-          ).to.be.revertedWith('WORMHOLE_BRIDGE_SAME_CHAIN')
+          ).to.be.revertedWith('WormholeBridgeSameChain')
         })
       }
     }
@@ -98,7 +104,7 @@ export function itBehavesLikeWormholeConnector(
       it('reverts', async function () {
         await expect(
           this.connector.connect(whale).execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
-        ).to.be.revertedWith('WORMHOLE_UNKNOWN_CHAIN_ID')
+        ).to.be.revertedWith('WormholeBridgeUnknownChainId')
       })
     })
   })
@@ -106,7 +112,7 @@ export function itBehavesLikeWormholeConnector(
   context('when the recipient is the zero address', async () => {
     it('reverts', async function () {
       await expect(this.connector.connect(whale).execute(0, tokenAddress, 0, 0, ZERO_ADDRESS)).to.be.revertedWith(
-        'WORMHOLE_BRIDGE_RECIPIENT_ZERO'
+        'WormholeBridgeRecipientZero'
       )
     })
   })

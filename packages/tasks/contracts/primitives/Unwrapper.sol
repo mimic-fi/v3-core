@@ -72,8 +72,8 @@ contract Unwrapper is IUnwrapper, Task {
      */
     function _beforeUnwrapper(address token, uint256 amount) internal virtual {
         _beforeTask(token, amount);
-        require(token == _wrappedNativeToken(), 'TASK_TOKEN_NOT_WRAPPED');
-        require(amount > 0, 'TASK_AMOUNT_ZERO');
+        if (token != _wrappedNativeToken()) revert TaskTokenNotWrapped();
+        if (amount == 0) revert TaskAmountZero();
     }
 
     /**

@@ -43,14 +43,14 @@ export function itBehavesLikeBaseConvexTask(executionType: string): void {
         const connector = ZERO_ADDRESS
 
         it('reverts', async function () {
-          await expect(this.task.setConnector(connector)).to.be.revertedWith('TASK_CONNECTOR_ZERO')
+          await expect(this.task.setConnector(connector)).to.be.revertedWith('TaskConnectorZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
-        await expect(this.task.setConnector(ZERO_ADDRESS)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(this.task.setConnector(ZERO_ADDRESS)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

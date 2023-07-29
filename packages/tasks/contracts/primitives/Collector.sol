@@ -92,8 +92,8 @@ contract Collector is ICollector, Task {
      */
     function _beforeCollector(address token, uint256 amount) internal virtual {
         _beforeTask(token, amount);
-        require(token != address(0), 'TASK_TOKEN_ZERO');
-        require(amount > 0, 'TASK_AMOUNT_ZERO');
+        if (token == address(0)) revert TaskTokenZero();
+        if (amount == 0) revert TaskAmountZero();
     }
 
     /**
@@ -110,7 +110,7 @@ contract Collector is ICollector, Task {
      * @param next Balance connector id of the next task in the workflow
      */
     function _setBalanceConnectors(bytes32 previous, bytes32 next) internal virtual override {
-        require(previous == bytes32(0), 'TASK_PREVIOUS_CONNECTOR_NOT_ZERO');
+        if (previous != bytes32(0)) revert TaskPreviousConnectorNotZero(previous);
         super._setBalanceConnectors(previous, next);
     }
 
@@ -119,7 +119,7 @@ contract Collector is ICollector, Task {
      * @param tokensSource Address of the tokens source to be set
      */
     function _setTokensSource(address tokensSource) internal virtual {
-        require(tokensSource != address(0), 'TASK_TOKENS_SOURCE_ZERO');
+        if (tokensSource == address(0)) revert TaskTokensSourceZero();
         _tokensSource = tokensSource;
         emit TokensSourceSet(tokensSource);
     }

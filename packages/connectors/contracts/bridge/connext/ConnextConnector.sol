@@ -25,6 +25,36 @@ import './IConnext.sol';
  * @dev Interfaces with Connext to bridge tokens
  */
 contract ConnextConnector {
+    /**
+     * @dev The recipient address is zero
+     */
+    error ConnextBridgeRecipientZero();
+
+    /**
+     * @dev The source and destination chains are the same
+     */
+    error ConnextBridgeSameChain(uint256 chainId);
+
+    /**
+     * @dev The chain ID is not supported
+     */
+    error ConnextBridgeUnknownChainId(uint256 chainId);
+
+    /**
+     * @dev The relayer fee is greater than the amount to be bridged
+     */
+    error ConnextBridgeRelayerFeeGtAmount(uint256 relayerFee, uint256 amountIn);
+
+    /**
+     * @dev The minimum amount out is greater than the amount to be bridged minus the relayer fee
+     */
+    error ConnextBridgeMinAmountOutTooBig(uint256 minAmountOut, uint256 amountIn, uint256 relayerFee);
+
+    /**
+     * @dev The post token balance is lower than the previous token balance minus the amount bridged
+     */
+    error ConnextBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
+
     // List of chain domains supported by Connext
     uint32 private constant ETHEREUM_DOMAIN = 6648936;
     uint32 private constant POLYGON_DOMAIN = 1886350457;
@@ -69,10 +99,12 @@ contract ConnextConnector {
         address recipient,
         uint256 relayerFee
     ) external {
-        require(block.chainid != chainId, 'CONNEXT_BRIDGE_SAME_CHAIN');
-        require(recipient != address(0), 'CONNEXT_BRIDGE_RECIPIENT_ZERO');
-        require(relayerFee <= amountIn, 'CONNEXT_RELAYER_FEE_GT_AMOUNT_IN');
-        require(minAmountOut <= amountIn - relayerFee, 'CONNEXT_MIN_AMOUNT_OUT_TOO_BIG');
+        if (block.chainid == chainId) revert ConnextBridgeSameChain(chainId);
+        if (recipient == address(0)) revert ConnextBridgeRecipientZero();
+        if (relayerFee > amountIn) revert ConnextBridgeRelayerFeeGtAmount(relayerFee, amountIn);
+
+        bool isMinAmountTooBig = minAmountOut > amountIn - relayerFee;
+        if (isMinAmountTooBig) revert ConnextBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
 
         uint32 domain = _getChainDomain(chainId);
         uint256 amountInAfterFees = amountIn - relayerFee;
@@ -96,7 +128,8 @@ contract ConnextConnector {
         );
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        require(postBalanceIn >= preBalanceIn - amountIn, 'CONNEXT_BAD_TOKEN_IN_BALANCE');
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert ConnextBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**
@@ -111,6 +144,6 @@ contract ConnextConnector {
         else if (chainId == OPTIMISM_ID) return OPTIMISM_DOMAIN;
         else if (chainId == GNOSIS_ID) return GNOSIS_DOMAIN;
         else if (chainId == BSC_ID) return BSC_DOMAIN;
-        else revert('CONNEXT_UNKNOWN_CHAIN_ID');
+        else revert ConnextBridgeUnknownChainId(chainId);
     }
 }

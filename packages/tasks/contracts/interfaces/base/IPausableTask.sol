@@ -21,6 +21,16 @@ import './IBaseTask.sol';
  */
 interface IPausableTask is IBaseTask {
     /**
+     * @dev The task is paused
+     */
+    error TaskPaused();
+
+    /**
+     * @dev The task is unpaused
+     */
+    error TaskUnpaused();
+
+    /**
      * @dev Emitted every time a task is paused
      */
     event Paused();

@@ -84,7 +84,7 @@ contract Authorized is IAuthorized, Initializable, AuthorizedHelpers {
      * @param how Params to be authenticated
      */
     function _authenticate(address who, bytes4 what, uint256[] memory how) internal view {
-        require(_isAuthorized(who, what, how), 'AUTH_SENDER_NOT_ALLOWED');
+        if (!_isAuthorized(who, what, how)) revert AuthSenderNotAllowed(who, what, how);
     }
 
     /**

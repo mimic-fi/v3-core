@@ -192,7 +192,7 @@ describe('OneInchV5Swapper', () => {
 
                   it('reverts', async () => {
                     await expect(task.call(tokenIn.address, amountIn, slippage, '0x')).to.be.revertedWith(
-                      'TASK_SLIPPAGE_TOO_HIGH'
+                      'TaskSlippageAboveMax'
                     )
                   })
                 })
@@ -207,7 +207,7 @@ describe('OneInchV5Swapper', () => {
 
                 it('reverts', async () => {
                   await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith(
-                    'TASK_TOKEN_THRESHOLD_NOT_MET'
+                    'TaskTokenThresholdNotMet'
                   )
                 })
               })
@@ -215,7 +215,7 @@ describe('OneInchV5Swapper', () => {
 
             context('when the token out is not set', () => {
               it('reverts', async () => {
-                await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TASK_TOKEN_OUT_NOT_SET')
+                await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskTokenOutNotSet')
               })
             })
           })
@@ -228,7 +228,7 @@ describe('OneInchV5Swapper', () => {
             })
 
             it('reverts', async () => {
-              await expect(task.call(tokenIn.address, 0, 0, '0x')).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+              await expect(task.call(tokenIn.address, 0, 0, '0x')).to.be.revertedWith('TaskTokenNotAllowed')
             })
           })
         })
@@ -237,7 +237,7 @@ describe('OneInchV5Swapper', () => {
           const amountIn = 0
 
           it('reverts', async () => {
-            await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TASK_AMOUNT_ZERO')
+            await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -246,14 +246,14 @@ describe('OneInchV5Swapper', () => {
         const tokenIn = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(tokenIn, 0, 0, '0x')).to.be.revertedWith('TASK_TOKEN_ZERO')
+          await expect(task.call(tokenIn, 0, 0, '0x')).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 0, '0x')).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0, 0, '0x')).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
