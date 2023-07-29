@@ -82,6 +82,7 @@ interface IHopBridger is IBaseBridgeTask {
 
     /**
      * @dev Tells the max fee percentage that should be used for a token
+     * @param token Address of the token being queried
      */
     function getMaxFeePct(address token) external view returns (uint256);
 

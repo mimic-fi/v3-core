@@ -30,26 +30,26 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('CONNEXT_BRIDGER');
 
-    // Default relayer fee
-    uint256 public override defaultRelayerFee;
+    // Default max fee percentage
+    uint256 public override defaultMaxFeePct;
 
-    // Relayer fee per token address
-    mapping (address => uint256) public override customRelayerFee;
+    // Max fee percentage per token
+    mapping (address => uint256) public override customMaxFeePct;
 
     /**
-     * @dev Custom relayer fee config
+     * @dev Custom max fee percentage config. Only used in the initializer.
      */
-    struct CustomRelayerFee {
+    struct CustomMaxFeePct {
         address token;
-        uint256 relayerFee;
+        uint256 maxFeePct;
     }
 
     /**
      * @dev Connext bridge config. Only used in the initializer.
      */
     struct ConnextBridgeConfig {
-        uint256 defaultRelayerFee;
-        CustomRelayerFee[] customRelayerFees;
+        uint256 maxFeePct;
+        CustomMaxFeePct[] customMaxFeePcts;
         BaseBridgeConfig baseBridgeConfig;
     }
 
@@ -75,9 +75,11 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
      * @param config Connext bridge config
      */
     function __ConnextBridger_init_unchained(ConnextBridgeConfig memory config) internal onlyInitializing {
-        _setDefaultRelayerFee(config.defaultRelayerFee);
-        for (uint256 i = 0; i < config.customRelayerFees.length; i++) {
-            _setCustomRelayerFee(config.customRelayerFees[i].token, config.customRelayerFees[i].relayerFee);
+        _setDefaultMaxFeePct(config.maxFeePct);
+
+        for (uint256 i = 0; i < config.customMaxFeePcts.length; i++) {
+            CustomMaxFeePct memory customConfig = config.customMaxFeePcts[i];
+            _setCustomMaxFeePct(customConfig.token, customConfig.maxFeePct);
         }
     }
 
@@ -86,38 +88,41 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
      * @param token Address of the token being queried
      */
     function getMaxFeePct(address token) public view virtual override returns (uint256) {
-        uint256 relayerFee = customRelayerFee[token];
-        return relayerFee == 0 ? defaultRelayerFee : relayerFee;
+        uint256 maxFeePct = customMaxFeePct[token];
+        return maxFeePct == 0 ? defaultMaxFeePct : maxFeePct;
     }
 
     /**
-     * Sets the default relayer fee
+     * @dev Sets the default max fee percentage
+     * @param maxFeePct New default max fee percentage to be set
      */
-    function setDefaultRelayerFee(uint256 relayerFee) external override authP(authParams(relayerFee)) {
-        _setDefaultRelayerFee(relayerFee);
+    function setDefaultMaxFeePct(uint256 maxFeePct) external override authP(authParams(maxFeePct)) {
+        _setDefaultMaxFeePct(maxFeePct);
     }
 
     /**
-     * @dev Sets a custom relayer fee for a token
+     * @dev Sets a custom max fee percentage
+     * @param token Token address to set a max fee percentage for
+     * @param maxFeePct Max fee percentage to be set for a token
      */
-    function setCustomRelayerFee(address token, uint256 relayerFee)
+    function setCustomMaxFeePct(address token, uint256 maxFeePct)
         external
         override
-        authP(authParams(token, relayerFee))
+        authP(authParams(token, maxFeePct))
     {
-        _setCustomRelayerFee(token, relayerFee);
+        _setCustomMaxFeePct(token, maxFeePct);
     }
 
     /**
      * @dev Execute Connext bridger
      */
-    function call(address token, uint256 amountIn, uint256 slippage, uint256 relayerFee)
+    function call(address token, uint256 amountIn, uint256 slippage, uint256 fee)
         external
         override
-        authP(authParams(token, amountIn, slippage, relayerFee))
+        authP(authParams(token, amountIn, slippage, fee))
     {
         if (amountIn == 0) amountIn = getTaskAmount(token);
-        _beforeConnextBridger(token, amountIn, slippage, relayerFee);
+        _beforeConnextBridger(token, amountIn, slippage, fee);
 
         uint256 minAmountOut = amountIn.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
@@ -127,23 +132,20 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
             amountIn,
             minAmountOut,
             recipient,
-            relayerFee
+            fee
         );
 
         ISmartVault(smartVault).execute(connector, connectorData);
-        _afterConnextBridger(token, amountIn, slippage, relayerFee);
+        _afterConnextBridger(token, amountIn, slippage, fee);
     }
 
     /**
      * @dev Before connext bridger hook
      */
-    function _beforeConnextBridger(address token, uint256 amount, uint256 slippage, uint256 relayerFee)
-        internal
-        virtual
-    {
+    function _beforeConnextBridger(address token, uint256 amount, uint256 slippage, uint256 fee) internal virtual {
         _beforeBaseBridgeTask(token, amount, slippage);
+        uint256 feePct = fee.divUp(amount);
         uint256 maxFeePct = getMaxFeePct(token);
-        uint256 feePct = relayerFee.divUp(amount);
         if (feePct > maxFeePct) revert TaskFeePctAboveMax(feePct, maxFeePct);
     }
 
@@ -155,22 +157,22 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Sets the default relayer fee
-     * @param relayerFee Default relayer fee to be set
+     * @dev Sets the default max fee percentage
+     * @param maxFeePct Default max fee percentage to be set
      */
-    function _setDefaultRelayerFee(uint256 relayerFee) internal {
-        defaultRelayerFee = relayerFee;
-        emit DefaultRelayerFeeSet(relayerFee);
+    function _setDefaultMaxFeePct(uint256 maxFeePct) internal {
+        defaultMaxFeePct = maxFeePct;
+        emit DefaultMaxFeePctSet(maxFeePct);
     }
 
     /**
-     * @dev Sets a custom relayer fee for a token
-     * @param token Address of the token to set the custom relayer fee for
-     * @param relayerFee Relayer fee to be set
+     * @dev Sets a custom max fee percentage for a token
+     * @param token Address of the token to set a custom max fee percentage for
+     * @param maxFeePct Max fee percentage to be set for the given token
      */
-    function _setCustomRelayerFee(address token, uint256 relayerFee) internal {
+    function _setCustomMaxFeePct(address token, uint256 maxFeePct) internal {
         if (token == address(0)) revert TaskTokenZero();
-        customRelayerFee[token] = relayerFee;
-        emit CustomRelayerFeeSet(token, relayerFee);
+        customMaxFeePct[token] = maxFeePct;
+        emit CustomMaxFeePctSet(token, maxFeePct);
     }
 }

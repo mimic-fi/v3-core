@@ -21,24 +21,24 @@ import './IBaseBridgeTask.sol';
  */
 interface IConnextBridger is IBaseBridgeTask {
     /**
-     * @dev Emitted every time the default relayer fee is set
+     * @dev Emitted every time the default max fee percentage is set
      */
-    event DefaultRelayerFeeSet(uint256 relayerFee);
+    event DefaultMaxFeePctSet(uint256 maxFeePct);
 
     /**
-     * @dev Emitted every time a custom relayer fee is set
+     * @dev Emitted every time a custom max fee percentage is set
      */
-    event CustomRelayerFeeSet(address indexed token, uint256 relayerFee);
+    event CustomMaxFeePctSet(address indexed token, uint256 maxFeePct);
 
     /**
-     * @dev Tells the default relayer fee
+     * @dev Tells the default max fee pct
      */
-    function defaultRelayerFee() external view returns (uint256);
+    function defaultMaxFeePct() external view returns (uint256);
 
     /**
-     * @dev Tells the relayer fee defined for a specific token
+     * @dev Tells the max fee percentage defined for a specific token
      */
-    function customRelayerFee(address token) external view returns (uint256);
+    function customMaxFeePct(address token) external view returns (uint256 maxFeePct);
 
     /**
      * @dev Tells the max fee percentage that should be used for a token
@@ -47,14 +47,17 @@ interface IConnextBridger is IBaseBridgeTask {
     function getMaxFeePct(address token) external view returns (uint256);
 
     /**
-     * @dev Sets the default relayer fee
+     * @dev Sets the default max fee percentage
+     * @param maxFeePct New default max fee percentage to be set
      */
-    function setDefaultRelayerFee(uint256 relayerFee) external;
+    function setDefaultMaxFeePct(uint256 maxFeePct) external;
 
     /**
-     * @dev Sets a custom relayer fee for a specific token
+     * @dev Sets a custom max fee percentage
+     * @param token Token address to set a max fee percentage for
+     * @param maxFeePct Max fee percentage to be set for a token
      */
-    function setCustomRelayerFee(address token, uint256 relayerFee) external;
+    function setCustomMaxFeePct(address token, uint256 maxFeePct) external;
 
     /**
      * @dev Execute Connext bridger task
