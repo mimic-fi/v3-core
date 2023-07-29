@@ -17,9 +17,7 @@ pragma solidity ^0.8.0;
 contract WormholeConnectorMock {
     event LogExecute(uint256 chainId, address token, uint256 amount, uint256 minAmountOut, address recipient);
 
-    function execute(uint256 chainId, address token, uint256 amount, uint256 minAmountOut, address recipient)
-        external
-    {
+    function execute(uint256 chainId, address token, uint256 amount, uint256 minAmountOut, address recipient) external {
         emit LogExecute(chainId, token, amount, minAmountOut, recipient);
     }
 }
