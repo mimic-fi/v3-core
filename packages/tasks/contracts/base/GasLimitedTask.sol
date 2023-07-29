@@ -117,9 +117,12 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
      */
     function _beforeGasLimitedTask(address, uint256) internal virtual {
         __initialGas__ = gasleft();
-        if (gasPriceLimit > 0 && tx.gasprice > gasPriceLimit) revert TaskGasPriceLimit(tx.gasprice, gasPriceLimit);
-        if (priorityFeeLimit > 0 && tx.gasprice - block.basefee > priorityFeeLimit)
-            revert TaskPriorityFeeLimit(tx.gasprice, block.basefee, priorityFeeLimit);
+        bool isGasPriceAllowed = gasPriceLimit == 0 || tx.gasprice <= gasPriceLimit;
+        if (!isGasPriceAllowed) revert TaskGasPriceLimitExceeded(tx.gasprice, gasPriceLimit);
+
+        uint256 priorityFee = tx.gasprice - block.basefee;
+        bool isPriorityFeeAllowed = priorityFeeLimit == 0 || priorityFee <= priorityFeeLimit;
+        if (!isPriorityFeeAllowed) revert TaskPriorityFeeLimitExceeded(priorityFee, priorityFeeLimit);
     }
 
     /**
@@ -130,14 +133,14 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
 
         uint256 totalGas = __initialGas__ - gasleft();
         uint256 totalCost = totalGas * tx.gasprice;
-        if (txCostLimit > 0 && totalCost > txCostLimit) revert TaskTxCostLimit(totalCost, txCostLimit);
+        if (txCostLimit > 0 && totalCost > txCostLimit) revert TaskTxCostLimitExceeded(totalCost, txCostLimit);
         delete __initialGas__;
 
         if (txCostLimitPct > 0 && amount > 0) {
             uint256 price = _getPrice(ISmartVault(this.smartVault()).wrappedNativeToken(), token);
             uint256 totalCostInToken = totalCost.mulUp(price);
-            if (totalCostInToken.divUp(amount) > txCostLimitPct)
-                revert TaskTxCostLimitPct(totalCostInToken, amount, txCostLimitPct);
+            uint256 txCostPct = totalCostInToken.divUp(amount);
+            if (txCostPct > txCostLimitPct) revert TaskTxCostLimitPctExceeded(txCostPct, txCostLimitPct);
         }
     }
 

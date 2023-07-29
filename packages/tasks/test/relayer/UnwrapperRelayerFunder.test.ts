@@ -158,7 +158,7 @@ describe('UnwrapperRelayerFunder', () => {
               const bigAmount = amount.add(diff.add(1))
 
               it('reverts', async () => {
-                await expect(task.call(tokenAddr, bigAmount)).to.be.revertedWith('TaskAmountAboveMaxThreshold')
+                await expect(task.call(tokenAddr, bigAmount)).to.be.revertedWith('TaskDepositAboveMaxThreshold')
               })
             })
           })
@@ -180,7 +180,7 @@ describe('UnwrapperRelayerFunder', () => {
             })
 
             it('reverts', async () => {
-              await expect(task.call(tokenAddr, amount)).to.be.revertedWith('TaskDepositedAboveMinThreshold')
+              await expect(task.call(tokenAddr, amount)).to.be.revertedWith('TaskDepositAboveMinThreshold')
             })
           })
         })

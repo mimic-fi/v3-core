@@ -1597,7 +1597,7 @@ describe('PriceOracle', () => {
 
     const itRevertsDueToInvalidSignature = () => {
       it('reverts due to invalid signature', async () => {
-        await expect(getPrice()).to.be.revertedWith('OracleInvalidSigner')
+        await expect(getPrice()).to.be.revertedWith('PriceOracleInvalidSigner')
       })
     }
 
@@ -1633,7 +1633,7 @@ describe('PriceOracle', () => {
 
           const itRevertsDueToOutdatedFeed = () => {
             it('reverts due to outdated feed', async () => {
-              await expect(getPrice()).to.be.revertedWith('PriceOraclePriceOutdated')
+              await expect(getPrice()).to.be.revertedWith('PriceOracleOutdatedPrice')
             })
           }
 

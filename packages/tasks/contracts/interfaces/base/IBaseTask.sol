@@ -30,9 +30,9 @@ interface IBaseTask is IAuthorized {
     error TaskSameBalanceConnectors(bytes32 connectorId);
 
     /**
-     * @dev The price oracle is not set
+     * @dev The smart vault's price oracle is not set
      */
-    error TaskPriceOracleNotSet(address base, address quote);
+    error TaskSmartVaultPriceOracleNotSet(address base, address quote);
 
     /**
      * @dev Emitted every time a task is executed

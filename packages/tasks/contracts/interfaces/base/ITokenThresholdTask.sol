@@ -30,11 +30,6 @@ interface ITokenThresholdTask is IBaseTask {
     }
 
     /**
-     * @dev The token threshold has not been met
-     */
-    error TaskTokenThresholdNotMet(address thresholdToken, uint256 convertedAmount, uint256 min, uint256 max);
-
-    /**
      * @dev The token threshold token is zero
      */
     error TaskThresholdTokenZero();
@@ -43,6 +38,11 @@ interface ITokenThresholdTask is IBaseTask {
      * @dev The token threshold to be set is invalid
      */
     error TaskInvalidThresholdInput(address token, uint256 min, uint256 max);
+
+    /**
+     * @dev The token threshold has not been met
+     */
+    error TaskTokenThresholdNotMet(address token, uint256 amount, uint256 min, uint256 max);
 
     /**
      * @dev Emitted every time a default threshold is set

@@ -21,6 +21,11 @@ import '../ITask.sol';
  */
 interface IUnwrapper is ITask {
     /**
+     * @dev The amount is zero
+     */
+    error TaskAmountZero();
+
+    /**
      * @dev The token is not the wrapped native token
      */
     error TaskTokenNotWrapped();

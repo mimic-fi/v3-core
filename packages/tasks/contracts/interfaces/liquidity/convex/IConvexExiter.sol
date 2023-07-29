@@ -21,6 +21,11 @@ import './IBaseConvexTask.sol';
  */
 interface IConvexExiter is IBaseConvexTask {
     /**
+     * @dev The amount is zero
+     */
+    error TaskAmountZero();
+
+    /**
      * @dev Executes the Convex exiter task
      */
     function call(address token, uint256 amount) external;

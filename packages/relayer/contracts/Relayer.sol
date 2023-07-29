@@ -131,8 +131,10 @@ contract Relayer is IRelayer, Ownable {
     function withdraw(uint256 amount) external override {
         uint256 balance = getSmartVaultBalance[msg.sender];
         if (amount > balance) revert RelayerWithdrawInsufficientBalance(msg.sender, balance, amount);
+
         getSmartVaultBalance[msg.sender] = balance - amount;
         emit Withdrawn(msg.sender, amount);
+
         (bool success, ) = payable(msg.sender).call{ value: amount }('');
         if (!success) revert RelayerWithdrawFailed(msg.sender, amount);
     }
@@ -140,27 +142,31 @@ contract Relayer is IRelayer, Ownable {
     /**
      * @dev Executes a list of tasks
      * @param tasks Addresses of the tasks to execute
-     * @param datas List of calldata to execute each of the given tasks
+     * @param data List of calldata to execute each of the given tasks
      * @param continueIfFailed Whether the execution should fail in case one of the tasks fail
      */
-    function execute(address[] memory tasks, bytes[] memory datas, bool continueIfFailed) external override {
+    function execute(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external override {
         if (!isExecutorAllowed[msg.sender]) revert RelayerExecutorNotAllowed(msg.sender);
-        if (tasks.length == 0 || tasks.length != datas.length)
-            revert RelayerExecuteInputBadLength(tasks.length, datas.length);
+        if (tasks.length == 0) revert RelayerNoTaskGiven();
+        if (tasks.length != data.length) revert RelayerInputLengthMismatch();
 
         uint256 totalGasUsed = BASE_GAS;
         address smartVault = ITask(tasks[0]).smartVault();
         for (uint256 i = 0; i < tasks.length; i++) {
             uint256 initialGas = gasleft();
             address task = tasks[i];
-            if (ITask(task).smartVault() != smartVault) revert RelayerInvalidTaskSmartVault(task, smartVault);
-            if (!ISmartVault(smartVault).hasPermissions(task)) revert RelayerInvalidTaskPermissions(task, smartVault);
-            bytes memory data = datas[i];
+
+            address taskSmartVault = ITask(task).smartVault();
+            if (taskSmartVault != smartVault) revert RelayerMultipleTaskSmartVaults(task, taskSmartVault, smartVault);
+
+            bool hasPermissions = ISmartVault(smartVault).hasPermissions(task);
+            if (!hasPermissions) revert RelayerTaskDoesNotHavePermissions(task, smartVault);
+
             // solhint-disable-next-line avoid-low-level-calls
-            (bool taskSuccess, bytes memory result) = task.call(data);
+            (bool taskSuccess, bytes memory result) = task.call(data[i]);
             uint256 gasUsed = initialGas - gasleft();
             totalGasUsed += gasUsed;
-            emit TaskExecuted(smartVault, task, data, taskSuccess, result, gasUsed);
+            emit TaskExecuted(smartVault, task, data[i], taskSuccess, result, gasUsed);
             if (!taskSuccess && !continueIfFailed) break;
         }
 
@@ -215,8 +221,8 @@ contract Relayer is IRelayer, Ownable {
         uint256 maxQuota = getSmartVaultMaxQuota[smartVault];
         uint256 usedQuota = getSmartVaultUsedQuota[smartVault];
         uint256 availableQuota = usedQuota >= maxQuota ? 0 : (maxQuota - usedQuota);
-        if (amount > balance + availableQuota)
-            revert RelayerPaymentInsufficientBal(smartVault, balance, availableQuota, amount);
+        bool hasEnoughBalance = amount <= balance + availableQuota;
+        if (!hasEnoughBalance) revert RelayerPaymentInsufficientBalance(smartVault, balance, availableQuota, amount);
 
         uint256 quota;
         if (balance >= amount) {

@@ -96,7 +96,7 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
      * @dev Before time locked task hook
      */
     function _beforeTimeLockedTask(address, uint256) internal virtual {
-        if (block.timestamp < timeLockExpiration) revert TaskTimeLockNotExpired(timeLockExpiration);
+        if (block.timestamp < timeLockExpiration) revert TaskTimeLockNotExpired(timeLockExpiration, block.timestamp);
 
         if (timeLockExecutionPeriod > 0) {
             uint256 diff = block.timestamp - timeLockExpiration;

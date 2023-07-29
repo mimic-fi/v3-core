@@ -21,14 +21,14 @@ import './IBaseBridgeTask.sol';
  */
 interface IHopBridger is IBaseBridgeTask {
     /**
-     * @dev The entrypoint is zero
-     */
-    error TaskMissingHopEntrypoint();
-
-    /**
      * @dev The max deadline is zero
      */
     error TaskMaxDeadlineZero();
+
+    /**
+     * @dev The Hop entrypoint is zero
+     */
+    error TaskMissingHopEntrypoint();
 
     /**
      * @dev Emitted every time the relayer is set

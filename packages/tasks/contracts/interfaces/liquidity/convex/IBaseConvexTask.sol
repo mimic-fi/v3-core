@@ -21,6 +21,16 @@ import '../../ITask.sol';
  */
 interface IBaseConvexTask is ITask {
     /**
+     * @dev The token is zero
+     */
+    error TaskTokenZero();
+
+    /**
+     * @dev The connector is zero
+     */
+    error TaskConnectorZero();
+
+    /**
      * @dev Emitted every time the connector is set
      */
     event ConnectorSet(address indexed connector);

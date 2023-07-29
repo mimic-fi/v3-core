@@ -27,24 +27,24 @@ import './IAxelarGateway.sol';
  */
 contract AxelarConnector {
     /**
-     * @dev The source and destination chains are the same
-     */
-    error AxelarBridgeSameChain(uint256 chainId);
-
-    /**
      * @dev The recipient address is zero
      */
     error AxelarBridgeRecipientZero();
 
     /**
-     * @dev The post token balance is lower than the previous token balance minus the amount bridged
+     * @dev The source and destination chains are the same
      */
-    error AxelarBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
+    error AxelarBridgeSameChain(uint256 chainId);
 
     /**
      * @dev The chain ID is not supported
      */
     error AxelarBridgeUnknownChainId(uint256 chainId);
+
+    /**
+     * @dev The post token balance is lower than the previous token balance minus the amount bridged
+     */
+    error AxelarBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
 
     // List of chain names supported by Axelar
     string private constant ETHEREUM_NAME = 'Ethereum';
@@ -86,15 +86,14 @@ contract AxelarConnector {
 
         string memory chainName = _getChainName(chainId);
         string memory symbol = IERC20Metadata(token).symbol();
-
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
 
         ERC20Helpers.approve(token, address(axelarGateway), amountIn);
         axelarGateway.sendToken(chainName, Strings.toHexString(recipient), symbol, amountIn);
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn)
-            revert AxelarBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert AxelarBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**

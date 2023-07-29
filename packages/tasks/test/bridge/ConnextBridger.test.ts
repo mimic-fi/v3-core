@@ -238,7 +238,7 @@ describe('ConnextBridger', () => {
                   context('when the relayer fee is too high', () => {
                     it('reverts', async () => {
                       await expect(task.call(token.address, amountIn, 0, relayerFee)).to.be.revertedWith(
-                        'TaskFeeTooHigh'
+                        'TaskFeePctAboveMax'
                       )
                     })
                   })

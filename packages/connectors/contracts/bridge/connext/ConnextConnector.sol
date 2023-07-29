@@ -26,14 +26,19 @@ import './IConnext.sol';
  */
 contract ConnextConnector {
     /**
+     * @dev The recipient address is zero
+     */
+    error ConnextBridgeRecipientZero();
+
+    /**
      * @dev The source and destination chains are the same
      */
     error ConnextBridgeSameChain(uint256 chainId);
 
     /**
-     * @dev The recipient address is zero
+     * @dev The chain ID is not supported
      */
-    error ConnextBridgeRecipientZero();
+    error ConnextBridgeUnknownChainId(uint256 chainId);
 
     /**
      * @dev The relayer fee is greater than the amount to be bridged
@@ -49,11 +54,6 @@ contract ConnextConnector {
      * @dev The post token balance is lower than the previous token balance minus the amount bridged
      */
     error ConnextBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
-
-    /**
-     * @dev The chain ID is not supported
-     */
-    error ConnextBridgeUnknownChainId(uint256 chainId);
 
     // List of chain domains supported by Connext
     uint32 private constant ETHEREUM_DOMAIN = 6648936;
@@ -102,8 +102,9 @@ contract ConnextConnector {
         if (block.chainid == chainId) revert ConnextBridgeSameChain(chainId);
         if (recipient == address(0)) revert ConnextBridgeRecipientZero();
         if (relayerFee > amountIn) revert ConnextBridgeRelayerFeeGtAmount(relayerFee, amountIn);
-        if (minAmountOut > amountIn - relayerFee)
-            revert ConnextBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
+
+        bool isMinAmountTooBig = minAmountOut > amountIn - relayerFee;
+        if (isMinAmountTooBig) revert ConnextBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
 
         uint32 domain = _getChainDomain(chainId);
         uint256 amountInAfterFees = amountIn - relayerFee;
@@ -127,8 +128,8 @@ contract ConnextConnector {
         );
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn)
-            revert ConnextBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert ConnextBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**

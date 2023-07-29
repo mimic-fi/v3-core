@@ -22,7 +22,7 @@ describe('FeeController', () => {
     it('sets the default collector correctly', async () => {
       expect(await feeController.defaultFeeCollector()).to.be.equal(collector.address)
       expect(await feeController.hasFee(smartVault)).to.be.false
-      await expect(feeController.getFee(smartVault)).to.be.revertedWith('FeeControllerSvMaxPctNotSet')
+      await expect(feeController.getFee(smartVault)).to.be.revertedWith('FeeControllerMaxPctNotSet')
     })
 
     it('sets the owner correctly', async () => {
@@ -235,7 +235,7 @@ describe('FeeController', () => {
 
         it('reverts', async () => {
           await expect(feeController.setFeePercentage(smartVault, feePct)).to.be.revertedWith(
-            'FeeControllerSvMaxPctNotSet'
+            'FeeControllerMaxPctNotSet'
           )
         })
       })
@@ -281,7 +281,7 @@ describe('FeeController', () => {
         context('when there was no max set for the given smart vault', () => {
           it('reverts', async () => {
             await expect(feeController.setFeeCollector(smartVault, newCollector)).to.be.revertedWith(
-              'FeeControllerSvMaxPctNotSet'
+              'FeeControllerMaxPctNotSet'
             )
           })
         })

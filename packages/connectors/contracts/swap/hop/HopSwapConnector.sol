@@ -36,14 +36,14 @@ contract HopSwapConnector {
     error HopDexAddressZero();
 
     /**
-     * @dev The post token in balance is lower than the pre token in balance minus the amount in
-     */
-    error HopBadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
-
-    /**
-     * @dev The amount out is less than the minimum amount out
+     * @dev The amount out is lower than the minimum amount out
      */
     error HopBadAmountOut(uint256 amountOut, uint256 minAmountOut);
+
+    /**
+     * @dev The post token in balance is lower than the pre token in balance minus the amount in
+     */
+    error HopBadPostTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
 
     /**
      * @dev Executes a token swap in Hop
@@ -71,7 +71,8 @@ contract HopSwapConnector {
         hopDex.swap(tokenInIndex, tokenOutIndex, amountIn, minAmountOut, block.timestamp);
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn) revert HopBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert HopBadPostTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;

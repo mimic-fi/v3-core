@@ -658,7 +658,7 @@ describe('Relayer', () => {
           context('when the available quota is not enough', () => {
             it('reverts', async () => {
               await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith(
-                'RelayerPaymentInsufficientBal'
+                'RelayerPaymentInsufficientBalance'
               )
             })
           })
@@ -668,7 +668,7 @@ describe('Relayer', () => {
       context('when the task does not have permissions over the associated smart vault', () => {
         it('reverts', async () => {
           await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith(
-            'RelayerInvalidTaskPermissions'
+            'RelayerTaskDoesNotHavePermissions'
           )
         })
       })

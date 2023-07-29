@@ -86,15 +86,12 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
         uint256 depositedInThresholdToken = _getDepositedInThresholdToken(threshold.token);
         uint256 usedQuotaInThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);
 
-        if (depositedInThresholdToken >= threshold.min + usedQuotaInThresholdToken)
-            revert TaskDepositedAboveMinThreshold(depositedInThresholdToken, threshold.min, usedQuotaInThresholdToken);
-        if (amountInThresholdToken + depositedInThresholdToken > threshold.max + usedQuotaInThresholdToken)
-            revert TaskAmountAboveMaxThreshold(
-                amountInThresholdToken,
-                depositedInThresholdToken,
-                threshold.max,
-                usedQuotaInThresholdToken
-            );
+        bool isAboveMin = depositedInThresholdToken >= threshold.min + usedQuotaInThresholdToken;
+        if (isAboveMin) revert TaskDepositAboveMinThreshold(depositedInThresholdToken, threshold.min);
+
+        uint256 newBalance = amountInThresholdToken + depositedInThresholdToken;
+        bool isAboveMax = newBalance > threshold.max + usedQuotaInThresholdToken;
+        if (isAboveMax) revert TaskDepositAboveMaxThreshold(newBalance, threshold.max, usedQuotaInThresholdToken);
     }
 
     /**

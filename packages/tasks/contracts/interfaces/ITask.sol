@@ -21,6 +21,8 @@ import './base/ITokenIndexedTask.sol';
 import './base/ITokenThresholdTask.sol';
 import './base/IVolumeLimitedTask.sol';
 
+// solhint-disable no-empty-blocks
+
 /**
  * @dev Task interface
  */
@@ -32,23 +34,5 @@ interface ITask is
     ITokenThresholdTask,
     IVolumeLimitedTask
 {
-    /**
-     * @dev The amount is zero
-     */
-    error TaskAmountZero();
 
-    /**
-     * @dev The token is zero
-     */
-    error TaskTokenZero();
-
-    /**
-     * @dev The connector is zero
-     */
-    error TaskConnectorZero();
-
-    /**
-     * @dev The recipient is zero
-     */
-    error TaskRecipientZero();
 }

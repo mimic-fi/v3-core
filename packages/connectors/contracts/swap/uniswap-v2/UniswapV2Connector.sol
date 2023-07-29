@@ -34,19 +34,19 @@ contract UniswapV2Connector {
     error UniswapV2SwapSameToken(address token);
 
     /**
-     * @dev The post token in balance is lower than the previous token in balance minus the amount in
+     * @dev The pool does not exist
      */
-    error UniswapV2BadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+    error UniswapV2InvalidPool(address tokenA, address tokenB);
 
     /**
-     * @dev The amount out is less than the minimum amount out
+     * @dev The amount out is lower than the minimum amount out
      */
     error UniswapV2BadAmountOut(uint256 amountOut, uint256 minAmountOut);
 
     /**
-     * @dev The pool does not exist
+     * @dev The post token in balance is lower than the previous token in balance minus the amount in
      */
-    error UniswapV2InvalidPool(address factory, address tokenA, address tokenB);
+    error UniswapV2BadPostTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
 
     // Reference to UniswapV2 router
     IUniswapV2Router02 public immutable uniswapV2Router;
@@ -85,8 +85,8 @@ contract UniswapV2Connector {
             : _batchSwap(tokenIn, tokenOut, amountIn, minAmountOut, hopTokens);
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn)
-            revert UniswapV2BadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert UniswapV2BadPostTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;
@@ -141,6 +141,6 @@ contract UniswapV2Connector {
      */
     function _validatePool(address factory, address tokenA, address tokenB) private view {
         address pool = IUniswapV2Factory(factory).getPair(tokenA, tokenB);
-        if (pool == address(0)) revert UniswapV2InvalidPool(factory, tokenA, tokenB);
+        if (pool == address(0)) revert UniswapV2InvalidPool(tokenA, tokenB);
     }
 }

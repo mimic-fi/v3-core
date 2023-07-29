@@ -16,6 +16,8 @@ import { ethers } from 'hardhat'
 
 import { buildEmptyTaskConfig, deployEnvironment, Mimic } from '../../src/setup'
 
+/* eslint-disable no-secrets/no-secrets */
+
 describe('Withdrawer', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, mimic: Mimic, owner: SignerWithAddress, recipient: SignerWithAddress
@@ -133,7 +135,7 @@ describe('Withdrawer', () => {
           })
 
           it('reverts', async () => {
-            await expect(task.setRecipient(newRecipient)).to.be.revertedWith('TaskRecipientSmartVault')
+            await expect(task.setRecipient(newRecipient)).to.be.revertedWith('TaskRecipientEqualsSmartVault')
           })
         })
       })

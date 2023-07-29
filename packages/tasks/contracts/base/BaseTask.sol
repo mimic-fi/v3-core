@@ -147,7 +147,7 @@ abstract contract BaseTask is IBaseTask, Authorized {
      */
     function _getPrice(address base, address quote) internal view virtual returns (uint256) {
         address priceOracle = ISmartVault(smartVault).priceOracle();
-        if (priceOracle == address(0)) revert TaskPriceOracleNotSet(base, quote);
+        if (priceOracle == address(0)) revert TaskSmartVaultPriceOracleNotSet(base, quote);
         return IPriceOracle(priceOracle).getPrice(_wrappedIfNative(base), _wrappedIfNative(quote));
     }
 

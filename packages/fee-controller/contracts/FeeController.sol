@@ -67,7 +67,7 @@ contract FeeController is IFeeController, Ownable {
      */
     function getFee(address smartVault) external view override returns (uint256 max, uint256 pct, address collector) {
         Fee storage fee = _fees[smartVault];
-        if (fee.maxPct == 0) revert FeeControllerSvMaxPctNotSet(smartVault);
+        if (fee.maxPct == 0) revert FeeControllerMaxPctNotSet(smartVault);
 
         pct = fee.pct;
         max = fee.maxPct;
@@ -88,11 +88,11 @@ contract FeeController is IFeeController, Ownable {
      * @param maxPct Max fee percentage to be set
      */
     function setMaxFeePercentage(address smartVault, uint256 maxPct) external override onlyOwner {
-        if (maxPct == 0) revert FeeControllerMaxPctZero(smartVault);
+        if (maxPct == 0) revert FeeControllerMaxPctZero();
 
         Fee storage fee = _fees[smartVault];
         if (fee.maxPct == 0) {
-            if (maxPct >= FixedPoint.ONE) revert FeeControllerMaxPctAboveOne(smartVault);
+            if (maxPct >= FixedPoint.ONE) revert FeeControllerMaxPctAboveOne();
         } else {
             if (maxPct >= fee.maxPct) revert FeeControllerMaxPctAbovePrevious(smartVault, maxPct, fee.maxPct);
         }
@@ -119,7 +119,7 @@ contract FeeController is IFeeController, Ownable {
     function setFeeCollector(address smartVault, address collector) external override onlyOwner {
         if (collector == address(0)) revert FeeControllerCollectorZero();
         Fee storage fee = _fees[smartVault];
-        if (fee.maxPct == 0) revert FeeControllerSvMaxPctNotSet(smartVault);
+        if (fee.maxPct == 0) revert FeeControllerMaxPctNotSet(smartVault);
         fee.collector = collector;
         emit FeeCollectorSet(smartVault, collector);
     }
@@ -141,7 +141,7 @@ contract FeeController is IFeeController, Ownable {
      */
     function _setFeePercentage(address smartVault, uint256 pct) private {
         Fee storage fee = _fees[smartVault];
-        if (fee.maxPct == 0) revert FeeControllerSvMaxPctNotSet(smartVault);
+        if (fee.maxPct == 0) revert FeeControllerMaxPctNotSet(smartVault);
         if (pct > fee.maxPct) revert FeeControllerPctAboveMax(smartVault, pct, fee.maxPct);
         fee.pct = pct;
         emit FeePercentageSet(smartVault, pct);

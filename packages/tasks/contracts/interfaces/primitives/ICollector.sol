@@ -21,19 +21,29 @@ import '../ITask.sol';
  */
 interface ICollector is ITask {
     /**
+     * @dev The token is zero
+     */
+    error TaskTokenZero();
+
+    /**
+     * @dev The amount is zero
+     */
+    error TaskAmountZero();
+
+    /**
      * @dev The tokens source is zero
      */
     error TaskTokensSourceZero();
 
     /**
+     * @dev The previous balance connector is not zero
+     */
+    error TaskPreviousConnectorNotZero(bytes32 id);
+
+    /**
      * @dev Emitted every time the tokens source is set
      */
     event TokensSourceSet(address indexed tokensSource);
-
-    /**
-     * @dev The previous connector is not zero
-     */
-    error TaskPreviousConnectorNotZero(bytes32 previous);
 
     /**
      * @dev Sets the tokens source address

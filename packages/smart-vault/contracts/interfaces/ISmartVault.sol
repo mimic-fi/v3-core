@@ -26,14 +26,14 @@ interface ISmartVault is IAuthorized {
     error SmartVaultPaused();
 
     /**
-     * @dev The smart vault is already paused
-     */
-    error SmartVaultAlreadyPaused();
-
-    /**
      * @dev The smart vault is unpaused
      */
     error SmartVaultUnpaused();
+
+    /**
+     * @dev The token is zero
+     */
+    error SmartVaultTokenZero();
 
     /**
      * @dev The amount is zero
@@ -41,29 +41,14 @@ interface ISmartVault is IAuthorized {
     error SmartVaultAmountZero();
 
     /**
-     * @dev The smart vault balance is lower than the amount
-     */
-    error SmartVaultInsufficientBalance(uint256 balance, uint256 amount);
-
-    /**
      * @dev The recipient is zero
      */
     error SmartVaultRecipientZero();
 
     /**
-     * @dev The connector balance is lower than the amount
+     * @dev The connector is deprecated
      */
-    error SmartVaultConnectorInsuffBalance(bytes32 id, address token, uint256 balance, uint256 amount);
-
-    /**
-     * @dev The connector ID is zero
-     */
-    error SmartVaultConnectorIdZero();
-
-    /**
-     * @dev The connector token is zero
-     */
-    error SmartVaultConnectorTokenZero();
+    error SmartVaultConnectorDeprecated(address connector);
 
     /**
      * @dev The connector is not registered
@@ -76,9 +61,19 @@ interface ISmartVault is IAuthorized {
     error SmartVaultConnectorNotStateless(address connector);
 
     /**
-     * @dev The connector is deprecated
+     * @dev The connector ID is zero
      */
-    error SmartVaultConnectorDeprecated(address connector);
+    error SmartVaultBalanceConnectorIdZero();
+
+    /**
+     * @dev The balance connector's balance is lower than the requested amount to be deducted
+     */
+    error SmartVaultBalanceConnectorInsufficientBalance(bytes32 id, address token, uint256 balance, uint256 amount);
+
+    /**
+     * @dev The smart vault's native token balance is lower than the requested amount to be deducted
+     */
+    error SmartVaultInsufficientNativeTokenBalance(uint256 balance, uint256 amount);
 
     /**
      * @dev Emitted every time a smart vault is paused

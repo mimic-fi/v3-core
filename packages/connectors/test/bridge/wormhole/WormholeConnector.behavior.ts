@@ -60,7 +60,7 @@ export function itBehavesLikeWormholeConnector(
               this.connector
                 .connect(whale)
                 .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
-            ).to.be.revertedWith('WormholeBridgeRelayerFeeGTAmount')
+            ).to.be.revertedWith('WormholeBridgeRelayerFeeGtAmount')
           })
         })
 

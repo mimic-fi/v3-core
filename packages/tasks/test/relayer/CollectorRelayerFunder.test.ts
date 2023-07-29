@@ -189,7 +189,7 @@ describe('CollectorRelayerFunder', () => {
             const bigAmount = amount.add(diff.add(1))
 
             it('reverts', async () => {
-              await expect(task.call(token.address, bigAmount)).to.be.revertedWith('TaskAmountAboveMaxThreshold')
+              await expect(task.call(token.address, bigAmount)).to.be.revertedWith('TaskDepositAboveMaxThreshold')
             })
           })
         })
@@ -212,7 +212,7 @@ describe('CollectorRelayerFunder', () => {
           })
 
           it('reverts', async () => {
-            await expect(task.call(token.address, amount)).to.be.revertedWith('TaskDepositedAboveMinThreshold')
+            await expect(task.call(token.address, amount)).to.be.revertedWith('TaskDepositAboveMinThreshold')
           })
         })
       })

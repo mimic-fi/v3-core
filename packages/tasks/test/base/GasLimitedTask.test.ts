@@ -268,7 +268,7 @@ describe('GasLimitedTask', () => {
           })
 
           it('reverts', async () => {
-            await expect(task.call(ZERO_ADDRESS, 0, { gasPrice })).to.be.revertedWith('TaskTxCostLimit')
+            await expect(task.call(ZERO_ADDRESS, 0, { gasPrice })).to.be.revertedWith('TaskTxCostLimitExceeded')
           })
         })
       })
@@ -291,7 +291,9 @@ describe('GasLimitedTask', () => {
 
         context('when the tx moves less than the cost limit percentage', () => {
           it('reverts', async () => {
-            await expect(task.call(NATIVE_TOKEN_ADDRESS, 1, { gasPrice })).to.be.revertedWith('TaskTxCostLimitPct')
+            await expect(task.call(NATIVE_TOKEN_ADDRESS, 1, { gasPrice })).to.be.revertedWith(
+              'TaskTxCostLimitPctExceeded'
+            )
           })
         })
       })
@@ -310,7 +312,7 @@ describe('GasLimitedTask', () => {
         })
 
         it('reverts', async () => {
-          await expect(task.call(ZERO_ADDRESS, 0, { gasPrice })).to.be.revertedWith('TaskGasPriceLimit')
+          await expect(task.call(ZERO_ADDRESS, 0, { gasPrice })).to.be.revertedWith('TaskGasPriceLimitExceeded')
         })
       })
 
@@ -324,7 +326,7 @@ describe('GasLimitedTask', () => {
         })
 
         it('reverts', async () => {
-          await expect(task.call(ZERO_ADDRESS, 0, { gasPrice })).to.be.revertedWith('TaskGasPriceLimit')
+          await expect(task.call(ZERO_ADDRESS, 0, { gasPrice })).to.be.revertedWith('TaskGasPriceLimitExceeded')
         })
       })
     })

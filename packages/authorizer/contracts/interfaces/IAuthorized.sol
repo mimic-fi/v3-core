@@ -19,7 +19,7 @@ pragma solidity >=0.8.0;
  */
 interface IAuthorized {
     /**
-     * @dev `who` is not allowed to call `what` with `how`
+     * @dev Sender `who` is not allowed to call `what` with `how`
      */
     error AuthSenderNotAllowed(address who, bytes4 what, uint256[] how);
 

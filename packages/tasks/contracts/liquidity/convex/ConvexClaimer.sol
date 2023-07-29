@@ -103,8 +103,7 @@ contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
         address[] memory tokensOut,
         uint256[] memory amountsOut
     ) internal virtual {
-        if (tokensOut.length != amountsOut.length)
-            revert ClaimerInvalidResultLength(tokensOut.length, amountsOut.length);
+        if (tokensOut.length != amountsOut.length) revert TaskClaimResultLengthMismatch();
         for (uint256 i = 0; i < tokensOut.length; i++) _increaseBalanceConnector(tokensOut[i], amountsOut[i]);
         _afterBaseConvexTask(tokenIn, amountIn);
     }

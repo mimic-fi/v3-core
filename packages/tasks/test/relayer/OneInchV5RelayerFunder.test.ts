@@ -251,7 +251,7 @@ describe('OneInchV5RelayerFunder', () => {
 
                     it('reverts', async () => {
                       await expect(task.call(tokenIn.address, amount, slippage, data)).to.be.revertedWith(
-                        'TaskAmountAboveMaxThreshold'
+                        'TaskDepositAboveMaxThreshold'
                       )
                     })
                   })
@@ -282,7 +282,7 @@ describe('OneInchV5RelayerFunder', () => {
 
                 it('reverts', async () => {
                   await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith(
-                    'TaskDepositedAboveMinThreshold'
+                    'TaskDepositAboveMinThreshold'
                   )
                 })
               })

@@ -19,6 +19,8 @@ import { expect } from 'chai'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
 
+/* eslint-disable no-secrets/no-secrets */
+
 describe('SmartVault', () => {
   let smartVault: Contract
   let authorizer: Contract, registry: Contract, feeController: Contract, wrappedNT: Contract
@@ -103,7 +105,7 @@ describe('SmartVault', () => {
         })
 
         it('cannot be paused', async () => {
-          await expect(smartVault.pause()).to.be.revertedWith('SmartVaultAlreadyPaused')
+          await expect(smartVault.pause()).to.be.revertedWith('SmartVaultPaused')
         })
       })
     })
@@ -352,7 +354,7 @@ describe('SmartVault', () => {
               it('reverts', async () => {
                 await expect(
                   smartVault.updateBalanceConnector(connector, token.address, amount, add)
-                ).to.be.revertedWith('SmartVaultConnectorInsuffBalance')
+                ).to.be.revertedWith('SmartVaultBalanceConnectorInsufficientBalance')
               })
             })
           })
@@ -363,7 +365,7 @@ describe('SmartVault', () => {
 
           it('reverts', async () => {
             await expect(smartVault.updateBalanceConnector(connector, token, amount, true)).to.be.revertedWith(
-              'SmartVaultConnectorTokenZero'
+              'SmartVaultTokenZero'
             )
           })
         })
@@ -374,7 +376,7 @@ describe('SmartVault', () => {
 
         it('reverts', async () => {
           await expect(smartVault.updateBalanceConnector(connector, ZERO_ADDRESS, amount, true)).to.be.revertedWith(
-            'SmartVaultConnectorIdZero'
+            'SmartVaultBalanceConnectorIdZero'
           )
         })
       })
@@ -853,7 +855,7 @@ describe('SmartVault', () => {
 
         context('when the smart vault does not have enough native tokens', () => {
           it('reverts', async () => {
-            await expect(smartVault.wrap(amount)).to.be.revertedWith('SmartVaultInsufficientBalance')
+            await expect(smartVault.wrap(amount)).to.be.revertedWith('SmartVaultInsufficientNativeTokenBalance')
           })
         })
       })

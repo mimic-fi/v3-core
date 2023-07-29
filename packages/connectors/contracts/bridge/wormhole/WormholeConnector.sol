@@ -27,19 +27,24 @@ import './IWormhole.sol';
  */
 contract WormholeConnector {
     /**
-     * @dev The source and destination chains are the same
-     */
-    error WormholeBridgeSameChain(uint256 chainId);
-
-    /**
      * @dev The recipient address is zero
      */
     error WormholeBridgeRecipientZero();
 
     /**
+     * @dev The source and destination chains are the same
+     */
+    error WormholeBridgeSameChain(uint256 chainId);
+
+    /**
+     * @dev The chain ID is not supported
+     */
+    error WormholeBridgeUnknownChainId(uint256 chainId);
+
+    /**
      * @dev The relayer fee is greater than the amount to be bridged
      */
-    error WormholeBridgeRelayerFeeGTAmount(uint256 relayerFee, uint256 amountIn);
+    error WormholeBridgeRelayerFeeGtAmount(uint256 relayerFee, uint256 amountIn);
 
     /**
      * @dev The minimum amount out is greater than the amount to be bridged minus the relayer fee
@@ -50,11 +55,6 @@ contract WormholeConnector {
      * @dev The post token balance is lower than the previous token balance minus the amount bridged
      */
     error WormholeBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
-
-    /**
-     * @dev The chain ID is not supported
-     */
-    error WormholeBridgeUnknownChainId(uint256 chainId);
 
     // List of Wormhole network IDs
     uint16 private constant ETHEREUM_WORMHOLE_NETWORK_ID = 2;
@@ -101,9 +101,10 @@ contract WormholeConnector {
 
         uint16 wormholeNetworkId = _getWormholeNetworkId(chainId);
         uint256 relayerFee = wormholeCircleRelayer.relayerFee(wormholeNetworkId, token);
-        if (relayerFee > amountIn) revert WormholeBridgeRelayerFeeGTAmount(relayerFee, amountIn);
-        if (minAmountOut > amountIn - relayerFee)
-            revert WormholeBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
+        if (relayerFee > amountIn) revert WormholeBridgeRelayerFeeGtAmount(relayerFee, amountIn);
+
+        bool isMinAmountTooBig = minAmountOut > amountIn - relayerFee;
+        if (isMinAmountTooBig) revert WormholeBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
 
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
 
@@ -117,8 +118,8 @@ contract WormholeConnector {
         );
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn)
-            revert WormholeBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert WormholeBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**

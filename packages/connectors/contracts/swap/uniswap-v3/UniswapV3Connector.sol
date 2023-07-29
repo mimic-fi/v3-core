@@ -32,29 +32,29 @@ contract UniswapV3Connector {
     using BytesHelpers for bytes;
 
     /**
+     * @dev The input length mismatch
+     */
+    error UniswapV3InputLengthMismatch();
+
+    /**
      * @dev The token in is the same as the token out
      */
     error UniswapV3SwapSameToken(address token);
 
     /**
-     * @dev The hop-tokens and hop-fees arrays have different lengths
+     * @dev A pool with the given tokens and fee does not exist
      */
-    error UniswapV3BadHopTokensFeesLength(uint256 hopTokensLength, uint256 hopFeesLength);
+    error UniswapV3InvalidPoolFee(address token0, address token1, uint24 fee);
 
     /**
-     * @dev The post token in balance is lower than the previous token in balance minus the amount in
-     */
-    error UniswapV3BadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
-
-    /**
-     * @dev The amount out is less than the minimum amount out
+     * @dev The amount out is lower than the minimum amount out
      */
     error UniswapV3BadAmountOut(uint256 amountOut, uint256 minAmountOut);
 
     /**
-     * @dev A pool with the given tokens and fee does not exist
+     * @dev The post token in balance is lower than the previous token in balance minus the amount in
      */
-    error UniswapV3InvalidPoolFee(address factory, address token0, address token1, uint24 fee);
+    error UniswapV3BadPostTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
 
     // Reference to UniswapV3 router
     IUniswapV3SwapRouter public immutable uniswapV3Router;
@@ -87,8 +87,7 @@ contract UniswapV3Connector {
         uint24[] memory hopFees
     ) external returns (uint256 amountOut) {
         if (tokenIn == tokenOut) revert UniswapV3SwapSameToken(tokenIn);
-        if (hopTokens.length != hopFees.length)
-            revert UniswapV3BadHopTokensFeesLength(hopTokens.length, hopFees.length);
+        if (hopTokens.length != hopFees.length) revert UniswapV3InputLengthMismatch();
 
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
@@ -99,8 +98,8 @@ contract UniswapV3Connector {
             : _batchSwap(tokenIn, tokenOut, amountIn, minAmountOut, fee, hopTokens, hopFees);
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn)
-            revert UniswapV3BadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert UniswapV3BadPostTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;
@@ -188,7 +187,7 @@ contract UniswapV3Connector {
     function _validatePool(address factory, address tokenA, address tokenB, uint24 fee) internal view {
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         address pool = IUniswapV3Factory(factory).getPool(token0, token1, fee);
-        if (pool == address(0)) revert UniswapV3InvalidPoolFee(factory, token0, token1, fee);
+        if (pool == address(0)) revert UniswapV3InvalidPoolFee(token0, token1, fee);
     }
 
     /**

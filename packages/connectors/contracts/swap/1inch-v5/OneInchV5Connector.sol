@@ -27,23 +27,23 @@ import './IOneInchV5AggregationRouter.sol';
  * @dev Interfaces with 1inch V5 to swap tokens
  */
 contract OneInchV5Connector {
-    // Reference to 1inch aggregation router v5
-    IOneInchV5AggregationRouter public immutable oneInchV5Router;
-
     /**
      * @dev The token in is the same as the token out
      */
     error OneInchV5SwapSameToken(address token);
 
     /**
-     * @dev The post token in balance is lower than the previous token in balance minus the amount in
-     */
-    error OneInchV5BadPostTokenInBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
-
-    /**
-     * @dev The amount out is less than the minimum amount out
+     * @dev The amount out is lower than the minimum amount out
      */
     error OneInchV5BadAmountOut(uint256 amountOut, uint256 minAmountOut);
+
+    /**
+     * @dev The post token in balance is lower than the previous token in balance minus the amount in
+     */
+    error OneInchV5BadPostTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+
+    // Reference to 1inch aggregation router v5
+    IOneInchV5AggregationRouter public immutable oneInchV5Router;
 
     /**
      * @dev Creates a new OneInchV5Connector contract
@@ -74,8 +74,8 @@ contract OneInchV5Connector {
         Address.functionCall(address(oneInchV5Router), data, '1INCH_V5_SWAP_FAILED');
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn)
-            revert OneInchV5BadPostTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert OneInchV5BadPostTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;

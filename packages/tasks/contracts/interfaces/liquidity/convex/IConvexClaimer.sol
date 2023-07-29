@@ -21,19 +21,19 @@ import './IBaseConvexTask.sol';
  */
 interface IConvexClaimer is IBaseConvexTask {
     /**
-     * @dev The previous connector is not zero
-     */
-    error TaskPreviousConnectorNotZero(bytes32 previous);
-
-    /**
      * @dev The amount is not zero
      */
     error TaskAmountNotZero();
 
     /**
-     * @dev The length of the tokens out is not the same as the length of the amounts out
+     * @dev The previous balance connector is not zero
      */
-    error ClaimerInvalidResultLength(uint256 tokensOutLength, uint256 amountsOutLength);
+    error TaskPreviousConnectorNotZero(bytes32 id);
+
+    /**
+     * @dev The length of the claim result mismatch
+     */
+    error TaskClaimResultLengthMismatch();
 
     /**
      * @dev Executes the Convex claimer task

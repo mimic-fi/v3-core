@@ -125,13 +125,13 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @dev Pauses a smart vault. Sender must be authorized.
      */
     function pause() external override auth {
-        if (isPaused) revert SmartVaultAlreadyPaused();
+        if (isPaused) revert SmartVaultPaused();
         isPaused = true;
         emit Paused();
     }
 
     /**
-     * @dev Unpauses a samrt vault. Sender must be authorized.
+     * @dev Unpauses a smart vault. Sender must be authorized.
      */
     function unpause() external override auth {
         if (!isPaused) revert SmartVaultUnpaused();
@@ -183,8 +183,8 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
         notPaused
         authP(authParams(id, token, amount, add))
     {
-        if (id == bytes32(0)) revert SmartVaultConnectorIdZero();
-        if (token == address(0)) revert SmartVaultConnectorTokenZero();
+        if (id == bytes32(0)) revert SmartVaultBalanceConnectorIdZero();
+        if (token == address(0)) revert SmartVaultTokenZero();
         (add ? _increaseBalanceConnector : _decreaseBalanceConnector)(id, token, amount);
     }
 
@@ -233,7 +233,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
     function wrap(uint256 amount) external override nonReentrant notPaused authP(authParams(amount)) {
         if (amount == 0) revert SmartVaultAmountZero();
         uint256 balance = address(this).balance;
-        if (balance < amount) revert SmartVaultInsufficientBalance(balance, amount);
+        if (balance < amount) revert SmartVaultInsufficientNativeTokenBalance(balance, amount);
         IWrappedNativeToken(wrappedNativeToken).deposit{ value: amount }();
         emit Wrapped(amount);
     }
@@ -330,7 +330,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      */
     function _decreaseBalanceConnector(bytes32 id, address token, uint256 amount) internal {
         uint256 value = getBalanceConnector[id][token];
-        if (value < amount) revert SmartVaultConnectorInsuffBalance(id, token, value, amount);
+        if (value < amount) revert SmartVaultBalanceConnectorInsufficientBalance(id, token, value, amount);
         getBalanceConnector[id][token] = value - amount;
         emit BalanceConnectorUpdated(id, token, amount, false);
     }

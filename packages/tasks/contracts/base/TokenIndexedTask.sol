@@ -81,7 +81,7 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, Authorized {
      * @param added Whether each of the given tokens should be added or removed from the list
      */
     function setTokensAcceptanceList(address[] memory tokens, bool[] memory added) external override auth {
-        if (tokens.length != added.length) revert TaskAcceptanceBadLength(tokens.length, added.length);
+        if (tokens.length != added.length) revert TaskAcceptanceInputLengthMismatch();
         for (uint256 i = 0; i < tokens.length; i++) {
             _setTokenAcceptanceList(tokens[i], added[i]);
         }

@@ -26,6 +26,11 @@ interface IRegistry {
     error RegistryImplementationAddressZero();
 
     /**
+     * @dev The implementation is already registered
+     */
+    error RegistryImplementationRegistered(address implementation);
+
+    /**
      * @dev The implementation is not registered
      */
     error RegistryImplementationNotRegistered(address implementation);
@@ -34,11 +39,6 @@ interface IRegistry {
      * @dev The implementation is already deprecated
      */
     error RegistryImplementationDeprecated(address implementation);
-
-    /**
-     * @dev The implementation is already registered
-     */
-    error RegistryImplementationRegistered(address implementation);
 
     /**
      * @dev Emitted every time an implementation is registered

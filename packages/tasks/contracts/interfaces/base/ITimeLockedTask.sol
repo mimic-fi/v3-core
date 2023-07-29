@@ -23,12 +23,12 @@ interface ITimeLockedTask is IBaseTask {
     /**
      * @dev The time-lock has not expired
      */
-    error TaskTimeLockNotExpired(uint256 timeLockExpiration);
+    error TaskTimeLockNotExpired(uint256 expiration, uint256 currentTimestamp);
 
     /**
      * @dev The execution period has expired
      */
-    error TaskTimeLockWaitNextPeriod(uint256 offset, uint256 timeLockExecutionPeriod);
+    error TaskTimeLockWaitNextPeriod(uint256 offset, uint256 executionPeriod);
 
     /**
      * @dev The execution period is greater than the time-lock delay

@@ -21,6 +21,11 @@ import './IBaseSwapTask.sol';
  */
 interface IParaswapV5Swapper is IBaseSwapTask {
     /**
+     * @dev The quote signer is zero
+     */
+    error TaskQuoteSignerZero();
+
+    /**
      * @dev The signer to be set is not the quote signer
      */
     error TaskInvalidQuoteSigner(address signer, address quoteSigner);
@@ -28,12 +33,7 @@ interface IParaswapV5Swapper is IBaseSwapTask {
     /**
      * @dev The deadline is in the past
      */
-    error TaskQuoteSignerPastDeadline(uint256 deadline, uint256 now);
-
-    /**
-     * @dev The quote signer is zero
-     */
-    error TaskQuoteSignerZero();
+    error TaskQuoteSignerPastDeadline(uint256 deadline, uint256 currentTimestamp);
 
     /**
      * @dev Emitted every time a quote signer is set

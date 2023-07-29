@@ -100,7 +100,7 @@ contract Withdrawer is IWithdrawer, Task {
      */
     function _setRecipient(address newRecipient) internal {
         if (newRecipient == address(0)) revert TaskRecipientZero();
-        if (newRecipient == smartVault) revert TaskRecipientSmartVault(newRecipient);
+        if (newRecipient == smartVault) revert TaskRecipientEqualsSmartVault(newRecipient);
         recipient = newRecipient;
         emit RecipientSet(newRecipient);
     }

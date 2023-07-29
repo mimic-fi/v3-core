@@ -29,19 +29,19 @@ interface ITokenIndexedTask is IBaseTask {
     }
 
     /**
-     * @dev The tokens list length is not the same as the added list length
+     * @dev The acceptance token is zero
      */
-    error TaskAcceptanceBadLength(uint256 tokensLength, uint256 addedLength);
+    error TaskAcceptanceTokenZero();
+
+    /**
+     * @dev The tokens acceptance input length mismatch
+     */
+    error TaskAcceptanceInputLengthMismatch();
 
     /**
      * @dev The token is not allowed
      */
     error TaskTokenNotAllowed(address token);
-
-    /**
-     * @dev The acceptance token is zero
-     */
-    error TaskAcceptanceTokenZero();
 
     /**
      * @dev Emitted every time a tokens acceptance type is set

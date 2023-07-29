@@ -108,7 +108,7 @@ library EnumerableMap {
      *
      * Requirements:
      *
-     * - `index` must be strictly less than {length}.
+     * - `index` must be strictly lower than {length}.
      */
     function at(AddressToUintMap storage map, uint256 index) internal view returns (address, uint256) {
         address key = map._keys.at(index);

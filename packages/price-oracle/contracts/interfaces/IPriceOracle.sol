@@ -43,19 +43,24 @@ interface IPriceOracle is IAuthorized {
     }
 
     /**
-     * @dev The base decimals are bigger than the quote decimals plus the fixed point decimals
+     * @dev The signer is not allowed
      */
-    error PriceOracleBaseDecimalsTooBig(address base, address quote, uint256 baseDecimals, uint256 quoteDecimals);
-
-    /**
-     * @dev The price deadline is is in the past
-     */
-    error PriceOraclePriceOutdated(address base, address quote, uint256 deadline);
+    error PriceOracleInvalidSigner(address signer);
 
     /**
      * @dev The feed for the given (base, quote) pair doesn't exist
      */
     error PriceOracleMissingFeed(address base, address quote);
+
+    /**
+     * @dev The price deadline is in the past
+     */
+    error PriceOracleOutdatedPrice(address base, address quote, uint256 deadline, uint256 currentTimestamp);
+
+    /**
+     * @dev The base decimals are bigger than the quote decimals plus the fixed point decimals
+     */
+    error PriceOracleBaseDecimalsTooBig(address base, uint256 baseDecimals, address quote, uint256 quoteDecimals);
 
     /**
      * @dev The inverse feed decimals are bigger than the maximum inverse feed decimals
@@ -65,17 +70,7 @@ interface IPriceOracle is IAuthorized {
     /**
      * @dev The quote feed decimals are bigger than the base feed decimals plus the fixed point decimals
      */
-    error PriceOracleQuoteFeedDecimalsTooBig(
-        address quoteFeed,
-        uint256 quoteFeedDecimals,
-        address baseFeed,
-        uint256 baseFeedDecimals
-    );
-
-    /**
-     * @dev The signer is not allowed
-     */
-    error OracleInvalidSigner(address signer);
+    error PriceOracleQuoteFeedDecimalsTooBig(uint256 quoteFeedDecimals, uint256 baseFeedDecimals);
 
     /**
      * @dev Emitted every time a signer is changed

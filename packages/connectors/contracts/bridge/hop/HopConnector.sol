@@ -39,6 +39,11 @@ contract HopConnector {
     error HopBridgeSameChain(uint256 chainId);
 
     /**
+     * @dev The bridge operation is not supported
+     */
+    error HopBridgeOpNotSupported();
+
+    /**
      * @dev The recipient address is zero
      */
     error HopBridgeRecipientZero();
@@ -51,22 +56,17 @@ contract HopConnector {
     /**
      * @dev The deadline was sent when not needed
      */
-    error HopBirdgeDeadlineNotNeeded();
+    error HopBridgeDeadlineNotNeeded();
 
     /**
-     * @dev The bridge operation is not supported
+     * @dev The deadline is in the past
      */
-    error HopBridgeOpNotSupported();
+    error HopBridgePastDeadline(uint256 deadline, uint256 currentTimestamp);
 
     /**
      * @dev The post token balance is lower than the previous token balance minus the amount bridged
      */
     error HopBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
-
-    /**
-     * @dev The deadline is in the past
-     */
-    error HopBridgeInvalidDeadline(uint256 deadline, uint256 blockTimestamp);
 
     // Ethereum mainnet chain ID = 1
     uint256 private constant MAINNET_CHAIN_ID = 1;
@@ -120,7 +120,6 @@ contract HopConnector {
 
         bool toL2 = !_isL1(chainId);
         bool fromL1 = _isL1(block.chainid);
-
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
 
         if (fromL1 && toL2)
@@ -129,13 +128,13 @@ contract HopConnector {
             if (relayer != address(0)) revert HopBridgeRelayerNotNeeded();
             _bridgeFromL2ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, fee);
         } else if (!fromL1 && !toL2) {
-            if (deadline != 0) revert HopBirdgeDeadlineNotNeeded();
+            if (deadline != 0) revert HopBridgeDeadlineNotNeeded();
             _bridgeFromL2ToL1(chainId, token, amountIn, minAmountOut, recipient, bridge, fee);
         } else revert HopBridgeOpNotSupported();
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn)
-            revert HopBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert HopBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**
@@ -161,7 +160,7 @@ contract HopConnector {
         address relayer,
         uint256 relayerFee
     ) internal {
-        if (deadline <= block.timestamp) revert HopBridgeInvalidDeadline(deadline, block.timestamp);
+        if (deadline <= block.timestamp) revert HopBridgePastDeadline(deadline, block.timestamp);
 
         uint256 value = _unwrapOrApproveTokens(hopBridge, token, amountIn);
         IHopL1Bridge(hopBridge).sendToL2{ value: value }(
@@ -229,7 +228,7 @@ contract HopConnector {
         uint256 deadline,
         uint256 bonderFee
     ) internal {
-        if (deadline <= block.timestamp) revert HopBridgeInvalidDeadline(deadline, block.timestamp);
+        if (deadline <= block.timestamp) revert HopBridgePastDeadline(deadline, block.timestamp);
 
         uint256 intermediateMinAmountOut = amountIn - ((amountIn - minAmountOut) / 2);
         IHopL2AMM(hopAMM).swapAndSend{ value: _unwrapOrApproveTokens(hopAMM, token, amountIn) }(

@@ -26,6 +26,16 @@ contract Deployer {
     using Address for address;
 
     /**
+     * @dev The namespace is empty
+     */
+    error DeployerNamespaceEmpty();
+
+    /**
+     * @dev The name is empty
+     */
+    error DeployerNameEmpty();
+
+    /**
      * @dev The implementation is not registered
      */
     error DeployerImplementationNotRegistered(address implementation);
@@ -39,16 +49,6 @@ contract Deployer {
      * @dev The implementation is deprecated
      */
     error DeployerImplementationDeprecated(address implementation);
-
-    /**
-     * @dev The namespace is empty
-     */
-    error DeployerNamespaceEmpty();
-
-    /**
-     * @dev The name is empty
-     */
-    error DeployerNameEmpty();
 
     /**
      * @dev Emitted every time an authorizer is deployed

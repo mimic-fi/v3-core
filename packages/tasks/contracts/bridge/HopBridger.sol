@@ -203,7 +203,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
         if (tokenHopEntrypoint[token] == address(0)) revert TaskMissingHopEntrypoint();
         uint256 maxFeePct = getMaxFeePct(token);
         uint256 feePct = fee.divUp(amount);
-        if (feePct > maxFeePct) revert TaskFeeTooHigh(feePct, maxFeePct);
+        if (feePct > maxFeePct) revert TaskFeePctAboveMax(feePct, maxFeePct);
     }
 
     /**

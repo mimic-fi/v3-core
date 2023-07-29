@@ -32,14 +32,14 @@ contract ParaswapV5Connector {
     error ParaswapV5SwapSameToken(address token);
 
     /**
-     * @dev The post token in balance is lower than the previous token in balance minus the amount in
-     */
-    error ParaswapV5BadTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
-
-    /**
-     * @dev The amount out is less than the minimum amount out
+     * @dev The amount out is lower than the minimum amount out
      */
     error ParaswapV5BadAmountOut(uint256 amountOut, uint256 minAmountOut);
+
+    /**
+     * @dev The post token in balance is lower than the previous token in balance minus the amount in
+     */
+    error ParaswapV5BadPostTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
 
     // Reference to Paraswap V5 Augustus swapper
     IParaswapV5Augustus public immutable paraswapV5Augustus;
@@ -74,8 +74,8 @@ contract ParaswapV5Connector {
         Address.functionCall(address(paraswapV5Augustus), data, 'PARASWAP_V5_SWAP_FAILED');
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
-        if (postBalanceIn < preBalanceIn - amountIn)
-            revert ParaswapV5BadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert ParaswapV5BadPostTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
 
         uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
         amountOut = postBalanceOut - preBalanceOut;

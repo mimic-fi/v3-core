@@ -21,6 +21,11 @@ import '../ITask.sol';
  */
 interface IRelayerDepositor is ITask {
     /**
+     * @dev The amount is zero
+     */
+    error TaskAmountZero();
+
+    /**
      * @dev The relayer is zero
      */
     error TaskRelayerZero();

@@ -26,6 +26,7 @@ import './I2CrvPool.sol';
  */
 contract Curve2CrvConnector {
     using FixedPoint for uint256;
+
     /**
      * @dev Failed to find the token in the 2CRV pool
      */

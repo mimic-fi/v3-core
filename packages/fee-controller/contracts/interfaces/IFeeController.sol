@@ -19,34 +19,34 @@ pragma solidity >=0.8.0;
  */
 interface IFeeController {
     /**
-     * @dev No max percentage has been set for the requested smart vault
-     */
-    error FeeControllerSvMaxPctNotSet(address smartVault);
-
-    /**
-     * @dev The requested max percentage to be set is zero
-     */
-    error FeeControllerMaxPctZero(address smartVault);
-
-    /**
-     * @dev The requested max percentage to be set is above one
-     */
-    error FeeControllerMaxPctAboveOne(address smartVault);
-
-    /**
-     * @dev The requested max percentage to be set is above the previous max percentage set
-     */
-    error FeeControllerMaxPctAbovePrevious(address smartVault, uint256 requestedMaxPct, uint256 previousMaxPct);
-
-    /**
      * @dev The collector to be set is zero
      */
     error FeeControllerCollectorZero();
 
     /**
+     * @dev The requested max percentage to be set is zero
+     */
+    error FeeControllerMaxPctZero();
+
+    /**
+     * @dev The requested max percentage to be set is above one
+     */
+    error FeeControllerMaxPctAboveOne();
+
+    /**
+     * @dev No max percentage has been set for the requested smart vault
+     */
+    error FeeControllerMaxPctNotSet(address smartVault);
+
+    /**
      * @dev The requested percentage to be set is above the smart vault's max percentage
      */
     error FeeControllerPctAboveMax(address smartVault, uint256 pct, uint256 maxPct);
+
+    /**
+     * @dev The requested max percentage to be set is above the previous max percentage set
+     */
+    error FeeControllerMaxPctAbovePrevious(address smartVault, uint256 requestedMaxPct, uint256 previousMaxPct);
 
     /**
      * @dev Emitted every time a default fee collector is set

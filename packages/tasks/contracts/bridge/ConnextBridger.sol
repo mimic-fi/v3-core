@@ -141,8 +141,8 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     {
         _beforeBaseBridgeTask(token, amount, slippage);
         uint256 maxFeePct = getMaxFeePct(token);
-        uint256 relayerFeePct = relayerFee.divUp(amount);
-        if (relayerFeePct > maxFeePct) revert TaskFeeTooHigh(relayerFeePct, maxFeePct);
+        uint256 feePct = relayerFee.divUp(amount);
+        if (feePct > maxFeePct) revert TaskFeePctAboveMax(feePct, maxFeePct);
     }
 
     /**

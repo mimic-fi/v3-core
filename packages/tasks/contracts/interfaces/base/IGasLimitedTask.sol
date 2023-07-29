@@ -21,32 +21,32 @@ import './IBaseTask.sol';
  */
 interface IGasLimitedTask is IBaseTask {
     /**
-     * @dev The gas price is higher than the limit
-     */
-    error TaskGasPriceLimit(uint256 gasPrice, uint256 gasPriceLimit);
-
-    /**
-     * @dev The gas price minus the base fee is higher than the priority fee limit
-     */
-    error TaskPriorityFeeLimit(uint256 gasPrice, uint256 baseFee, uint256 priorityFeeLimit);
-
-    /**
-     * @dev The initial gas is zero
+     * @dev The tx initial gas cache has not been initialized
      */
     error TaskGasNotInitialized();
 
     /**
-     * @dev The transaction cost is higher than the limit
+     * @dev The gas price used is greater than the limit
      */
-    error TaskTxCostLimit(uint256 totalCost, uint256 txCostLimit);
+    error TaskGasPriceLimitExceeded(uint256 gasPrice, uint256 gasPriceLimit);
 
     /**
-     * @dev The transaction cost divided by the amount is higher than the limit percentage
+     * @dev The priority fee used is greater than the priority fee limit
      */
-    error TaskTxCostLimitPct(uint256 totalCost, uint256 amount, uint256 txCostLimitPct);
+    error TaskPriorityFeeLimitExceeded(uint256 priorityFee, uint256 priorityFeeLimit);
 
     /**
-     * @dev The new transaction cost limit percentage is higher than one
+     * @dev The transaction cost is greater than the transaction cost limit
+     */
+    error TaskTxCostLimitExceeded(uint256 txCost, uint256 txCostLimit);
+
+    /**
+     * @dev The transaction cost percentage is greater than the transaction cost limit percentage
+     */
+    error TaskTxCostLimitPctExceeded(uint256 txCostPct, uint256 txCostLimitPct);
+
+    /**
+     * @dev The new transaction cost limit percentage is greater than one
      */
     error TaskTxCostLimitPctAboveOne();
 
