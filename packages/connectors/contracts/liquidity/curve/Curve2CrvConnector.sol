@@ -18,6 +18,7 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
+import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import './I2CrvPool.sol';
 import '../../interfaces/liquidity/curve/ICurve2CrvConnector.sol';
@@ -50,7 +51,7 @@ contract Curve2CrvConnector is ICurve2CrvConnector {
 
         // Join pool
         uint256 initialPoolTokenBalance = I2CrvPool(pool).balanceOf(address(this));
-        IERC20(tokenIn).approve(address(pool), amountIn);
+        ERC20Helpers.approve(tokenIn, address(pool), amountIn);
         uint256[2] memory amounts;
         amounts[tokenIndex] = amountIn;
         I2CrvPool(pool).add_liquidity(amounts, minAmountOut);
