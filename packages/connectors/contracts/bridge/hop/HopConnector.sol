@@ -120,7 +120,7 @@ contract HopConnector {
 
         bool toL2 = !_isL1(chainId);
         bool fromL1 = _isL1(block.chainid);
-        uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
+        uint256 preBalance = IERC20(token).balanceOf(address(this));
 
         if (fromL1 && toL2)
             _bridgeFromL1ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, relayer, fee);
@@ -132,9 +132,9 @@ contract HopConnector {
             _bridgeFromL2ToL1(chainId, token, amountIn, minAmountOut, recipient, bridge, fee);
         } else revert HopBridgeOpNotSupported();
 
-        uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
-        if (isPostBalanceInUnexpected) revert HopBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
+        uint256 postBalance = IERC20(token).balanceOf(address(this));
+        bool isPostBalanceUnexpected = postBalance < preBalance - amountIn;
+        if (isPostBalanceUnexpected) revert HopBridgeBadPostTokenBalance(postBalance, preBalance, amountIn);
     }
 
     /**

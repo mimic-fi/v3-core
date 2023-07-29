@@ -18,15 +18,15 @@ export function itBehavesLikeWormholeConnector(
   })
 
   context('when the recipient is not the zero address', async () => {
-    let amountIn: BigNumber
+    let amount: BigNumber
     let minAmountOut: BigNumber
 
     const relayerFee = sourceChainId == 1 ? bn(270000) : bn(35000000)
 
     beforeEach('set amount in and min amount out', async () => {
       const decimals = await token.decimals()
-      amountIn = bn(300).mul(bn(10).pow(decimals))
-      minAmountOut = amountIn.sub(relayerFee)
+      amount = bn(300).mul(bn(10).pow(decimals))
+      minAmountOut = amount.sub(relayerFee)
     })
 
     function bridgesProperly(destinationChainId: number) {
@@ -36,51 +36,49 @@ export function itBehavesLikeWormholeConnector(
           const previousTotalSupply = await token.totalSupply()
           const previousConnectorBalance = await token.balanceOf(this.connector.address)
 
-          await token.connect(whale).transfer(this.connector.address, amountIn)
+          await token.connect(whale).transfer(this.connector.address, amount)
           await this.connector
             .connect(whale)
-            .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
+            .execute(destinationChainId, tokenAddress, amount, minAmountOut, whale.address)
 
           const currentSenderBalance = await token.balanceOf(whale.address)
-          expect(currentSenderBalance).to.be.equal(previousSenderBalance.sub(amountIn))
+          expect(currentSenderBalance).to.be.equal(previousSenderBalance.sub(amount))
 
           // check tokens are burnt on the source chain
           const currentTotalSupply = await token.totalSupply()
-          expect(currentTotalSupply).to.be.equal(previousTotalSupply.sub(amountIn))
+          expect(currentTotalSupply).to.be.equal(previousTotalSupply.sub(amount))
 
           const currentConnectorBalance = await token.balanceOf(this.connector.address)
           expect(currentConnectorBalance).to.be.equal(previousConnectorBalance)
         })
 
-        context('when relayerFee is greater than amountIn', () => {
-          const amountIn = relayerFee.sub(1)
+        context('when relayerFee is greater than amount', () => {
+          const amount = relayerFee.sub(1)
 
           it('reverts', async function () {
             await expect(
               this.connector
                 .connect(whale)
-                .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
+                .execute(destinationChainId, tokenAddress, amount, minAmountOut, whale.address)
             ).to.be.revertedWith('WormholeBridgeRelayerFeeGtAmount')
           })
         })
 
-        context('when minAmountOut is greater than amountIn minus relayerFee', () => {
-          const minAmountOut = amountIn.add(1)
+        context('when minAmountOut is greater than amount minus relayerFee', () => {
+          const minAmountOut = amount.add(1)
 
           it('reverts', async function () {
             await expect(
               this.connector
                 .connect(whale)
-                .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
+                .execute(destinationChainId, tokenAddress, amount, minAmountOut, whale.address)
             ).to.be.revertedWith('WormholeBridgeMinAmountOutTooBig')
           })
         })
       } else {
         it('reverts', async function () {
           await expect(
-            this.connector
-              .connect(whale)
-              .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
+            this.connector.connect(whale).execute(destinationChainId, tokenAddress, amount, minAmountOut, whale.address)
           ).to.be.revertedWith('WormholeBridgeSameChain')
         })
       }
@@ -103,7 +101,7 @@ export function itBehavesLikeWormholeConnector(
 
       it('reverts', async function () {
         await expect(
-          this.connector.connect(whale).execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address)
+          this.connector.connect(whale).execute(destinationChainId, tokenAddress, amount, minAmountOut, whale.address)
         ).to.be.revertedWith('WormholeBridgeUnknownChainId')
       })
     })

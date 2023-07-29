@@ -19,11 +19,11 @@ export function itBehavesLikeAxelarConnector(
   })
 
   context('when the recipient is not the zero address', async () => {
-    let amountIn: BigNumber
+    let amount: BigNumber
 
     beforeEach('set amount in', async () => {
       const decimals = await token.decimals()
-      amountIn = bn(300).mul(bn(10).pow(decimals))
+      amount = bn(300).mul(bn(10).pow(decimals))
     })
 
     function bridgesProperly(destinationChainId: number) {
@@ -33,14 +33,14 @@ export function itBehavesLikeAxelarConnector(
           const previousGatewayBalance = await token.balanceOf(gatewayAddress)
           const previousConnectorBalance = await token.balanceOf(this.connector.address)
 
-          await token.connect(whale).transfer(this.connector.address, amountIn)
-          await this.connector.connect(whale).execute(destinationChainId, tokenAddress, amountIn, whale.address)
+          await token.connect(whale).transfer(this.connector.address, amount)
+          await this.connector.connect(whale).execute(destinationChainId, tokenAddress, amount, whale.address)
 
           const currentSenderBalance = await token.balanceOf(whale.address)
-          expect(currentSenderBalance).to.be.equal(previousSenderBalance.sub(amountIn))
+          expect(currentSenderBalance).to.be.equal(previousSenderBalance.sub(amount))
 
           const currentGatewayBalance = await token.balanceOf(gatewayAddress)
-          expect(currentGatewayBalance).to.be.equal(previousGatewayBalance.add(amountIn))
+          expect(currentGatewayBalance).to.be.equal(previousGatewayBalance.add(amount))
 
           const currentConnectorBalance = await token.balanceOf(this.connector.address)
           expect(currentConnectorBalance).to.be.equal(previousConnectorBalance)
@@ -48,7 +48,7 @@ export function itBehavesLikeAxelarConnector(
       } else {
         it('reverts', async function () {
           await expect(
-            this.connector.connect(whale).execute(destinationChainId, tokenAddress, amountIn, whale.address)
+            this.connector.connect(whale).execute(destinationChainId, tokenAddress, amount, whale.address)
           ).to.be.revertedWith('AxelarBridgeSameChain')
         })
       }
@@ -95,7 +95,7 @@ export function itBehavesLikeAxelarConnector(
 
       it('reverts', async function () {
         await expect(
-          this.connector.connect(whale).execute(destinationChainId, tokenAddress, amountIn, whale.address)
+          this.connector.connect(whale).execute(destinationChainId, tokenAddress, amount, whale.address)
         ).to.be.revertedWith('AxelarBridgeUnknownChainId')
       })
     })

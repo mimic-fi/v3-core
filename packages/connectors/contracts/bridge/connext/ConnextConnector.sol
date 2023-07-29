@@ -113,7 +113,7 @@ contract ConnextConnector {
         // then we can compute slippage in BPS (e.g. 30 = 0.3%)
         uint256 slippage = 100 - ((minAmountOut * 100) / amountInAfterFees);
 
-        uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
+        uint256 preBalance = IERC20(token).balanceOf(address(this));
         ERC20Helpers.approve(token, address(connext), amountIn);
 
         connext.xcall(
@@ -127,9 +127,9 @@ contract ConnextConnector {
             relayerFee
         );
 
-        uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
-        if (isPostBalanceInUnexpected) revert ConnextBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
+        uint256 postBalance = IERC20(token).balanceOf(address(this));
+        bool isPostBalanceUnexpected = postBalance < preBalance - amountIn;
+        if (isPostBalanceUnexpected) revert ConnextBridgeBadPostTokenBalance(postBalance, preBalance, amountIn);
     }
 
     /**

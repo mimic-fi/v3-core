@@ -86,14 +86,14 @@ contract AxelarConnector {
 
         string memory chainName = _getChainName(chainId);
         string memory symbol = IERC20Metadata(token).symbol();
-        uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
+        uint256 preBalance = IERC20(token).balanceOf(address(this));
 
         ERC20Helpers.approve(token, address(axelarGateway), amountIn);
         axelarGateway.sendToken(chainName, Strings.toHexString(recipient), symbol, amountIn);
 
-        uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
-        if (isPostBalanceInUnexpected) revert AxelarBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
+        uint256 postBalance = IERC20(token).balanceOf(address(this));
+        bool isPostBalanceUnexpected = postBalance < preBalance - amountIn;
+        if (isPostBalanceUnexpected) revert AxelarBridgeBadPostTokenBalance(postBalance, preBalance, amountIn);
     }
 
     /**

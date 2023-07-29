@@ -31,8 +31,8 @@ describe('HopConnector', () => {
       function bridgesToL2Properly(destinationChainId: number) {
         const slippage = fp(0.03)
         const deadline = MAX_UINT256
-        const amountIn = toUSDC(300)
-        const minAmountOut = amountIn.sub(amountIn.mul(slippage).div(fp(1)))
+        const amount = toUSDC(300)
+        const minAmountOut = amount.sub(amount.mul(slippage).div(fp(1)))
         const relayer = ZERO_ADDRESS
         const relayerFee = 0
 
@@ -43,13 +43,13 @@ describe('HopConnector', () => {
             const previousWethConnectorBalance = await weth.balanceOf(connector.address)
             const previousEthBridgeBalance = await ethers.provider.getBalance(HOP_ETH_BRIDGE)
 
-            await weth.connect(whale).transfer(connector.address, amountIn)
+            await weth.connect(whale).transfer(connector.address, amount)
             await connector
               .connect(whale)
               .execute(
                 destinationChainId,
                 WETH,
-                amountIn,
+                amount,
                 minAmountOut,
                 whale.address,
                 HOP_ETH_BRIDGE,
@@ -59,13 +59,13 @@ describe('HopConnector', () => {
               )
 
             const currentWethSenderBalance = await weth.balanceOf(whale.address)
-            expect(currentWethSenderBalance).to.be.equal(previousWethSenderBalance.sub(amountIn))
+            expect(currentWethSenderBalance).to.be.equal(previousWethSenderBalance.sub(amount))
 
             const currentWethBridgeBalance = await weth.balanceOf(HOP_ETH_BRIDGE)
             expect(currentWethBridgeBalance).to.be.equal(previousWethBridgeBalance)
 
             const currentEthBridgeBalance = await ethers.provider.getBalance(HOP_ETH_BRIDGE)
-            expect(currentEthBridgeBalance).to.be.equal(previousEthBridgeBalance.add(amountIn))
+            expect(currentEthBridgeBalance).to.be.equal(previousEthBridgeBalance.add(amount))
 
             const currentWethConnectorBalance = await weth.balanceOf(connector.address)
             expect(currentWethConnectorBalance).to.be.equal(previousWethConnectorBalance)
@@ -78,7 +78,7 @@ describe('HopConnector', () => {
                 .execute(
                   destinationChainId,
                   WETH,
-                  amountIn,
+                  amount,
                   minAmountOut,
                   whale.address,
                   HOP_ETH_BRIDGE,
@@ -156,8 +156,8 @@ describe('HopConnector', () => {
       function bridgesToL2Properly(destinationChainId: number) {
         const slippage = fp(0.03)
         const deadline = MAX_UINT256
-        const amountIn = toUSDC(300)
-        const minAmountOut = amountIn.sub(amountIn.mul(slippage).div(fp(1)))
+        const amount = toUSDC(300)
+        const minAmountOut = amount.sub(amount.mul(slippage).div(fp(1)))
         const relayer = ZERO_ADDRESS
         const relayerFee = 0
 
@@ -167,13 +167,13 @@ describe('HopConnector', () => {
             const previousBridgeBalance = await usdc.balanceOf(HOP_USDC_BRIDGE)
             const previousConnectorBalance = await usdc.balanceOf(connector.address)
 
-            await usdc.connect(whale).transfer(connector.address, amountIn)
+            await usdc.connect(whale).transfer(connector.address, amount)
             await connector
               .connect(whale)
               .execute(
                 destinationChainId,
                 USDC,
-                amountIn,
+                amount,
                 minAmountOut,
                 whale.address,
                 HOP_USDC_BRIDGE,
@@ -183,10 +183,10 @@ describe('HopConnector', () => {
               )
 
             const currentSenderBalance = await usdc.balanceOf(whale.address)
-            expect(currentSenderBalance).to.be.equal(previousSenderBalance.sub(amountIn))
+            expect(currentSenderBalance).to.be.equal(previousSenderBalance.sub(amount))
 
             const currentBridgeBalance = await usdc.balanceOf(HOP_USDC_BRIDGE)
-            expect(currentBridgeBalance).to.be.equal(previousBridgeBalance.add(amountIn))
+            expect(currentBridgeBalance).to.be.equal(previousBridgeBalance.add(amount))
 
             const currentConnectorBalance = await usdc.balanceOf(connector.address)
             expect(currentConnectorBalance).to.be.equal(previousConnectorBalance)
@@ -199,7 +199,7 @@ describe('HopConnector', () => {
                 .execute(
                   destinationChainId,
                   WETH,
-                  amountIn,
+                  amount,
                   minAmountOut,
                   whale.address,
                   HOP_USDC_BRIDGE,

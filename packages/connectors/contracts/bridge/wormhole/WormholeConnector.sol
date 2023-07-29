@@ -106,7 +106,7 @@ contract WormholeConnector {
         bool isMinAmountTooBig = minAmountOut > amountIn - relayerFee;
         if (isMinAmountTooBig) revert WormholeBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
 
-        uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
+        uint256 preBalance = IERC20(token).balanceOf(address(this));
 
         ERC20Helpers.approve(token, address(wormholeCircleRelayer), amountIn);
         wormholeCircleRelayer.transferTokensWithRelay(
@@ -117,9 +117,9 @@ contract WormholeConnector {
             bytes32(uint256(uint160(recipient))) // convert from address to bytes32
         );
 
-        uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
-        if (isPostBalanceInUnexpected) revert WormholeBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
+        uint256 postBalance = IERC20(token).balanceOf(address(this));
+        bool isPostBalanceUnexpected = postBalance < preBalance - amountIn;
+        if (isPostBalanceUnexpected) revert WormholeBridgeBadPostTokenBalance(postBalance, preBalance, amountIn);
     }
 
     /**

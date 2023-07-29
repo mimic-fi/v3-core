@@ -330,7 +330,7 @@ describe('HopBridger', () => {
         })
 
         context('when the amount is not zero', () => {
-          const amountIn = fp(100)
+          const amount = fp(100)
           const fee = fp(1)
           const slippage = fp(0.05)
 
@@ -345,7 +345,7 @@ describe('HopBridger', () => {
 
             context('when the given token is allowed', () => {
               context('when the current balance passes the threshold', () => {
-                const threshold = amountIn
+                const threshold = amount
 
                 beforeEach('set threshold', async () => {
                   const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
@@ -356,7 +356,7 @@ describe('HopBridger', () => {
                 })
 
                 beforeEach('fund smart vault', async () => {
-                  await token.mint(smartVault.address, amountIn)
+                  await token.mint(smartVault.address, amount)
                 })
 
                 beforeEach('set token hop entrypoint', async () => {
@@ -370,12 +370,12 @@ describe('HopBridger', () => {
                     const tx = await task.call(token.address, requestedAmount, slippage, fee)
 
                     const deadline = (await currentTimestamp()).add(MAX_UINT256.div(10))
-                    const minAmountOut = amountIn.mul(fp(1).sub(slippage)).div(fp(1))
+                    const minAmountOut = amount.mul(fp(1).sub(slippage)).div(fp(1))
 
                     const connectorData = connector.interface.encodeFunctionData('execute', [
                       chainId,
                       token.address,
-                      amountIn,
+                      amount,
                       minAmountOut,
                       smartVault.address,
                       entrypoint.address,
@@ -391,7 +391,7 @@ describe('HopBridger', () => {
                     await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
                       chainId,
                       token,
-                      amountIn,
+                      amount,
                       minAmountOut,
                       recipient: smartVault,
                       bridge: entrypoint,
@@ -409,7 +409,7 @@ describe('HopBridger', () => {
                 }
 
                 context('without balance connectors', () => {
-                  const requestedAmount = amountIn
+                  const requestedAmount = amount
 
                   itExecutesTheTaskProperly(requestedAmount)
 
@@ -442,20 +442,18 @@ describe('HopBridger', () => {
                     await authorizer
                       .connect(owner)
                       .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
-                    await smartVault
-                      .connect(owner)
-                      .updateBalanceConnector(prevConnectorId, token.address, amountIn, true)
+                    await smartVault.connect(owner).updateBalanceConnector(prevConnectorId, token.address, amount, true)
                   })
 
                   itExecutesTheTaskProperly(requestedAmount)
 
                   it('updates the balance connectors properly', async () => {
-                    const tx = await task.call(token.address, amountIn, slippage, fee)
+                    const tx = await task.call(token.address, amount, slippage, fee)
 
                     await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
                       id: prevConnectorId,
                       token,
-                      amount: amountIn,
+                      amount: amount,
                       added: false,
                     })
                   })
@@ -463,7 +461,7 @@ describe('HopBridger', () => {
               })
 
               context('when the current balance does not pass the threshold', () => {
-                const threshold = amountIn.add(1)
+                const threshold = amount.add(1)
 
                 beforeEach('set threshold', async () => {
                   const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
@@ -474,7 +472,7 @@ describe('HopBridger', () => {
                 })
 
                 it('reverts', async () => {
-                  await expect(task.call(token.address, amountIn, slippage, fee)).to.be.revertedWith(
+                  await expect(task.call(token.address, amount, slippage, fee)).to.be.revertedWith(
                     'TaskTokenThresholdNotMet'
                   )
                 })
@@ -489,16 +487,14 @@ describe('HopBridger', () => {
               })
 
               it('reverts', async () => {
-                await expect(task.call(token.address, amountIn, slippage, fee)).to.be.revertedWith(
-                  'TaskTokenNotAllowed'
-                )
+                await expect(task.call(token.address, amount, slippage, fee)).to.be.revertedWith('TaskTokenNotAllowed')
               })
             })
           })
 
           context('when the destination chain was not set', () => {
             it('reverts', async () => {
-              await expect(task.call(token.address, amountIn, slippage, fee)).to.be.revertedWith(
+              await expect(task.call(token.address, amount, slippage, fee)).to.be.revertedWith(
                 'TaskDestinationChainNotSet'
               )
             })
