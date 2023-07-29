@@ -123,7 +123,7 @@ describe('Unwrapper', () => {
             })
 
             it('reverts', async () => {
-              await expect(task.call(token, amount)).to.be.revertedWith('TASK_TOKEN_THRESHOLD_NOT_MET')
+              await expect(task.call(token, amount)).to.be.revertedWith('TaskTokenThresholdNotMet')
             })
           })
         })
@@ -132,7 +132,7 @@ describe('Unwrapper', () => {
           const amount = 0
 
           it('reverts', async () => {
-            await expect(task.call(token, amount)).to.be.revertedWith('TASK_AMOUNT_ZERO')
+            await expect(task.call(token, amount)).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -141,14 +141,14 @@ describe('Unwrapper', () => {
         const token = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(token, 0)).to.be.revertedWith('TASK_TOKEN_NOT_WRAPPED')
+          await expect(task.call(token, 0)).to.be.revertedWith('TaskTokenNotWrapped')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

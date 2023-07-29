@@ -151,14 +151,14 @@ describe('HopL2Swapper', () => {
         const hToken = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.setTokenAmm(hToken, amm.address)).to.be.revertedWith('TASK_HOP_TOKEN_ZERO')
+          await expect(task.setTokenAmm(hToken, amm.address)).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setTokenAmm(hToken.address, amm.address)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setTokenAmm(hToken.address, amm.address)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -299,7 +299,7 @@ describe('HopL2Swapper', () => {
 
                     it('reverts', async () => {
                       await expect(task.call(tokenIn.address, amountIn, slippage)).to.be.revertedWith(
-                        'TASK_SLIPPAGE_TOO_HIGH'
+                        'TaskSlippageAboveMax'
                       )
                     })
                   })
@@ -313,23 +313,21 @@ describe('HopL2Swapper', () => {
                   })
 
                   it('reverts', async () => {
-                    await expect(task.call(tokenIn.address, amountIn, 0)).to.be.revertedWith(
-                      'TASK_TOKEN_THRESHOLD_NOT_MET'
-                    )
+                    await expect(task.call(tokenIn.address, amountIn, 0)).to.be.revertedWith('TaskTokenThresholdNotMet')
                   })
                 })
               })
 
               context('when the given token does not have an AMM set', () => {
                 it('reverts', async () => {
-                  await expect(task.call(tokenIn.address, amountIn, 0)).to.be.revertedWith('TASK_MISSING_HOP_TOKEN_AMM')
+                  await expect(task.call(tokenIn.address, amountIn, 0)).to.be.revertedWith('TaskMissingHopTokenAmm')
                 })
               })
             })
 
             context('when the token out is not set', () => {
               it('reverts', async () => {
-                await expect(task.call(tokenIn.address, amountIn, 0)).to.be.revertedWith('TASK_TOKEN_OUT_NOT_SET')
+                await expect(task.call(tokenIn.address, amountIn, 0)).to.be.revertedWith('TaskTokenOutNotSet')
               })
             })
           })
@@ -342,7 +340,7 @@ describe('HopL2Swapper', () => {
             })
 
             it('reverts', async () => {
-              await expect(task.call(tokenIn.address, 0, 0)).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+              await expect(task.call(tokenIn.address, 0, 0)).to.be.revertedWith('TaskTokenNotAllowed')
             })
           })
         })
@@ -351,7 +349,7 @@ describe('HopL2Swapper', () => {
           const amountIn = 0
 
           it('reverts', async () => {
-            await expect(task.call(tokenIn.address, amountIn, 0)).to.be.revertedWith('TASK_AMOUNT_ZERO')
+            await expect(task.call(tokenIn.address, amountIn, 0)).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -360,14 +358,14 @@ describe('HopL2Swapper', () => {
         const tokenIn = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(tokenIn, 0, 0)).to.be.revertedWith('TASK_TOKEN_ZERO')
+          await expect(task.call(tokenIn, 0, 0)).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

@@ -86,7 +86,7 @@ describe('HopConnector', () => {
                   ZERO_ADDRESS,
                   0
                 )
-            ).to.be.revertedWith('HOP_BRIDGE_SAME_CHAIN')
+            ).to.be.revertedWith('HopBridgeSameChain')
           })
         }
       }
@@ -123,7 +123,7 @@ describe('HopConnector', () => {
             connector
               .connect(whale)
               .execute(destinationChainId, WETH, 0, 0, whale.address, HOP_ETH_BRIDGE, 0, ZERO_ADDRESS, 0)
-          ).to.be.revertedWith('HOP_BRIDGE_SAME_CHAIN')
+          ).to.be.revertedWith('HopBridgeSameChain')
         })
       })
 
@@ -135,7 +135,7 @@ describe('HopConnector', () => {
             connector
               .connect(whale)
               .execute(destinationChainId, WETH, 0, 0, whale.address, HOP_ETH_BRIDGE, 0, ZERO_ADDRESS, 0)
-          ).to.be.revertedWith('HOP_BRIDGE_OP_NOT_SUPPORTED')
+          ).to.be.revertedWith('HopBridgeOpNotSupported')
         })
       })
     })
@@ -144,7 +144,7 @@ describe('HopConnector', () => {
       it('reverts', async function () {
         await expect(
           connector.connect(whale).execute(0, WETH, 0, 0, ZERO_ADDRESS, ZERO_ADDRESS, 0, ZERO_ADDRESS, 0)
-        ).to.be.revertedWith('HOP_BRIDGE_RECIPIENT_ZERO')
+        ).to.be.revertedWith('HopBridgeRecipientZero')
       })
     })
   })
@@ -207,7 +207,7 @@ describe('HopConnector', () => {
                   ZERO_ADDRESS,
                   0
                 )
-            ).to.be.revertedWith('HOP_BRIDGE_SAME_CHAIN')
+            ).to.be.revertedWith('HopBridgeSameChain')
           })
         }
       }
@@ -242,7 +242,7 @@ describe('HopConnector', () => {
         it('reverts', async () => {
           await expect(
             connector.execute(destinationChainId, USDC, 0, 0, whale.address, HOP_USDC_BRIDGE, 0, ZERO_ADDRESS, 0)
-          ).to.be.revertedWith('HOP_BRIDGE_SAME_CHAIN')
+          ).to.be.revertedWith('HopBridgeSameChain')
         })
       })
 
@@ -252,7 +252,7 @@ describe('HopConnector', () => {
         it('reverts', async () => {
           await expect(
             connector.execute(destinationChainId, USDC, 0, 0, whale.address, HOP_USDC_BRIDGE, 0, ZERO_ADDRESS, 0)
-          ).to.be.revertedWith('HOP_BRIDGE_OP_NOT_SUPPORTED')
+          ).to.be.revertedWith('HopBridgeOpNotSupported')
         })
       })
     })
@@ -261,7 +261,7 @@ describe('HopConnector', () => {
       it('reverts', async function () {
         await expect(
           connector.connect(whale).execute(0, USDC, 0, 0, ZERO_ADDRESS, HOP_USDC_BRIDGE, 0, ZERO_ADDRESS, 0)
-        ).to.be.revertedWith('HOP_BRIDGE_RECIPIENT_ZERO')
+        ).to.be.revertedWith('HopBridgeRecipientZero')
       })
     })
   })

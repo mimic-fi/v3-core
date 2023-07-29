@@ -152,8 +152,8 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         uint256 baseDecimals = IERC20Metadata(base).decimals();
         uint256 quoteDecimals = IERC20Metadata(quote).decimals();
 
-        // No need for checked math as an uint8 + FP_DECIMALS (constant) will always fit in an uint256
-        require(baseDecimals <= quoteDecimals + FP_DECIMALS, 'BASE_DECIMALS_TOO_BIG');
+        bool areBaseDecimalsTooBig = baseDecimals > quoteDecimals + FP_DECIMALS;
+        if (areBaseDecimalsTooBig) revert PriceOracleBaseDecimalsTooBig(base, baseDecimals, quote, quoteDecimals);
 
         // No need for checked math as we are checking it manually beforehand
         uint256 resultDecimals = quoteDecimals + FP_DECIMALS - baseDecimals;
@@ -176,7 +176,8 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         for (uint256 i = 0; i < prices.length; i++) {
             PriceData memory price = prices[i];
             if (price.base == base && price.quote == quote) {
-                require(price.deadline >= block.timestamp, 'ORACLE_PRICE_OUTDATED');
+                bool isPastDeadline = price.deadline < block.timestamp;
+                if (isPastDeadline) revert PriceOracleOutdatedPrice(base, quote, price.deadline, block.timestamp);
                 return price.rate;
             }
         }
@@ -226,7 +227,7 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         address quoteFeed = getFeed[quote][pivot];
         if (baseFeed != address(0) && quoteFeed != address(0)) return _getPivotPrice(baseFeed, quoteFeed);
 
-        revert('ORACLE_MISSING_FEED');
+        revert PriceOracleMissingFeed(base, quote);
     }
 
     /**
@@ -249,11 +250,11 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
      */
     function _getInversePrice(address inverseFeed) internal view returns (uint256 price, uint256 decimals) {
         (uint256 inversePrice, uint256 inverseFeedDecimals) = _getFeedData(inverseFeed);
-        require(inverseFeedDecimals <= INVERSE_FEED_MAX_DECIMALS, 'FEED_DECIMALS_TOO_BIG');
+        bool areInverseFeedDecimalsTooBig = inverseFeedDecimals > INVERSE_FEED_MAX_DECIMALS;
+        if (areInverseFeedDecimalsTooBig) revert PriceOracleInverseFeedDecimalsTooBig(inverseFeed, inverseFeedDecimals);
 
         // Prices are requested for different purposes, we are rounding down always to follow a single strategy
         price = FixedPoint.ONE.divDown(inversePrice);
-        // No need for checked math as we are checking it manually beforehand
         decimals = INVERSE_FEED_MAX_DECIMALS - inverseFeedDecimals;
     }
 
@@ -272,13 +273,12 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
         (uint256 basePrice, uint256 baseFeedDecimals) = _getFeedData(baseFeed);
         (uint256 quotePrice, uint256 quoteFeedDecimals) = _getFeedData(quoteFeed);
 
-        // No need for checked math as an uint8 + FP_DECIMALS (constant) will always fit in an uint256
-        require(quoteFeedDecimals <= baseFeedDecimals + FP_DECIMALS, 'QUOTE_FEED_DECIMALS_TOO_BIG');
+        bool areQuoteFeedDecimalsTooBig = quoteFeedDecimals > baseFeedDecimals + FP_DECIMALS;
+        if (areQuoteFeedDecimalsTooBig) revert PriceOracleQuoteFeedDecimalsTooBig(quoteFeedDecimals, baseFeedDecimals);
 
         // Price is base/quote = (base/pivot) / (quote/pivot)
         // Prices are requested for different purposes, we are rounding down always to follow a single strategy
         price = basePrice.divDown(quotePrice);
-        // No need for checked math as we are checking it manually beforehand
         decimals = baseFeedDecimals + FP_DECIMALS - quoteFeedDecimals;
     }
 
@@ -305,7 +305,9 @@ contract PriceOracle is IPriceOracle, Authorized, ReentrancyGuardUpgradeable {
 
         (PriceData[] memory prices, bytes memory signature) = abi.decode(data, (PriceData[], bytes));
         (address recovered, ECDSA.RecoverError error) = ECDSA.tryRecover(getPricesDigest(prices), signature);
-        require(error == ECDSA.RecoverError.NoError && isSignerAllowed(recovered), 'ORACLE_INVALID_SIGNER');
+
+        bool isSignerValid = error == ECDSA.RecoverError.NoError && isSignerAllowed(recovered);
+        if (!isSignerValid) revert PriceOracleInvalidSigner(recovered);
         return prices;
     }
 

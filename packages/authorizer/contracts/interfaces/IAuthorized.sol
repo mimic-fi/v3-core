@@ -19,6 +19,11 @@ pragma solidity >=0.8.0;
  */
 interface IAuthorized {
     /**
+     * @dev Sender `who` is not allowed to call `what` with `how`
+     */
+    error AuthSenderNotAllowed(address who, bytes4 what, uint256[] how);
+
+    /**
      * @dev Tells the address of the authorizer reference
      */
     function authorizer() external view returns (address);

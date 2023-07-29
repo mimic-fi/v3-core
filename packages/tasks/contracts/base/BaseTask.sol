@@ -136,7 +136,7 @@ abstract contract BaseTask is IBaseTask, Authorized {
      * @param next Balance connector id of the next task in the workflow
      */
     function _setBalanceConnectors(bytes32 previous, bytes32 next) internal virtual {
-        require(previous != next || previous == bytes32(0), 'TASK_SAME_BALANCE_CONNECTORS');
+        if (previous == next && previous != bytes32(0)) revert TaskSameBalanceConnectors(previous);
         previousBalanceConnectorId = previous;
         nextBalanceConnectorId = next;
         emit BalanceConnectorsSet(previous, next);
@@ -147,7 +147,7 @@ abstract contract BaseTask is IBaseTask, Authorized {
      */
     function _getPrice(address base, address quote) internal view virtual returns (uint256) {
         address priceOracle = ISmartVault(smartVault).priceOracle();
-        require(priceOracle != address(0), 'TASK_PRICE_ORACLE_NOT_SET');
+        if (priceOracle == address(0)) revert TaskSmartVaultPriceOracleNotSet(base, quote);
         bytes memory extraCallData = _decodeExtraCallData();
         return
             extraCallData.length == 0

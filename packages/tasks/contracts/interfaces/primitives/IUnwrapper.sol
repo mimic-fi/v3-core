@@ -21,6 +21,16 @@ import '../ITask.sol';
  */
 interface IUnwrapper is ITask {
     /**
+     * @dev The amount is zero
+     */
+    error TaskAmountZero();
+
+    /**
+     * @dev The token is not the wrapped native token
+     */
+    error TaskTokenNotWrapped();
+
+    /**
      * @dev Executes the unwrapper task
      */
     function call(address token, uint256 amount) external;

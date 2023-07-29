@@ -94,7 +94,7 @@ describe('ParaswapV5Swapper', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setQuoteSigner(quoteSigner.address)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setQuoteSigner(quoteSigner.address)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -322,7 +322,7 @@ describe('ParaswapV5Swapper', () => {
                             data,
                             signature
                           )
-                        ).to.be.revertedWith('TASK_QUOTE_SIGNER_DEADLINE')
+                        ).to.be.revertedWith('TaskQuoteSignerPastDeadline')
                       })
                     })
                   })
@@ -333,7 +333,7 @@ describe('ParaswapV5Swapper', () => {
 
                       await expect(
                         task.call(tokenIn.address, amountIn, minAmountOut, expectedAmountOut, 0, data, signature)
-                      ).to.be.revertedWith('TASK_QUOTE_SIGNER_DEADLINE')
+                      ).to.be.revertedWith('TaskQuoteSignerPastDeadline')
                     })
                   })
                 })
@@ -345,7 +345,7 @@ describe('ParaswapV5Swapper', () => {
                   it('reverts', async () => {
                     await expect(
                       task.call(tokenIn.address, amountIn, minAmountOut, expectedAmountOut, 0, '0x', '0x')
-                    ).to.be.revertedWith('TASK_SLIPPAGE_TOO_HIGH')
+                    ).to.be.revertedWith('TaskSlippageAboveMax')
                   })
                 })
               })
@@ -359,7 +359,7 @@ describe('ParaswapV5Swapper', () => {
 
                 it('reverts', async () => {
                   await expect(task.call(tokenIn.address, amountIn, 1, 1, 0, '0x', '0x')).to.be.revertedWith(
-                    'TASK_TOKEN_THRESHOLD_NOT_MET'
+                    'TaskTokenThresholdNotMet'
                   )
                 })
               })
@@ -368,7 +368,7 @@ describe('ParaswapV5Swapper', () => {
             context('when the token out is not set', () => {
               it('reverts', async () => {
                 await expect(task.call(tokenIn.address, amountIn, 1, 1, 0, '0x', '0x')).to.be.revertedWith(
-                  'TASK_TOKEN_OUT_NOT_SET'
+                  'TaskTokenOutNotSet'
                 )
               })
             })
@@ -383,7 +383,7 @@ describe('ParaswapV5Swapper', () => {
 
             it('reverts', async () => {
               await expect(task.call(tokenIn.address, amountIn, 1, 1, 0, '0x', '0x')).to.be.revertedWith(
-                'TASK_TOKEN_NOT_ALLOWED'
+                'TaskTokenNotAllowed'
               )
             })
           })
@@ -393,9 +393,7 @@ describe('ParaswapV5Swapper', () => {
           const amountIn = 0
 
           it('reverts', async () => {
-            await expect(task.call(tokenIn.address, amountIn, 1, 1, 0, '0x', '0x')).to.be.revertedWith(
-              'TASK_AMOUNT_ZERO'
-            )
+            await expect(task.call(tokenIn.address, amountIn, 1, 1, 0, '0x', '0x')).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -404,14 +402,14 @@ describe('ParaswapV5Swapper', () => {
         const tokenIn = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(tokenIn, 0, 1, 1, 0, '0x', '0x')).to.be.revertedWith('TASK_TOKEN_ZERO')
+          await expect(task.call(tokenIn, 0, 1, 1, 0, '0x', '0x')).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 1, 1, 0, '0x', '0x')).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0, 1, 1, 0, '0x', '0x')).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

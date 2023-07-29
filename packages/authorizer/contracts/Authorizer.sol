@@ -164,8 +164,7 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
      */
     function authorize(address who, address where, bytes4 what, Param[] memory params) public override nonReentrant {
         uint256[] memory how = authParams(who, where, what);
-        bool allowed = isAuthorized(msg.sender, address(this), IAuthorizer.authorize.selector, how);
-        require(allowed, 'AUTHORIZER_SENDER_NOT_ALLOWED');
+        _authenticate(msg.sender, IAuthorizer.authorize.selector, how);
         _authorize(who, where, what, params);
     }
 
@@ -177,9 +176,19 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
      */
     function unauthorize(address who, address where, bytes4 what) public override nonReentrant {
         uint256[] memory how = authParams(who, where, what);
-        bool allowed = isAuthorized(msg.sender, address(this), IAuthorizer.unauthorize.selector, how);
-        require(allowed, 'AUTHORIZER_SENDER_NOT_ALLOWED');
+        _authenticate(msg.sender, IAuthorizer.unauthorize.selector, how);
         _unauthorize(who, where, what);
+    }
+
+    /**
+     * @dev Validates whether `who` is authorized to call `what` with `how`
+     * @param who Address asking permission for
+     * @param what Function selector asking permission for
+     * @param how Params asking permission for
+     */
+    function _authenticate(address who, bytes4 what, uint256[] memory how) internal view {
+        bool allowed = isAuthorized(who, address(this), what, how);
+        if (!allowed) revert AuthorizerSenderNotAllowed(who, address(this), what, how);
     }
 
     /**
@@ -255,6 +264,6 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
         if (Op(param.op) == Op.LT) return how < param.value;
         if (Op(param.op) == Op.GTE) return how >= param.value;
         if (Op(param.op) == Op.LTE) return how <= param.value;
-        revert('AUTHORIZER_INVALID_PARAM_OP');
+        revert AuthorizerInvalidParamOp(param.op);
     }
 }

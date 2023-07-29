@@ -26,6 +26,26 @@ import './IAxelarGateway.sol';
  * @dev Interfaces with Axelar to bridge tokens
  */
 contract AxelarConnector {
+    /**
+     * @dev The recipient address is zero
+     */
+    error AxelarBridgeRecipientZero();
+
+    /**
+     * @dev The source and destination chains are the same
+     */
+    error AxelarBridgeSameChain(uint256 chainId);
+
+    /**
+     * @dev The chain ID is not supported
+     */
+    error AxelarBridgeUnknownChainId(uint256 chainId);
+
+    /**
+     * @dev The post token balance is lower than the previous token balance minus the amount bridged
+     */
+    error AxelarBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
+
     // List of chain names supported by Axelar
     string private constant ETHEREUM_NAME = 'Ethereum';
     string private constant POLYGON_NAME = 'Polygon';
@@ -61,19 +81,19 @@ contract AxelarConnector {
      * @param recipient Address that will receive the tokens on the destination chain
      */
     function execute(uint256 chainId, address token, uint256 amountIn, address recipient) external {
-        require(block.chainid != chainId, 'AXELAR_BRIDGE_SAME_CHAIN');
-        require(recipient != address(0), 'AXELAR_BRIDGE_RECIPIENT_ZERO');
+        if (block.chainid == chainId) revert AxelarBridgeSameChain(chainId);
+        if (recipient == address(0)) revert AxelarBridgeRecipientZero();
 
         string memory chainName = _getChainName(chainId);
         string memory symbol = IERC20Metadata(token).symbol();
-
         uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
 
         ERC20Helpers.approve(token, address(axelarGateway), amountIn);
         axelarGateway.sendToken(chainName, Strings.toHexString(recipient), symbol, amountIn);
 
         uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        require(postBalanceIn >= preBalanceIn - amountIn, 'AXELAR_BAD_TOKEN_IN_BALANCE');
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
+        if (isPostBalanceInUnexpected) revert AxelarBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
     }
 
     /**
@@ -88,6 +108,6 @@ contract AxelarConnector {
         else if (chainId == BSC_ID) return BSC_NAME;
         else if (chainId == FANTOM_ID) return FANTOM_NAME;
         else if (chainId == AVALANCHE_ID) return AVALANCHE_NAME;
-        else revert('AXELAR_UNKNOWN_CHAIN_ID');
+        else revert AxelarBridgeUnknownChainId(chainId);
     }
 }

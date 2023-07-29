@@ -137,8 +137,8 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
             abi.encodePacked(tokenIn, tokenOut, isBuy, amountIn, minAmountOut, expectedAmountOut, deadline, data)
         );
         address signer = ECDSA.recover(ECDSA.toEthSignedMessageHash(message), sig);
-        require(signer == quoteSigner, 'TASK_INVALID_QUOTE_SIGNER');
-        require(block.timestamp <= deadline, 'TASK_QUOTE_SIGNER_DEADLINE');
+        if (signer != quoteSigner) revert TaskInvalidQuoteSigner(signer, quoteSigner);
+        if (block.timestamp > deadline) revert TaskQuoteSignerPastDeadline(deadline, block.timestamp);
     }
 
     /**
@@ -159,7 +159,7 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
      * @param newQuoteSigner Address of the new quote signer to be set
      */
     function _setQuoteSigner(address newQuoteSigner) internal {
-        require(newQuoteSigner != address(0), 'TASK_QUOTE_SIGNER_ZERO');
+        if (newQuoteSigner == address(0)) revert TaskQuoteSignerZero();
         quoteSigner = newQuoteSigner;
         emit QuoteSignerSet(newQuoteSigner);
     }

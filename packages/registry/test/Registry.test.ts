@@ -82,7 +82,7 @@ describe('Registry', () => {
 
           it('reverts', async () => {
             await expect(registry.register(name, implementation, true)).to.be.revertedWith(
-              'REGISTRY_IMPL_ALREADY_REGISTERED'
+              'RegistryImplementationRegistered'
             )
           })
         })
@@ -155,7 +155,7 @@ describe('Registry', () => {
 
         it('reverts', async () => {
           await expect(registry.register(name, implementation, true)).to.be.revertedWith(
-            'REGISTRY_IMPL_ALREADY_REGISTERED'
+            'RegistryImplementationRegistered'
           )
         })
       })
@@ -182,7 +182,7 @@ describe('Registry', () => {
 
       context('when the requested implementation is not registered', () => {
         it('reverts', async () => {
-          await expect(registry.deprecate(implementation)).to.be.revertedWith('REGISTRY_IMPL_NOT_REGISTERED')
+          await expect(registry.deprecate(implementation)).to.be.revertedWith('RegistryImplementationNotRegistered')
         })
       })
 
@@ -213,7 +213,7 @@ describe('Registry', () => {
           })
 
           it('reverts', async () => {
-            await expect(registry.deprecate(implementation)).to.be.revertedWith('REGISTRY_IMPL_ALREADY_DEPRECATED')
+            await expect(registry.deprecate(implementation)).to.be.revertedWith('RegistryImplementationDeprecated')
           })
         })
       })

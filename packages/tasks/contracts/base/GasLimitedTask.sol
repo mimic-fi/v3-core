@@ -117,26 +117,30 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
      */
     function _beforeGasLimitedTask(address, uint256) internal virtual {
         __initialGas__ = gasleft();
-        require(gasPriceLimit == 0 || tx.gasprice <= gasPriceLimit, 'TASK_GAS_PRICE_LIMIT');
-        require(priorityFeeLimit == 0 || tx.gasprice - block.basefee <= priorityFeeLimit, 'TASK_PRIORITY_FEE_LIMIT');
+        bool isGasPriceAllowed = gasPriceLimit == 0 || tx.gasprice <= gasPriceLimit;
+        if (!isGasPriceAllowed) revert TaskGasPriceLimitExceeded(tx.gasprice, gasPriceLimit);
+
+        uint256 priorityFee = tx.gasprice - block.basefee;
+        bool isPriorityFeeAllowed = priorityFeeLimit == 0 || priorityFee <= priorityFeeLimit;
+        if (!isPriorityFeeAllowed) revert TaskPriorityFeeLimitExceeded(priorityFee, priorityFeeLimit);
     }
 
     /**
      * @dev Validates transaction cost limit
      */
     function _afterGasLimitedTask(address token, uint256 amount) internal virtual {
-        require(__initialGas__ > 0, 'TASK_GAS_NOT_INITIALIZED');
+        if (__initialGas__ == 0) revert TaskGasNotInitialized();
 
         uint256 totalGas = __initialGas__ - gasleft();
         uint256 totalCost = totalGas * tx.gasprice;
-        require(txCostLimit == 0 || totalCost <= txCostLimit, 'TASK_TX_COST_LIMIT');
+        if (txCostLimit > 0 && totalCost > txCostLimit) revert TaskTxCostLimitExceeded(totalCost, txCostLimit);
         delete __initialGas__;
 
-        if (txCostLimitPct > 0) {
-            require(amount > 0, 'TASK_TX_COST_LIMIT_PCT');
+        if (txCostLimitPct > 0 && amount > 0) {
             uint256 price = _getPrice(ISmartVault(this.smartVault()).wrappedNativeToken(), token);
             uint256 totalCostInToken = totalCost.mulUp(price);
-            require(totalCostInToken.divUp(amount) <= txCostLimitPct, 'TASK_TX_COST_LIMIT_PCT');
+            uint256 txCostPct = totalCostInToken.divUp(amount);
+            if (txCostPct > txCostLimitPct) revert TaskTxCostLimitPctExceeded(txCostPct, txCostLimitPct);
         }
     }
 
@@ -172,7 +176,7 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
      * @param newTxCostLimitPct New transaction cost limit percentage to be set
      */
     function _setTxCostLimitPct(uint256 newTxCostLimitPct) internal {
-        require(newTxCostLimitPct <= FixedPoint.ONE, 'TASK_TX_COST_LIMIT_PCT_ABOVE_ONE');
+        if (newTxCostLimitPct > FixedPoint.ONE) revert TaskTxCostLimitPctAboveOne();
         txCostLimitPct = newTxCostLimitPct;
         emit TxCostLimitPctSet(newTxCostLimitPct);
     }

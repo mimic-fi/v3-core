@@ -31,6 +31,11 @@ contract Depositor is ICollector, Collector {
     using SafeERC20 for IERC20;
 
     /**
+     * @dev The tokens source to be set is not the contract itself
+     */
+    error TaskDepositorBadTokensSource(address tokensSource);
+
+    /**
      * @dev It allows receiving native token transfers
      */
     receive() external payable {
@@ -60,7 +65,7 @@ contract Depositor is ICollector, Collector {
      * @param tokensSource Address of the tokens source to be set
      */
     function _setTokensSource(address tokensSource) internal override {
-        require(tokensSource == address(this), 'TASK_DEPOSITOR_BAD_TOKENS_SOURCE');
+        if (tokensSource != address(this)) revert TaskDepositorBadTokensSource(tokensSource);
         super._setTokensSource(tokensSource);
     }
 }

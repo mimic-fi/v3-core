@@ -63,7 +63,7 @@ abstract contract BaseConvexTask is IBaseConvexTask, Task {
      */
     function _beforeBaseConvexTask(address token, uint256 amount) internal virtual {
         _beforeTask(token, amount);
-        require(token != address(0), 'TASK_TOKEN_ZERO');
+        if (token == address(0)) revert TaskTokenZero();
     }
 
     /**
@@ -78,7 +78,7 @@ abstract contract BaseConvexTask is IBaseConvexTask, Task {
      * @param newConnector New connector to be set
      */
     function _setConnector(address newConnector) internal {
-        require(newConnector != address(0), 'TASK_CONNECTOR_ZERO');
+        if (newConnector == address(0)) revert TaskConnectorZero();
         connector = newConnector;
         emit ConnectorSet(newConnector);
     }

@@ -14,6 +14,8 @@ import { Contract } from 'ethers'
 
 import { deployEnvironment } from '../../src/setup'
 
+/* eslint-disable no-secrets/no-secrets */
+
 describe('GasLimitedTask', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, owner: SignerWithAddress
@@ -85,7 +87,7 @@ describe('GasLimitedTask', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setGasPriceLimit(0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setGasPriceLimit(0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -129,7 +131,7 @@ describe('GasLimitedTask', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setPriorityFeeLimit(0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setPriorityFeeLimit(0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -173,7 +175,7 @@ describe('GasLimitedTask', () => {
 
     context('when the sender is not allowed', () => {
       it('reverts', async () => {
-        await expect(task.setTxCostLimit(0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setTxCostLimit(0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -216,14 +218,14 @@ describe('GasLimitedTask', () => {
         const txCostLimitPct = fp(1.1)
 
         it('reverts', async () => {
-          await expect(task.setTxCostLimitPct(txCostLimitPct)).to.be.revertedWith('TASK_TX_COST_LIMIT_PCT_ABOVE_ONE')
+          await expect(task.setTxCostLimitPct(txCostLimitPct)).to.be.revertedWith('TaskTxCostLimitPctAboveOne')
         })
       })
     })
 
     context('when the sender is not allowed', () => {
       it('reverts', async () => {
-        await expect(task.setTxCostLimitPct(0)).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.setTxCostLimitPct(0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -266,7 +268,7 @@ describe('GasLimitedTask', () => {
           })
 
           it('reverts', async () => {
-            await expect(task.call(ZERO_ADDRESS, 0, { gasPrice })).to.be.revertedWith('TASK_TX_COST_LIMIT')
+            await expect(task.call(ZERO_ADDRESS, 0, { gasPrice })).to.be.revertedWith('TaskTxCostLimitExceeded')
           })
         })
       })
@@ -289,7 +291,9 @@ describe('GasLimitedTask', () => {
 
         context('when the tx moves less than the cost limit percentage', () => {
           it('reverts', async () => {
-            await expect(task.call(NATIVE_TOKEN_ADDRESS, 1, { gasPrice })).to.be.revertedWith('TASK_TX_COST_LIMIT_PCT')
+            await expect(task.call(NATIVE_TOKEN_ADDRESS, 1, { gasPrice })).to.be.revertedWith(
+              'TaskTxCostLimitPctExceeded'
+            )
           })
         })
       })
@@ -308,7 +312,7 @@ describe('GasLimitedTask', () => {
         })
 
         it('reverts', async () => {
-          await expect(task.call(ZERO_ADDRESS, 0, { gasPrice })).to.be.revertedWith('TASK_GAS_PRICE_LIMIT')
+          await expect(task.call(ZERO_ADDRESS, 0, { gasPrice })).to.be.revertedWith('TaskGasPriceLimitExceeded')
         })
       })
 
@@ -322,7 +326,7 @@ describe('GasLimitedTask', () => {
         })
 
         it('reverts', async () => {
-          await expect(task.call(ZERO_ADDRESS, 0, { gasPrice })).to.be.revertedWith('TASK_GAS_PRICE_LIMIT')
+          await expect(task.call(ZERO_ADDRESS, 0, { gasPrice })).to.be.revertedWith('TaskGasPriceLimitExceeded')
         })
       })
     })

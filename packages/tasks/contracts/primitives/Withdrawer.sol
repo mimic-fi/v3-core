@@ -83,8 +83,8 @@ contract Withdrawer is IWithdrawer, Task {
      */
     function _beforeWithdrawer(address token, uint256 amount) internal virtual {
         _beforeTask(token, amount);
-        require(token != address(0), 'TASK_TOKEN_ZERO');
-        require(amount > 0, 'TASK_AMOUNT_ZERO');
+        if (token == address(0)) revert TaskTokenZero();
+        if (amount == 0) revert TaskAmountZero();
     }
 
     /**
@@ -99,8 +99,8 @@ contract Withdrawer is IWithdrawer, Task {
      * @param newRecipient Address of the new recipient to be set
      */
     function _setRecipient(address newRecipient) internal {
-        require(newRecipient != address(0), 'TASK_RECIPIENT_ZERO');
-        require(newRecipient != smartVault, 'TASK_RECIPIENT_SMART_VAULT');
+        if (newRecipient == address(0)) revert TaskRecipientZero();
+        if (newRecipient == smartVault) revert TaskRecipientEqualsSmartVault(newRecipient);
         recipient = newRecipient;
         emit RecipientSet(newRecipient);
     }
@@ -111,7 +111,7 @@ contract Withdrawer is IWithdrawer, Task {
      * @param next Balance connector id of the next task in the workflow
      */
     function _setBalanceConnectors(bytes32 previous, bytes32 next) internal virtual override {
-        require(next == bytes32(0), 'TASK_NEXT_CONNECTOR_NOT_ZERO');
+        if (next != bytes32(0)) revert TaskNextConnectorNotZero(next);
         super._setBalanceConnectors(previous, next);
     }
 }

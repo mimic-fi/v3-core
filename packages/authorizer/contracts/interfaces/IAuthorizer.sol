@@ -62,6 +62,16 @@ interface IAuthorizer {
     }
 
     /**
+     * @dev Sender is not authorized to call `what` on `where` with `how`
+     */
+    error AuthorizerSenderNotAllowed(address who, address where, bytes4 what, uint256[] how);
+
+    /**
+     * @dev The operation param is invalid
+     */
+    error AuthorizerInvalidParamOp(uint8 op);
+
+    /**
      * @dev Emitted every time `who`'s permission to perform `what` on `where` is granted with `params`
      */
     event Authorized(address indexed who, address indexed where, bytes4 indexed what, Param[] params);

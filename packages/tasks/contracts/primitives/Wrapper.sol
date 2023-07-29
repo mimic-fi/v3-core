@@ -73,8 +73,8 @@ contract Wrapper is IWrapper, Task {
      */
     function _beforeWrapper(address token, uint256 amount) internal virtual {
         _beforeTask(token, amount);
-        require(token == Denominations.NATIVE_TOKEN, 'TASK_TOKEN_NOT_NATIVE');
-        require(amount > 0, 'TASK_AMOUNT_ZERO');
+        if (token != Denominations.NATIVE_TOKEN) revert TaskTokenNotNative();
+        if (amount == 0) revert TaskAmountZero();
     }
 
     /**

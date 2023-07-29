@@ -34,7 +34,7 @@ describe('FixedPoint', () => {
       expect(await library.divUp(1, 1)).to.be.equal(fp(1))
       expect(await library.divUp(0, fp(2))).to.be.equal(0)
       expect(await library.divUp(fp(2), fp(2))).to.be.equal(fp(1))
-      await expect(library.divUp(fp(2), 0)).to.be.revertedWith('ZERO_DIVISION')
+      await expect(library.divUp(fp(2), 0)).to.be.revertedWith('FixedPointZeroDivision')
     })
   })
 
@@ -43,7 +43,7 @@ describe('FixedPoint', () => {
       expect(await library.divDown(1, 1)).to.be.equal(fp(1))
       expect(await library.divDown(0, fp(2))).to.be.equal(0)
       expect(await library.divDown(fp(2), fp(2))).to.be.equal(fp(1))
-      await expect(library.divDown(fp(2), 0)).to.be.revertedWith('ZERO_DIVISION')
+      await expect(library.divDown(fp(2), 0)).to.be.revertedWith('FixedPointZeroDivision')
     })
   })
 })

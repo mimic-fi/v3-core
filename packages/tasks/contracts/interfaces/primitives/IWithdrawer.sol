@@ -21,6 +21,31 @@ import '../ITask.sol';
  */
 interface IWithdrawer is ITask {
     /**
+     * @dev The token is zero
+     */
+    error TaskTokenZero();
+
+    /**
+     * @dev The amount is zero
+     */
+    error TaskAmountZero();
+
+    /**
+     * @dev The recipient is zero
+     */
+    error TaskRecipientZero();
+
+    /**
+     * @dev The recipient to be set is the smart vault
+     */
+    error TaskRecipientEqualsSmartVault(address recipient);
+
+    /**
+     * @dev The next balance connector is not zero
+     */
+    error TaskNextConnectorNotZero(bytes32 id);
+
+    /**
      * @dev Emitted every time the recipient is set
      */
     event RecipientSet(address indexed recipient);

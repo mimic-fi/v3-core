@@ -385,17 +385,17 @@ describe('Authorizer', () => {
 
                 // try granting other permissions
                 await expect(authorizer.connect(who).authorize(WHO, WHERE2, WHAT, [])).to.be.revertedWith(
-                  'AUTHORIZER_SENDER_NOT_ALLOWED'
+                  'AuthorizerSenderNotAllowed'
                 )
                 await expect(authorizer.connect(who).authorize(WHO, WHERE, WHAT2, [])).to.be.revertedWith(
-                  'AUTHORIZER_SENDER_NOT_ALLOWED'
+                  'AuthorizerSenderNotAllowed'
                 )
 
                 // rollback authorization
                 await authorizer.unauthorize(who.address, authorizer.address, authorizeRole)
                 expect(await authorizer.isAuthorized(who.address, authorizer.address, authorizeRole, [])).to.be.false
                 await expect(authorizer.connect(who).authorize(WHO, WHERE, WHAT, [])).to.be.revertedWith(
-                  'AUTHORIZER_SENDER_NOT_ALLOWED'
+                  'AuthorizerSenderNotAllowed'
                 )
               })
             })
@@ -437,7 +437,7 @@ describe('Authorizer', () => {
 
     context('when the sender is not allowed', () => {
       it('reverts', async () => {
-        await expect(authorizer.authorize(WHO, WHERE, WHAT, [])).to.be.revertedWith('AUTHORIZER_SENDER_NOT_ALLOWED')
+        await expect(authorizer.authorize(WHO, WHERE, WHAT, [])).to.be.revertedWith('AuthorizerSenderNotAllowed')
       })
     })
   })
@@ -502,7 +502,7 @@ describe('Authorizer', () => {
 
     context('when the sender is not allowed', () => {
       it('reverts', async () => {
-        await expect(authorizer.unauthorize(WHO, WHERE, WHAT)).to.be.revertedWith('AUTHORIZER_SENDER_NOT_ALLOWED')
+        await expect(authorizer.unauthorize(WHO, WHERE, WHAT)).to.be.revertedWith('AuthorizerSenderNotAllowed')
       })
     })
   })
@@ -560,7 +560,7 @@ describe('Authorizer', () => {
           authorizer
             .connect(admin)
             .changePermissions([{ where: WHERE2, grants: [{ who: WHO2, what: WHAT2, params: [] }], revokes: [] }])
-        ).to.be.revertedWith('AUTHORIZER_SENDER_NOT_ALLOWED')
+        ).to.be.revertedWith('AuthorizerSenderNotAllowed')
       })
     })
   })

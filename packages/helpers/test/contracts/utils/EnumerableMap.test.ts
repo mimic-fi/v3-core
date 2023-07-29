@@ -147,7 +147,7 @@ describe('EnumerableMap', () => {
         })
 
         it('missing value', async () => {
-          await expect(map.get(keyB)).to.be.revertedWith('EnumerableMap: nonexistent key')
+          await expect(map.get(keyB)).to.be.revertedWith('EnumerableMapNonExistentKey')
         })
       })
 
@@ -299,7 +299,7 @@ describe('EnumerableMap', () => {
         })
 
         it('missing value', async () => {
-          await expect(map.get(keyB)).to.be.revertedWith('EnumerableMap: nonexistent key')
+          await expect(map.get(keyB)).to.be.revertedWith('EnumerableMapNonExistentKey')
         })
       })
 

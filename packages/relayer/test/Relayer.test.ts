@@ -18,6 +18,8 @@ import { BigNumber, Contract } from 'ethers'
 import { defaultAbiCoder } from 'ethers/lib/utils'
 import { ethers } from 'hardhat'
 
+/* eslint-disable no-secrets/no-secrets */
+
 describe('Relayer', () => {
   let relayer: Contract
   let executor: SignerWithAddress, collector: SignerWithAddress, owner: SignerWithAddress
@@ -110,7 +112,7 @@ describe('Relayer', () => {
         const collector = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(relayer.setDefaultCollector(collector)).to.be.revertedWith('RELAYER_COLLECTOR_ZERO')
+          await expect(relayer.setDefaultCollector(collector)).to.be.revertedWith('RelayerCollectorZero')
         })
       })
     })
@@ -152,7 +154,7 @@ describe('Relayer', () => {
 
         it('reverts', async () => {
           await expect(relayer.setSmartVaultCollector(smartVault.address, collector)).to.be.revertedWith(
-            'RELAYER_COLLECTOR_ZERO'
+            'RelayerCollectorZero'
           )
         })
       })
@@ -352,7 +354,7 @@ describe('Relayer', () => {
 
       it('reverts', async () => {
         await expect(relayer.deposit(smartVault.address, amount, { value })).to.revertedWith(
-          'RELAYER_DEPOSIT_INVALID_AMOUNT'
+          'RelayerValueDoesNotMatchAmount'
         )
       })
     })
@@ -411,7 +413,7 @@ describe('Relayer', () => {
       const amount = balance.add(1)
 
       it('reverts', async () => {
-        await expect(relayer.connect(smartVault).withdraw(amount)).to.revertedWith('RELAYER_SMART_VAULT_NO_BALANCE')
+        await expect(relayer.connect(smartVault).withdraw(amount)).to.revertedWith('RelayerWithdrawInsufficientBalance')
       })
     })
   })
@@ -656,7 +658,7 @@ describe('Relayer', () => {
           context('when the available quota is not enough', () => {
             it('reverts', async () => {
               await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith(
-                'RELAYER_SMART_VAULT_NO_BALANCE'
+                'RelayerPaymentInsufficientBalance'
               )
             })
           })
@@ -666,7 +668,7 @@ describe('Relayer', () => {
       context('when the task does not have permissions over the associated smart vault', () => {
         it('reverts', async () => {
           await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith(
-            'RELAYER_INVALID_TASK_PERMISSIONS'
+            'RelayerTaskDoesNotHavePermissions'
           )
         })
       })
@@ -674,7 +676,7 @@ describe('Relayer', () => {
 
     context('when the sender is not an executor', () => {
       it('reverts', async () => {
-        await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith('RELAYER_EXECUTOR_NOT_ALLOWED')
+        await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith('RelayerExecutorNotAllowed')
       })
     })
   })
@@ -769,7 +771,7 @@ describe('Relayer', () => {
             const amount = 0
             it('reverts', async () => {
               await expect(relayer.rescueFunds(token.address, recipient.address, amount)).to.be.revertedWith(
-                'RELAYER_EXT_WITHDRAW_AMOUNT_ZERO'
+                'RelayerAmountZero'
               )
             })
           })
@@ -779,7 +781,7 @@ describe('Relayer', () => {
           const recipientAddr = ZERO_ADDRESS
           it('reverts', async () => {
             await expect(relayer.rescueFunds(token.address, recipientAddr, amount)).to.be.revertedWith(
-              'RELAYER_EXT_WITHDRAW_DEST_ZERO'
+              'RelayerRecipientZero'
             )
           })
         })
@@ -788,9 +790,7 @@ describe('Relayer', () => {
       context('when the token is the zero address', () => {
         const tokenAddr = ZERO_ADDRESS
         it('reverts', async () => {
-          await expect(relayer.rescueFunds(tokenAddr, recipient.address, amount)).to.be.revertedWith(
-            'RELAYER_EXT_WITHDRAW_TOKEN_ZERO'
-          )
+          await expect(relayer.rescueFunds(tokenAddr, recipient.address, amount)).to.be.revertedWith('RelayerTokenZero')
         })
       })
     })

@@ -81,7 +81,7 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, Authorized {
      * @param added Whether each of the given tokens should be added or removed from the list
      */
     function setTokensAcceptanceList(address[] memory tokens, bool[] memory added) external override auth {
-        require(tokens.length == added.length, 'TASK_ACCEPTANCE_BAD_LENGTH');
+        if (tokens.length != added.length) revert TaskAcceptanceInputLengthMismatch();
         for (uint256 i = 0; i < tokens.length; i++) {
             _setTokenAcceptanceList(tokens[i], added[i]);
         }
@@ -93,7 +93,7 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, Authorized {
     function _beforeTokenIndexedTask(address token, uint256) internal virtual {
         bool containsToken = _tokens.contains(token);
         bool isTokenAllowed = tokensAcceptanceType == TokensAcceptanceType.AllowList ? containsToken : !containsToken;
-        require(isTokenAllowed, 'TASK_TOKEN_NOT_ALLOWED');
+        if (!isTokenAllowed) revert TaskTokenNotAllowed(token);
     }
 
     /**
@@ -118,7 +118,7 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, Authorized {
      * @param added Whether the token should be added or removed from the list
      */
     function _setTokenAcceptanceList(address token, bool added) internal {
-        require(token != address(0), 'TASK_ACCEPTANCE_TOKEN_ZERO');
+        if (token == address(0)) revert TaskAcceptanceTokenZero();
         added ? _tokens.add(token) : _tokens.remove(token);
         emit TokensAcceptanceListSet(token, added);
     }

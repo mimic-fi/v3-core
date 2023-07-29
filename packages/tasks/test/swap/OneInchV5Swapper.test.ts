@@ -229,7 +229,7 @@ describe('OneInchV5Swapper', () => {
                     const slippage = fp(0.01)
 
                     it('reverts', async () => {
-                      await expect(executeTask(amountIn, slippage, '0x')).to.be.revertedWith('TASK_SLIPPAGE_TOO_HIGH')
+                      await expect(executeTask(amountIn, slippage, '0x')).to.be.revertedWith('TaskSlippageAboveMax')
                     })
                   })
                 })
@@ -242,7 +242,7 @@ describe('OneInchV5Swapper', () => {
                   })
 
                   it('reverts', async () => {
-                    await expect(executeTask(amountIn, 0, '0x')).to.be.revertedWith('TASK_TOKEN_THRESHOLD_NOT_MET')
+                    await expect(executeTask(amountIn, 0, '0x')).to.be.revertedWith('TaskTokenThresholdNotMet')
                   })
                 })
               })
@@ -320,7 +320,7 @@ describe('OneInchV5Swapper', () => {
 
                       it('reverts', async () => {
                         await expect(task.call(tokenIn.address, amountIn, slippage, '0x')).to.be.revertedWith(
-                          'TASK_SLIPPAGE_TOO_HIGH'
+                          'TaskSlippageAboveMax'
                         )
                       })
                     })
@@ -335,7 +335,7 @@ describe('OneInchV5Swapper', () => {
 
                     it('reverts', async () => {
                       await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith(
-                        'TASK_TOKEN_THRESHOLD_NOT_MET'
+                        'TaskTokenThresholdNotMet'
                       )
                     })
                   })
@@ -343,9 +343,8 @@ describe('OneInchV5Swapper', () => {
 
                 context('when no on-chain oracle is given', () => {
                   it('reverts', async () => {
-                    await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith(
-                      'ORACLE_MISSING_FEED'
-                    )
+                    // TODO: Hardhat does not decode price oracle error properly
+                    await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.reverted
                   })
                 })
               })
@@ -353,7 +352,7 @@ describe('OneInchV5Swapper', () => {
 
             context('when the token out is not set', () => {
               it('reverts', async () => {
-                await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TASK_TOKEN_OUT_NOT_SET')
+                await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskTokenOutNotSet')
               })
             })
           })
@@ -366,7 +365,7 @@ describe('OneInchV5Swapper', () => {
             })
 
             it('reverts', async () => {
-              await expect(task.call(tokenIn.address, 0, 0, '0x')).to.be.revertedWith('TASK_TOKEN_NOT_ALLOWED')
+              await expect(task.call(tokenIn.address, 0, 0, '0x')).to.be.revertedWith('TaskTokenNotAllowed')
             })
           })
         })
@@ -375,7 +374,7 @@ describe('OneInchV5Swapper', () => {
           const amountIn = 0
 
           it('reverts', async () => {
-            await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TASK_AMOUNT_ZERO')
+            await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -384,14 +383,14 @@ describe('OneInchV5Swapper', () => {
         const tokenIn = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(tokenIn, 0, 0, '0x')).to.be.revertedWith('TASK_TOKEN_ZERO')
+          await expect(task.call(tokenIn, 0, 0, '0x')).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 0, '0x')).to.be.revertedWith('AUTH_SENDER_NOT_ALLOWED')
+        await expect(task.call(ZERO_ADDRESS, 0, 0, '0x')).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

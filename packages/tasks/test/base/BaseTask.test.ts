@@ -157,7 +157,7 @@ describe('BaseTask', () => {
           const next = '0x0000000000000000000000000000000000000000000000000000000000000001'
 
           it('reverts', async () => {
-            await expect(task.setBalanceConnectors(previous, next)).to.be.revertedWith('TASK_SAME_BALANCE_CONNECTORS')
+            await expect(task.setBalanceConnectors(previous, next)).to.be.revertedWith('TaskSameBalanceConnectors')
           })
         })
       })
@@ -172,9 +172,7 @@ describe('BaseTask', () => {
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.setBalanceConnectors(ZERO_BYTES32, ZERO_BYTES32)).to.be.revertedWith(
-          'AUTH_SENDER_NOT_ALLOWED'
-        )
+        await expect(task.setBalanceConnectors(ZERO_BYTES32, ZERO_BYTES32)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -223,7 +221,8 @@ describe('BaseTask', () => {
 
       context('when there is not enough balance in the connector', () => {
         it('reverts', async () => {
-          await expect(task.call(token, amount)).to.be.revertedWith('SMART_VAULT_CONNECTOR_NO_BALANCE')
+          // TODO: Hardhat does not decode smart vault error properly
+          await expect(task.call(token, amount)).to.be.reverted
         })
       })
     })

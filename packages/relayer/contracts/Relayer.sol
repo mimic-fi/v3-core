@@ -96,7 +96,7 @@ contract Relayer is IRelayer, Ownable {
      * @param collector Address of the collector to be set for the given smart vault
      */
     function setSmartVaultCollector(address smartVault, address collector) external override onlyOwner {
-        require(collector != address(0), 'RELAYER_COLLECTOR_ZERO');
+        if (collector == address(0)) revert RelayerCollectorZero();
         getSmartVaultCollector[smartVault] = collector;
         emit SmartVaultCollectorSet(smartVault, collector);
     }
@@ -117,7 +117,7 @@ contract Relayer is IRelayer, Ownable {
      * @param amount Amount of native tokens to be deposited, must match msg.value
      */
     function deposit(address smartVault, uint256 amount) external payable override {
-        require(msg.value == amount, 'RELAYER_DEPOSIT_INVALID_AMOUNT');
+        if (msg.value != amount) revert RelayerValueDoesNotMatchAmount(msg.value, amount);
         uint256 amountPaid = _payQuota(smartVault, amount);
         uint256 toDeposit = amount - amountPaid;
         getSmartVaultBalance[smartVault] += toDeposit;
@@ -130,38 +130,43 @@ contract Relayer is IRelayer, Ownable {
      */
     function withdraw(uint256 amount) external override {
         uint256 balance = getSmartVaultBalance[msg.sender];
-        require(amount <= balance, 'RELAYER_SMART_VAULT_NO_BALANCE');
+        if (amount > balance) revert RelayerWithdrawInsufficientBalance(msg.sender, balance, amount);
+
         getSmartVaultBalance[msg.sender] = balance - amount;
         emit Withdrawn(msg.sender, amount);
+
         (bool success, ) = payable(msg.sender).call{ value: amount }('');
-        require(success, 'RELAYER_WITHDRAW_FAILED');
+        if (!success) revert RelayerWithdrawFailed(msg.sender, amount);
     }
 
     /**
      * @dev Executes a list of tasks
      * @param tasks Addresses of the tasks to execute
-     * @param datas List of calldata to execute each of the given tasks
+     * @param data List of calldata to execute each of the given tasks
      * @param continueIfFailed Whether the execution should fail in case one of the tasks fail
      */
-    function execute(address[] memory tasks, bytes[] memory datas, bool continueIfFailed) external override {
-        require(isExecutorAllowed[msg.sender], 'RELAYER_EXECUTOR_NOT_ALLOWED');
-        require(tasks.length > 0, 'RELAYER_EXECUTE_NO_INPUT');
-        require(tasks.length == datas.length, 'RELAYER_EXECUTE_INPUT_BAD_LENGTH');
+    function execute(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external override {
+        if (!isExecutorAllowed[msg.sender]) revert RelayerExecutorNotAllowed(msg.sender);
+        if (tasks.length == 0) revert RelayerNoTaskGiven();
+        if (tasks.length != data.length) revert RelayerInputLengthMismatch();
 
         uint256 totalGasUsed = BASE_GAS;
         address smartVault = ITask(tasks[0]).smartVault();
         for (uint256 i = 0; i < tasks.length; i++) {
             uint256 initialGas = gasleft();
             address task = tasks[i];
-            require(ITask(task).smartVault() == smartVault, 'RELAYER_INVALID_TASK_SMART_VAULT');
-            require(ISmartVault(smartVault).hasPermissions(task), 'RELAYER_INVALID_TASK_PERMISSIONS');
 
-            bytes memory data = datas[i];
+            address taskSmartVault = ITask(task).smartVault();
+            if (taskSmartVault != smartVault) revert RelayerMultipleTaskSmartVaults(task, taskSmartVault, smartVault);
+
+            bool hasPermissions = ISmartVault(smartVault).hasPermissions(task);
+            if (!hasPermissions) revert RelayerTaskDoesNotHavePermissions(task, smartVault);
+
             // solhint-disable-next-line avoid-low-level-calls
-            (bool taskSuccess, bytes memory result) = task.call(data);
+            (bool taskSuccess, bytes memory result) = task.call(data[i]);
             uint256 gasUsed = initialGas - gasleft();
             totalGasUsed += gasUsed;
-            emit TaskExecuted(smartVault, task, data, taskSuccess, result, gasUsed);
+            emit TaskExecuted(smartVault, task, data[i], taskSuccess, result, gasUsed);
             if (!taskSuccess && !continueIfFailed) break;
         }
 
@@ -177,9 +182,9 @@ contract Relayer is IRelayer, Ownable {
      * @param amount Amount of tokens to withdraw
      */
     function rescueFunds(address token, address recipient, uint256 amount) external override onlyOwner {
-        require(token != address(0), 'RELAYER_EXT_WITHDRAW_TOKEN_ZERO');
-        require(recipient != address(0), 'RELAYER_EXT_WITHDRAW_DEST_ZERO');
-        require(amount > 0, 'RELAYER_EXT_WITHDRAW_AMOUNT_ZERO');
+        if (token == address(0)) revert RelayerTokenZero();
+        if (recipient == address(0)) revert RelayerRecipientZero();
+        if (amount == 0) revert RelayerAmountZero();
 
         IERC20(token).safeTransfer(recipient, amount);
         emit FundsRescued(token, recipient, amount);
@@ -191,7 +196,7 @@ contract Relayer is IRelayer, Ownable {
      * @param allowed Whether the given executor should be allowed or not
      */
     function _setExecutor(address executor, bool allowed) internal {
-        require(executor != address(0), 'RELAYER_EXECUTOR_ZERO');
+        if (executor == address(0)) revert RelayerExecutorZero();
         isExecutorAllowed[executor] = allowed;
         emit ExecutorSet(executor, allowed);
     }
@@ -201,7 +206,7 @@ contract Relayer is IRelayer, Ownable {
      * @param collector Default fee collector to be set
      */
     function _setDefaultCollector(address collector) internal {
-        require(collector != address(0), 'RELAYER_COLLECTOR_ZERO');
+        if (collector == address(0)) revert RelayerCollectorZero();
         defaultCollector = collector;
         emit DefaultCollectorSet(collector);
     }
@@ -216,7 +221,8 @@ contract Relayer is IRelayer, Ownable {
         uint256 maxQuota = getSmartVaultMaxQuota[smartVault];
         uint256 usedQuota = getSmartVaultUsedQuota[smartVault];
         uint256 availableQuota = usedQuota >= maxQuota ? 0 : (maxQuota - usedQuota);
-        require(amount <= balance + availableQuota, 'RELAYER_SMART_VAULT_NO_BALANCE');
+        bool hasEnoughBalance = amount <= balance + availableQuota;
+        if (!hasEnoughBalance) revert RelayerPaymentInsufficientBalance(smartVault, balance, availableQuota, amount);
 
         uint256 quota;
         if (balance >= amount) {
@@ -228,7 +234,7 @@ contract Relayer is IRelayer, Ownable {
         }
 
         (bool paySuccess, ) = getApplicableCollector(smartVault).call{ value: amount - quota }('');
-        require(paySuccess, 'RELAYER_COLLECTOR_SEND_FAILED');
+        if (!paySuccess) revert RelayerPaymentFailed(smartVault, amount, quota);
         emit GasPaid(smartVault, amount, quota);
     }
 

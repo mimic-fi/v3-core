@@ -26,7 +26,7 @@ contract OneInchV5RelayerFunder is BaseRelayerFundTask, OneInchV5Swapper {
      * @dev Disables the default 1inch v5 swapper initializer
      */
     function initialize(OneInchV5SwapConfig memory) external pure override {
-        revert('SWAPPER_INITIALIZER_DISABLED');
+        revert TaskInitializerDisabled();
     }
 
     /**
