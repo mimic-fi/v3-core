@@ -95,7 +95,9 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
         override
         authP(authParams(hToken, amount, slippage))
     {
+        if (amount == 0) amount = getTaskAmount(hToken);
         _beforeHopL2Swapper(hToken, amount, slippage);
+
         address tokenOut = getTokenOut(hToken);
         address dexAddress = IHopL2Amm(tokenAmm[hToken]).exchangeAddress();
         uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);

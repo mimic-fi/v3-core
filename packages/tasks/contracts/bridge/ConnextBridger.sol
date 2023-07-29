@@ -116,7 +116,9 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
         override
         authP(authParams(token, amountIn, slippage, relayerFee))
     {
+        if (amountIn == 0) amountIn = getTaskAmount(token);
         _beforeConnextBridger(token, amountIn, slippage, relayerFee);
+
         uint256 minAmountOut = amountIn.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
             ConnextConnector.execute.selector,

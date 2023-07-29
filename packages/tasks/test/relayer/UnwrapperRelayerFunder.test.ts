@@ -7,9 +7,7 @@ import {
   deployTokenMock,
   fp,
   getSigners,
-  NATIVE_TOKEN_ADDRESS,
   ZERO_ADDRESS,
-  ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
@@ -89,114 +87,73 @@ describe('UnwrapperRelayerFunder', () => {
       })
 
       context('when the given token is the wrapped native token', () => {
-        let tokenAddr: string
+        let token: Contract
+        const amount = fp(0.2)
 
         beforeEach('set token', async () => {
-          tokenAddr = mimic.wrappedNativeToken.address
+          token = mimic.wrappedNativeToken
         })
 
-        context('when the given amount is greater than zero', () => {
-          const amount = fp(0.2)
-
-          beforeEach('fund smart vault', async () => {
-            await mimic.wrappedNativeToken.connect(owner).deposit({ value: amount.mul(10) })
-            await mimic.wrappedNativeToken.connect(owner).transfer(smartVault.address, amount.mul(10))
-          })
-
-          context('when the balance is below the min threshold', () => {
-            const thresholdMin = amount.mul(2)
-            const thresholdMax = thresholdMin.mul(2)
-
-            beforeEach('set smart vault balance in relayer', async function () {
-              const balance = await relayer.getSmartVaultBalance(smartVault.address)
-              await relayer.withdraw(smartVault.address, balance)
-
-              await relayer.deposit(smartVault.address, amount)
-            })
-
-            beforeEach('set default token threshold', async () => {
-              const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
-              await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-              await task.connect(owner).setDefaultTokenThreshold(tokenAddr, thresholdMin, thresholdMax)
-            })
-
-            context('when the resulting balance is below the max threshold', () => {
-              it('calls the unwrap primitive', async () => {
-                const tx = await task.call(tokenAddr, amount)
-                await assertIndirectEvent(tx, smartVault.interface, 'Unwrapped', { amount })
-              })
-
-              it('emits an Executed event', async () => {
-                const tx = await task.call(tokenAddr, amount)
-                await assertEvent(tx, 'Executed')
-              })
-
-              it('updates the balance connectors properly', async () => {
-                const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
-                const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
-                await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
-                await task.connect(owner).setBalanceConnectors(ZERO_BYTES32, nextConnectorId)
-
-                const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-                await authorizer
-                  .connect(owner)
-                  .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
-
-                const tx = await task.call(tokenAddr, amount)
-
-                await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
-                  id: nextConnectorId,
-                  token: NATIVE_TOKEN_ADDRESS,
-                  amount,
-                  added: true,
-                })
-              })
-            })
-
-            context('when the resulting balance is above the max threshold', async () => {
-              const diff = thresholdMax.sub(amount)
-              const bigAmount = amount.add(diff.add(1))
-
-              it('reverts', async () => {
-                await expect(task.call(tokenAddr, bigAmount)).to.be.revertedWith('TaskDepositAboveMaxThreshold')
-              })
-            })
-          })
-
-          context('when the balance is above the min threshold', () => {
-            const threshold = amount.div(2)
-
-            beforeEach('set smart vault balance in relayer', async function () {
-              const balance = await relayer.getSmartVaultBalance(smartVault.address)
-              await relayer.withdraw(smartVault.address, balance)
-
-              await relayer.deposit(smartVault.address, amount)
-            })
-
-            beforeEach('set default token threshold', async () => {
-              const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
-              await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-              await task.connect(owner).setDefaultTokenThreshold(tokenAddr, threshold, fp(10000))
-            })
-
-            it('reverts', async () => {
-              await expect(task.call(tokenAddr, amount)).to.be.revertedWith('TaskDepositAboveMinThreshold')
-            })
-          })
+        beforeEach('fund smart vault', async () => {
+          await mimic.wrappedNativeToken.connect(owner).deposit({ value: amount.mul(10) })
+          await mimic.wrappedNativeToken.connect(owner).transfer(smartVault.address, amount.mul(10))
         })
 
-        context('when the given amount is zero', () => {
-          const amount = 0
-          const threshold = fp(10000)
+        context('when the balance is below the min threshold', () => {
+          const thresholdMin = amount.mul(2)
+          const thresholdMax = thresholdMin.mul(2)
+
+          beforeEach('set smart vault balance in relayer', async function () {
+            const balance = await relayer.getSmartVaultBalance(smartVault.address)
+            await relayer.withdraw(smartVault.address, balance)
+            await relayer.deposit(smartVault.address, amount)
+          })
 
           beforeEach('set default token threshold', async () => {
             const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
             await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-            await task.connect(owner).setDefaultTokenThreshold(tokenAddr, threshold, threshold)
+            await task.connect(owner).setDefaultTokenThreshold(token.address, thresholdMin, thresholdMax)
+          })
+
+          context('when the resulting balance is below the max threshold', () => {
+            it('calls the unwrap primitive', async () => {
+              const tx = await task.call(token.address, amount)
+              await assertIndirectEvent(tx, smartVault.interface, 'Unwrapped', { amount })
+            })
+
+            it('emits an Executed event', async () => {
+              const tx = await task.call(token.address, amount)
+              await assertEvent(tx, 'Executed')
+            })
+          })
+
+          context('when the resulting balance is above the max threshold', async () => {
+            const diff = thresholdMax.sub(amount)
+            const bigAmount = amount.add(diff.add(1))
+
+            it('reverts', async () => {
+              await expect(task.call(token.address, bigAmount)).to.be.revertedWith('TaskDepositAboveMaxThreshold')
+            })
+          })
+        })
+
+        context('when the balance is above the min threshold', () => {
+          const threshold = amount.div(2)
+
+          beforeEach('set smart vault balance in relayer', async function () {
+            const balance = await relayer.getSmartVaultBalance(smartVault.address)
+            await relayer.withdraw(smartVault.address, balance)
+            await relayer.deposit(smartVault.address, amount)
+          })
+
+          beforeEach('set default token threshold', async () => {
+            const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
+            await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
+            await task.connect(owner).setDefaultTokenThreshold(token.address, threshold, fp(10000))
           })
 
           it('reverts', async () => {
-            await expect(task.call(tokenAddr, amount)).to.be.revertedWith('TaskAmountZero')
+            await expect(task.call(token.address, amount)).to.be.revertedWith('TaskDepositAboveMinThreshold')
           })
         })
       })
@@ -205,7 +162,7 @@ describe('UnwrapperRelayerFunder', () => {
         let token: Contract
         const threshold = fp(10000)
 
-        beforeEach('set token in', async () => {
+        beforeEach('set token', async () => {
           token = await deployTokenMock('TKN')
         })
 

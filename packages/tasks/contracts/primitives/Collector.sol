@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.0;
 
-import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
+import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import '../Task.sol';
 import '../interfaces/primitives/ICollector.sol';
@@ -71,6 +71,14 @@ contract Collector is ICollector, Task {
     }
 
     /**
+     * @dev Tells the balance of the depositor for a given token
+     * @param token Address of the token being queried
+     */
+    function getTaskAmount(address token) public view virtual override(IBaseTask, BaseTask) returns (uint256) {
+        return ERC20Helpers.balanceOf(token, getTokensSource());
+    }
+
+    /**
      * @dev Sets the tokens source address. Sender must be authorized.
      * @param tokensSource Address of the tokens source to be set
      */
@@ -82,6 +90,7 @@ contract Collector is ICollector, Task {
      * @dev Execute Collector
      */
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforeCollector(token, amount);
         ISmartVault(smartVault).collect(token, _tokensSource, amount);
         _afterCollector(token, amount);

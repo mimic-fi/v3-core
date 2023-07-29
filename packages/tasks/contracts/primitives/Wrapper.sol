@@ -63,6 +63,7 @@ contract Wrapper is IWrapper, Task {
      * @dev Execute Wrapper
      */
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforeWrapper(token, amount);
         ISmartVault(smartVault).wrap(amount);
         _afterWrapper(token, amount);

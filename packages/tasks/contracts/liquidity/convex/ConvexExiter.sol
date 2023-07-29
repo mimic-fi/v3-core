@@ -68,6 +68,7 @@ contract ConvexExiter is IConvexExiter, BaseConvexTask {
      * @param amount Amount of Convex pool tokens to be exited with
      */
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforeConvexExiter(token, amount);
         bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.exit.selector, token, amount);
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);

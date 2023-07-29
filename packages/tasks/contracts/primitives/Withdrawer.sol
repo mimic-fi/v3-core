@@ -73,6 +73,7 @@ contract Withdrawer is IWithdrawer, Task {
      * @dev Executes the Withdrawer
      */
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforeWithdrawer(token, amount);
         ISmartVault(smartVault).withdraw(token, recipient, amount);
         _afterWithdrawer(token, amount);

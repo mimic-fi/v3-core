@@ -14,9 +14,6 @@
 
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
 
@@ -28,8 +25,6 @@ import '../interfaces/primitives/ICollector.sol';
  * @dev Task that extends the Collector task to be the source from where funds can be pulled
  */
 contract Depositor is ICollector, Collector {
-    using SafeERC20 for IERC20;
-
     /**
      * @dev The tokens source to be set is not the contract itself
      */
@@ -43,20 +38,12 @@ contract Depositor is ICollector, Collector {
     }
 
     /**
-     * @dev Tells the balance of the depositor for a given token
-     * @param token Address of the token being queried
-     */
-    function getTaskAmount(address token) external view virtual override(IBaseTask, BaseTask) returns (uint256) {
-        return ERC20Helpers.balanceOf(address(this), token);
-    }
-
-    /**
      * @dev Approves the requested amount of tokens to the smart vault in case it's not the native token
      */
     function _beforeCollector(address token, uint256 amount) internal virtual override {
         super._beforeCollector(token, amount);
         if (!Denominations.isNativeToken(token)) {
-            IERC20(token).approve(smartVault, amount);
+            ERC20Helpers.approve(token, smartVault, amount);
         }
     }
 

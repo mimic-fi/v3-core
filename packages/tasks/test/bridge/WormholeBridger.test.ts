@@ -2,12 +2,15 @@ import { OP } from '@mimic-fi/v3-authorizer'
 import {
   assertEvent,
   assertIndirectEvent,
+  assertNoEvent,
+  BigNumberish,
   deploy,
   deployProxy,
   deployTokenMock,
   fp,
   getSigners,
   ZERO_ADDRESS,
+  ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
@@ -125,34 +128,92 @@ describe('WormholeBridger', () => {
                     await task.connect(owner).setDefaultMaxSlippage(slippage)
                   })
 
-                  it('executes the expected connector', async () => {
-                    const tx = await task.call(token.address, amountIn, slippage)
+                  const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
+                    it('executes the expected connector', async () => {
+                      const tx = await task.call(token.address, requestedAmount, slippage)
 
-                    const connectorData = connector.interface.encodeFunctionData('execute', [
-                      chainId,
-                      token.address,
-                      amountIn,
-                      minAmountOut,
-                      smartVault.address,
-                    ])
-                    await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
-                      connector,
-                      data: connectorData,
+                      const connectorData = connector.interface.encodeFunctionData('execute', [
+                        chainId,
+                        token.address,
+                        amountIn,
+                        minAmountOut,
+                        smartVault.address,
+                      ])
+
+                      await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
+                        connector,
+                        data: connectorData,
+                      })
+
+                      await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
+                        chainId,
+                        token,
+                        amountIn,
+                        minAmountOut,
+                        recipient: smartVault,
+                      })
                     })
 
-                    await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
-                      chainId,
-                      token,
-                      amountIn,
-                      minAmountOut,
-                      recipient: smartVault,
+                    it('emits an Executed event', async () => {
+                      const tx = await task.call(token.address, requestedAmount, slippage)
+
+                      await assertEvent(tx, 'Executed')
+                    })
+                  }
+
+                  context('without balance connectors', () => {
+                    const requestedAmount = amountIn
+
+                    itExecutesTheTaskProperly(requestedAmount)
+
+                    it('does not update any balance connectors', async () => {
+                      const tx = await task.call(token.address, requestedAmount, slippage)
+
+                      await assertNoEvent(tx, 'BalanceConnectorUpdated')
                     })
                   })
 
-                  it('emits an Executed event', async () => {
-                    const tx = await task.call(token.address, amountIn, slippage)
+                  context('with balance connectors', () => {
+                    const requestedAmount = 0
+                    const prevConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000001'
 
-                    await assertEvent(tx, 'Executed')
+                    beforeEach('set balance connectors', async () => {
+                      const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+                      await authorizer
+                        .connect(owner)
+                        .authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+                      await task.connect(owner).setBalanceConnectors(prevConnectorId, ZERO_BYTES32)
+                    })
+
+                    beforeEach('authorize task to update balance connectors', async () => {
+                      const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                      await authorizer
+                        .connect(owner)
+                        .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+                    })
+
+                    beforeEach('assign amount in to previous balance connector', async () => {
+                      const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                      await authorizer
+                        .connect(owner)
+                        .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
+                      await smartVault
+                        .connect(owner)
+                        .updateBalanceConnector(prevConnectorId, token.address, amountIn, true)
+                    })
+
+                    itExecutesTheTaskProperly(requestedAmount)
+
+                    it('updates the balance connectors properly', async () => {
+                      const tx = await task.call(token.address, requestedAmount, slippage)
+
+                      await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+                        id: prevConnectorId,
+                        token,
+                        amount: amountIn,
+                        added: false,
+                      })
+                    })
                   })
                 })
 

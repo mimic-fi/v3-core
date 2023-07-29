@@ -72,6 +72,7 @@ contract RelayerDepositor is IRelayerDepositor, Task {
      * @dev Executes the relayer depositor task
      */
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforeRelayerDepositor(token, amount);
         bytes memory relayerData = abi.encodeWithSelector(IRelayer.deposit.selector, smartVault, amount);
         // solhint-disable-next-line avoid-low-level-calls

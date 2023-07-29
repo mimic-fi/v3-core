@@ -81,7 +81,7 @@ abstract contract BaseTask is IBaseTask, Authorized {
      * In case a task relies on an external tokens source, it must override how the task amount is calculated.
      * @param token Address of the token being queried
      */
-    function getTaskAmount(address token) external view virtual override returns (uint256) {
+    function getTaskAmount(address token) public view virtual override returns (uint256) {
         return ISmartVault(smartVault).getBalanceConnector(previousBalanceConnectorId, token);
     }
 

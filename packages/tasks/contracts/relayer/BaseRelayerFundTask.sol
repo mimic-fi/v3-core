@@ -61,6 +61,8 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
      */
     function getTaskAmount(address token) public view virtual override(IBaseTask, BaseTask) returns (uint256) {
         Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
+        if (threshold.token == address(0)) return 0;
+
         uint256 depositedThresholdToken = _getDepositedInThresholdToken(threshold.token);
         uint256 usedQuotaThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);
         if (depositedThresholdToken >= threshold.min) return 0;
@@ -82,6 +84,8 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
      */
     function _beforeTokenThresholdTask(address token, uint256 amount) internal virtual override {
         Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
+        if (threshold.token == address(0)) revert TaskTokenThresholdNotSet(token);
+
         uint256 amountInThresholdToken = amount.mulUp(_getPrice(token, threshold.token));
         uint256 depositedInThresholdToken = _getDepositedInThresholdToken(threshold.token);
         uint256 usedQuotaInThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);

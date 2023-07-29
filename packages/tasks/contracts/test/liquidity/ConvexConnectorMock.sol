@@ -14,7 +14,17 @@
 
 pragma solidity ^0.8.0;
 
+import '@mimic-fi/v3-helpers/contracts/mocks/TokenMock.sol';
+
 contract ConvexConnectorMock {
+    IERC20 public immutable rewardToken;
+    uint256 public immutable rewardAmount;
+
+    constructor() {
+        rewardAmount = 5e18;
+        rewardToken = new TokenMock('Convex Claimer Reward', 18);
+    }
+
     mapping (address => address) public getCvxPool;
 
     mapping (address => address) public getCurvePool;
@@ -34,9 +44,11 @@ contract ConvexConnectorMock {
     }
 
     function claim(address cvxPool) external returns (address[] memory tokens, uint256[] memory amounts) {
+        tokens = new address[](1);
+        tokens[0] = address(rewardToken);
+        amounts = new uint256[](1);
+        amounts[0] = rewardAmount;
         emit LogClaim(cvxPool);
-        tokens = new address[](0);
-        amounts = new uint256[](0);
     }
 
     function join(address curvePool, uint256 amount) external returns (uint256) {

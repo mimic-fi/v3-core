@@ -1,6 +1,8 @@
 import {
   assertEvent,
   assertIndirectEvent,
+  assertNoEvent,
+  BigNumberish,
   deployProxy,
   deployTokenMock,
   fp,
@@ -8,6 +10,7 @@ import {
   getSigners,
   NATIVE_TOKEN_ADDRESS,
   ZERO_ADDRESS,
+  ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
@@ -34,16 +37,7 @@ describe('Depositor', () => {
       nonce: (await deployer.getTransactionCount()) + 1,
     })
 
-    task = await deployProxy(
-      'Depositor',
-      [],
-      [
-        {
-          tokensSource,
-          taskConfig: buildEmptyTaskConfig(owner, smartVault),
-        },
-      ]
-    )
+    task = await deployProxy('Depositor', [], [{ tokensSource, taskConfig: buildEmptyTaskConfig(owner, smartVault) }])
   })
 
   describe('execution type', () => {
@@ -140,16 +134,61 @@ describe('Depositor', () => {
             await token.mint(task.address, amount)
           })
 
-          it('calls the collect primitive', async () => {
-            const tx = await task.call(token.address, amount)
+          const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
+            it('calls the collect primitive', async () => {
+              const tx = await task.call(token.address, requestedAmount)
 
-            await assertIndirectEvent(tx, smartVault.interface, 'Collected', { token, from: task, amount })
+              await assertIndirectEvent(tx, smartVault.interface, 'Collected', { token, from: task, amount })
+            })
+
+            it('emits an Executed event', async () => {
+              const tx = await task.call(token.address, requestedAmount)
+
+              await assertEvent(tx, 'Executed')
+            })
+          }
+
+          context('without balance connectors', () => {
+            const requestedAmount = amount
+
+            itExecutesTheTaskProperly(requestedAmount)
+
+            it('does not update any balance connectors', async () => {
+              const tx = await task.call(token.address, requestedAmount)
+
+              await assertNoEvent(tx, 'BalanceConnectorUpdated')
+            })
           })
 
-          it('emits an Executed event', async () => {
-            const tx = await task.call(token.address, amount)
+          context('with balance connectors', () => {
+            const requestedAmount = 0
+            const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
 
-            await assertEvent(tx, 'Executed')
+            beforeEach('set balance connectors', async () => {
+              const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+              await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+              await task.connect(owner).setBalanceConnectors(ZERO_BYTES32, nextConnectorId)
+            })
+
+            beforeEach('authorize task to update balance connectors', async () => {
+              const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+              await authorizer
+                .connect(owner)
+                .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+            })
+
+            itExecutesTheTaskProperly(requestedAmount)
+
+            it('updates the balance connectors properly', async () => {
+              const tx = await task.call(token.address, requestedAmount)
+
+              await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+                id: nextConnectorId,
+                token,
+                amount,
+                added: true,
+              })
+            })
           })
         })
 
