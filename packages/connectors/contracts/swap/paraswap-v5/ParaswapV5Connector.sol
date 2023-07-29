@@ -20,36 +20,22 @@ import '@openzeppelin/contracts/utils/Address.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import './IParaswapV5Augustus.sol';
+import '../../interfaces/swap/IParaswapV5Connector.sol';
 
 /**
  * @title ParaswapV5Connector
  * @dev Interfaces with Paraswap V5 to swap tokens
  */
-contract ParaswapV5Connector {
-    /**
-     * @dev The token in is the same as the token out
-     */
-    error ParaswapV5SwapSameToken(address token);
-
-    /**
-     * @dev The amount out is lower than the minimum amount out
-     */
-    error ParaswapV5BadAmountOut(uint256 amountOut, uint256 minAmountOut);
-
-    /**
-     * @dev The post token in balance is lower than the previous token in balance minus the amount in
-     */
-    error ParaswapV5BadPostTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
-
+contract ParaswapV5Connector is IParaswapV5Connector {
     // Reference to Paraswap V5 Augustus swapper
-    IParaswapV5Augustus public immutable paraswapV5Augustus;
+    address public immutable override paraswapV5Augustus;
 
     /**
      * @dev Creates a new ParaswapV5Connector contract
      * @param _paraswapV5Augustus Paraswap V5 augusts reference
      */
     constructor(address _paraswapV5Augustus) {
-        paraswapV5Augustus = IParaswapV5Augustus(_paraswapV5Augustus);
+        paraswapV5Augustus = _paraswapV5Augustus;
     }
 
     /**
@@ -69,9 +55,9 @@ contract ParaswapV5Connector {
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
 
-        address tokenTransferProxy = paraswapV5Augustus.getTokenTransferProxy();
+        address tokenTransferProxy = IParaswapV5Augustus(paraswapV5Augustus).getTokenTransferProxy();
         ERC20Helpers.approve(tokenIn, tokenTransferProxy, amountIn);
-        Address.functionCall(address(paraswapV5Augustus), data, 'PARASWAP_V5_SWAP_FAILED');
+        Address.functionCall(paraswapV5Augustus, data, 'PARASWAP_V5_SWAP_FAILED');
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;

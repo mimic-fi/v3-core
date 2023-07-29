@@ -20,27 +20,13 @@ import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 
 import './I2CrvPool.sol';
+import '../../interfaces/liquidity/curve/ICurve2CrvConnector.sol';
 
 /**
  * @title Curve2CrvConnector
  */
-contract Curve2CrvConnector {
+contract Curve2CrvConnector is ICurve2CrvConnector {
     using FixedPoint for uint256;
-
-    /**
-     * @dev Failed to find the token in the 2CRV pool
-     */
-    error Curve2CrvTokenNotFound(address pool, address token);
-
-    /**
-     * @dev Token decimals exceed 18
-     */
-    error Curve2CrvTokenDecimalsAbove18(address token, uint256 decimals);
-
-    /**
-     * @dev The slippage is above one
-     */
-    error Curve2CrvSlippageAboveOne(uint256 slippage);
 
     /**
      * @dev Adds liquidity to the 2CRV pool
@@ -49,7 +35,11 @@ contract Curve2CrvConnector {
      * @param amountIn Amount of tokens to join the 2CRV pool
      * @param slippage Slippage value to be used to compute the desired min amount out of pool tokens
      */
-    function join(address pool, address tokenIn, uint256 amountIn, uint256 slippage) external returns (uint256) {
+    function join(address pool, address tokenIn, uint256 amountIn, uint256 slippage)
+        external
+        override
+        returns (uint256)
+    {
         if (amountIn == 0) return 0;
         if (slippage > FixedPoint.ONE) revert Curve2CrvSlippageAboveOne(slippage);
         (uint256 tokenIndex, uint256 tokenScale) = _findTokenInfo(pool, tokenIn);
@@ -77,6 +67,7 @@ contract Curve2CrvConnector {
      */
     function exit(address pool, uint256 amountIn, address tokenOut, uint256 slippage)
         external
+        override
         returns (uint256 amountOut)
     {
         if (amountIn == 0) return 0;

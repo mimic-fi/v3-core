@@ -20,37 +20,22 @@ import '@openzeppelin/contracts/utils/Address.sol';
 
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
-import './IOneInchV5AggregationRouter.sol';
+import '../../interfaces/swap/IOneInchV5Connector.sol';
 
 /**
  * @title OneInchV5Connector
  * @dev Interfaces with 1inch V5 to swap tokens
  */
-contract OneInchV5Connector {
-    /**
-     * @dev The token in is the same as the token out
-     */
-    error OneInchV5SwapSameToken(address token);
-
-    /**
-     * @dev The amount out is lower than the minimum amount out
-     */
-    error OneInchV5BadAmountOut(uint256 amountOut, uint256 minAmountOut);
-
-    /**
-     * @dev The post token in balance is lower than the previous token in balance minus the amount in
-     */
-    error OneInchV5BadPostTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
-
+contract OneInchV5Connector is IOneInchV5Connector {
     // Reference to 1inch aggregation router v5
-    IOneInchV5AggregationRouter public immutable oneInchV5Router;
+    address public immutable override oneInchV5Router;
 
     /**
      * @dev Creates a new OneInchV5Connector contract
      * @param _oneInchV5Router 1inch aggregation router v5 reference
      */
     constructor(address _oneInchV5Router) {
-        oneInchV5Router = IOneInchV5AggregationRouter(_oneInchV5Router);
+        oneInchV5Router = _oneInchV5Router;
     }
 
     /**
@@ -63,6 +48,7 @@ contract OneInchV5Connector {
      */
     function execute(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, bytes memory data)
         external
+        override
         returns (uint256 amountOut)
     {
         if (tokenIn == tokenOut) revert OneInchV5SwapSameToken(tokenIn);
@@ -70,8 +56,8 @@ contract OneInchV5Connector {
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
 
-        ERC20Helpers.approve(tokenIn, address(oneInchV5Router), amountIn);
-        Address.functionCall(address(oneInchV5Router), data, '1INCH_V5_SWAP_FAILED');
+        ERC20Helpers.approve(tokenIn, oneInchV5Router, amountIn);
+        Address.functionCall(oneInchV5Router, data, '1INCH_V5_SWAP_FAILED');
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;

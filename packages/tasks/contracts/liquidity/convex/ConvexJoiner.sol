@@ -15,7 +15,7 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/liquidity/convex/ConvexConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/liquidity/convex/IConvexConnector.sol';
 
 import './BaseConvexTask.sol';
 import '../../interfaces/liquidity/convex/IConvexJoiner.sol';
@@ -70,9 +70,9 @@ contract ConvexJoiner is IConvexJoiner, BaseConvexTask {
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
         if (amount == 0) amount = getTaskAmount(token);
         _beforeConvexJoiner(token, amount);
-        bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.join.selector, token, amount);
+        bytes memory connectorData = abi.encodeWithSelector(IConvexConnector.join.selector, token, amount);
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
-        _afterConvexJoiner(token, amount, ConvexConnector(connector).getCvxPool(token), result.toUint256());
+        _afterConvexJoiner(token, amount, IConvexConnector(connector).getCvxPool(token), result.toUint256());
     }
 
     /**

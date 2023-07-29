@@ -24,49 +24,15 @@ import '@mimic-fi/v3-helpers/contracts/utils/IWrappedNativeToken.sol';
 
 import './IHopL2AMM.sol';
 import './IHopL1Bridge.sol';
+import '../../interfaces/bridge/IHopConnector.sol';
 
 /**
  * @title HopConnector
  * @dev Interfaces with Hop Exchange to bridge tokens
  */
-contract HopConnector {
+contract HopConnector is IHopConnector {
     using FixedPoint for uint256;
     using Denominations for address;
-
-    /**
-     * @dev The source and destination chains are the same
-     */
-    error HopBridgeSameChain(uint256 chainId);
-
-    /**
-     * @dev The bridge operation is not supported
-     */
-    error HopBridgeOpNotSupported();
-
-    /**
-     * @dev The recipient address is zero
-     */
-    error HopBridgeRecipientZero();
-
-    /**
-     * @dev The relayer was sent when not needed
-     */
-    error HopBridgeRelayerNotNeeded();
-
-    /**
-     * @dev The deadline was sent when not needed
-     */
-    error HopBridgeDeadlineNotNeeded();
-
-    /**
-     * @dev The deadline is in the past
-     */
-    error HopBridgePastDeadline(uint256 deadline, uint256 currentTimestamp);
-
-    /**
-     * @dev The post token balance is lower than the previous token balance minus the amount bridged
-     */
-    error HopBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
 
     // Ethereum mainnet chain ID = 1
     uint256 private constant MAINNET_CHAIN_ID = 1;
@@ -75,7 +41,7 @@ contract HopConnector {
     uint256 private constant GOERLI_CHAIN_ID = 5;
 
     // Wrapped native token reference
-    address public immutable wrappedNativeToken;
+    address public immutable override wrappedNativeToken;
 
     /**
      * @dev Initializes the HopConnector contract
@@ -114,7 +80,7 @@ contract HopConnector {
         uint256 deadline,
         address relayer,
         uint256 fee
-    ) external {
+    ) external override {
         if (block.chainid == chainId) revert HopBridgeSameChain(chainId);
         if (recipient == address(0)) revert HopBridgeRecipientZero();
 

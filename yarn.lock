@@ -903,6 +903,14 @@
     tweetnacl "^1.0.3"
     tweetnacl-util "^0.15.1"
 
+"@mimic-fi/v3-connectors@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-connectors/-/v3-connectors-0.0.1.tgz#1c699b639939d72b20c9a3f6d6ad9057c1bb0c59"
+  integrity sha512-KroLGM3TR6UesPwA8863lrvuy/a484n0lhF8AIohO+Tkyy/kzCVd1UcCp1je4TUfeUp5X2C8m57m4zSbAUeoRA==
+  dependencies:
+    "@mimic-fi/v3-helpers" "0.0.1"
+    "@openzeppelin/contracts" "4.7.0"
+
 "@mimic-fi/v3-helpers@0.0.1":
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/@mimic-fi/v3-helpers/-/v3-helpers-0.0.1.tgz#27a9aa67e07cfe87a37de47733569fe7a2891bf9"

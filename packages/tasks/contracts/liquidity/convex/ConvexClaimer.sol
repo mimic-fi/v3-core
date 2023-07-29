@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.0;
 
-import '@mimic-fi/v3-connectors/contracts/liquidity/convex/ConvexConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/liquidity/convex/IConvexConnector.sol';
 
 import './BaseConvexTask.sol';
 import '../../interfaces/liquidity/convex/IConvexClaimer.sol';
@@ -62,7 +62,7 @@ contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
      * @dev Tells the address from where the token amounts to execute this task are fetched
      */
     function getTokensSource() external view virtual override(IBaseTask, BaseTask) returns (address) {
-        return address(ConvexConnector(connector).booster());
+        return IConvexConnector(connector).booster();
     }
 
     /**
@@ -81,7 +81,7 @@ contract ConvexClaimer is IConvexClaimer, BaseConvexTask {
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
         if (amount == 0) amount = getTaskAmount(token);
         _beforeConvexClaimer(token, amount);
-        bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.claim.selector, token);
+        bytes memory connectorData = abi.encodeWithSelector(IConvexConnector.claim.selector, token);
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
         (address[] memory tokens, uint256[] memory amounts) = abi.decode(result, (address[], uint256[]));
         _afterConvexClaimer(token, amount, tokens, amounts);

@@ -20,42 +20,13 @@ import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import './IWormhole.sol';
+import '../../interfaces/bridge/IWormholeConnector.sol';
 
 /**
  * @title WormholeConnector
  * @dev Interfaces with Wormhole to bridge tokens through CCTP
  */
-contract WormholeConnector {
-    /**
-     * @dev The recipient address is zero
-     */
-    error WormholeBridgeRecipientZero();
-
-    /**
-     * @dev The source and destination chains are the same
-     */
-    error WormholeBridgeSameChain(uint256 chainId);
-
-    /**
-     * @dev The chain ID is not supported
-     */
-    error WormholeBridgeUnknownChainId(uint256 chainId);
-
-    /**
-     * @dev The relayer fee is greater than the amount to be bridged
-     */
-    error WormholeBridgeRelayerFeeGtAmount(uint256 relayerFee, uint256 amountIn);
-
-    /**
-     * @dev The minimum amount out is greater than the amount to be bridged minus the relayer fee
-     */
-    error WormholeBridgeMinAmountOutTooBig(uint256 minAmountOut, uint256 amountIn, uint256 relayerFee);
-
-    /**
-     * @dev The post token balance is lower than the previous token balance minus the amount bridged
-     */
-    error WormholeBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
-
+contract WormholeConnector is IWormholeConnector {
     // List of Wormhole network IDs
     uint16 private constant ETHEREUM_WORMHOLE_NETWORK_ID = 2;
     uint16 private constant POLYGON_WORMHOLE_NETWORK_ID = 5;
@@ -75,14 +46,14 @@ contract WormholeConnector {
     uint256 private constant AVALANCHE_ID = 43114;
 
     // Reference to the Wormhole's CircleRelayer contract of the source chain
-    IWormhole public immutable wormholeCircleRelayer;
+    address public immutable override wormholeCircleRelayer;
 
     /**
      * @dev Creates a new Wormhole connector
      * @param _wormholeCircleRelayer Address of the Wormhole's CircleRelayer contract for the source chain
      */
     constructor(address _wormholeCircleRelayer) {
-        wormholeCircleRelayer = IWormhole(_wormholeCircleRelayer);
+        wormholeCircleRelayer = _wormholeCircleRelayer;
     }
 
     /**
@@ -95,12 +66,13 @@ contract WormholeConnector {
      */
     function execute(uint256 chainId, address token, uint256 amountIn, uint256 minAmountOut, address recipient)
         external
+        override
     {
         if (block.chainid == chainId) revert WormholeBridgeSameChain(chainId);
         if (recipient == address(0)) revert WormholeBridgeRecipientZero();
 
         uint16 wormholeNetworkId = _getWormholeNetworkId(chainId);
-        uint256 relayerFee = wormholeCircleRelayer.relayerFee(wormholeNetworkId, token);
+        uint256 relayerFee = IWormhole(wormholeCircleRelayer).relayerFee(wormholeNetworkId, token);
         if (relayerFee > amountIn) revert WormholeBridgeRelayerFeeGtAmount(relayerFee, amountIn);
 
         bool isMinAmountTooBig = minAmountOut > amountIn - relayerFee;
@@ -108,8 +80,8 @@ contract WormholeConnector {
 
         uint256 preBalance = IERC20(token).balanceOf(address(this));
 
-        ERC20Helpers.approve(token, address(wormholeCircleRelayer), amountIn);
-        wormholeCircleRelayer.transferTokensWithRelay(
+        ERC20Helpers.approve(token, wormholeCircleRelayer, amountIn);
+        IWormhole(wormholeCircleRelayer).transferTokensWithRelay(
             token,
             amountIn,
             0, // don't swap to native token

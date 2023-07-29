@@ -16,7 +16,7 @@ pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-connectors/contracts/swap/hop/IHopL2Amm.sol';
-import '@mimic-fi/v3-connectors/contracts/swap/hop/HopSwapConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IHopSwapConnector.sol';
 
 import './BaseSwapTask.sol';
 import '../interfaces/swap/IHopL2Swapper.sol';
@@ -102,7 +102,7 @@ contract HopL2Swapper is IHopL2Swapper, BaseSwapTask {
         address dexAddress = IHopL2Amm(tokenAmm[hToken]).exchangeAddress();
         uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
-            HopSwapConnector.execute.selector,
+            IHopSwapConnector.execute.selector,
             hToken,
             tokenOut,
             amount,

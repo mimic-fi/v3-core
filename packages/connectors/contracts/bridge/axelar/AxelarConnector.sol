@@ -20,32 +20,13 @@ import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import './IAxelarGateway.sol';
+import '../../interfaces/bridge/IAxelarConnector.sol';
 
 /**
  * @title AxelarConnector
  * @dev Interfaces with Axelar to bridge tokens
  */
-contract AxelarConnector {
-    /**
-     * @dev The recipient address is zero
-     */
-    error AxelarBridgeRecipientZero();
-
-    /**
-     * @dev The source and destination chains are the same
-     */
-    error AxelarBridgeSameChain(uint256 chainId);
-
-    /**
-     * @dev The chain ID is not supported
-     */
-    error AxelarBridgeUnknownChainId(uint256 chainId);
-
-    /**
-     * @dev The post token balance is lower than the previous token balance minus the amount bridged
-     */
-    error AxelarBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
-
+contract AxelarConnector is IAxelarConnector {
     // List of chain names supported by Axelar
     string private constant ETHEREUM_NAME = 'Ethereum';
     string private constant POLYGON_NAME = 'Polygon';
@@ -63,14 +44,14 @@ contract AxelarConnector {
     uint256 private constant AVALANCHE_ID = 43114;
 
     // Reference to the Axelar gateway of the source chain
-    IAxelarGateway public immutable axelarGateway;
+    address public immutable override axelarGateway;
 
     /**
      * @dev Creates a new Axelar connector
      * @param _axelarGateway Address of the Axelar gateway for the source chain
      */
     constructor(address _axelarGateway) {
-        axelarGateway = IAxelarGateway(_axelarGateway);
+        axelarGateway = _axelarGateway;
     }
 
     /**
@@ -80,7 +61,7 @@ contract AxelarConnector {
      * @param amountIn Amount of tokens to be bridged
      * @param recipient Address that will receive the tokens on the destination chain
      */
-    function execute(uint256 chainId, address token, uint256 amountIn, address recipient) external {
+    function execute(uint256 chainId, address token, uint256 amountIn, address recipient) external override {
         if (block.chainid == chainId) revert AxelarBridgeSameChain(chainId);
         if (recipient == address(0)) revert AxelarBridgeRecipientZero();
 
@@ -88,8 +69,8 @@ contract AxelarConnector {
         string memory symbol = IERC20Metadata(token).symbol();
         uint256 preBalance = IERC20(token).balanceOf(address(this));
 
-        ERC20Helpers.approve(token, address(axelarGateway), amountIn);
-        axelarGateway.sendToken(chainName, Strings.toHexString(recipient), symbol, amountIn);
+        ERC20Helpers.approve(token, axelarGateway, amountIn);
+        IAxelarGateway(axelarGateway).sendToken(chainName, Strings.toHexString(recipient), symbol, amountIn);
 
         uint256 postBalance = IERC20(token).balanceOf(address(this));
         bool isPostBalanceUnexpected = postBalance < preBalance - amountIn;

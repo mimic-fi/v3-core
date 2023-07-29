@@ -19,42 +19,13 @@ import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import './IConnext.sol';
+import '../../interfaces/bridge/IConnextConnector.sol';
 
 /**
  * @title ConnextConnector
  * @dev Interfaces with Connext to bridge tokens
  */
-contract ConnextConnector {
-    /**
-     * @dev The recipient address is zero
-     */
-    error ConnextBridgeRecipientZero();
-
-    /**
-     * @dev The source and destination chains are the same
-     */
-    error ConnextBridgeSameChain(uint256 chainId);
-
-    /**
-     * @dev The chain ID is not supported
-     */
-    error ConnextBridgeUnknownChainId(uint256 chainId);
-
-    /**
-     * @dev The relayer fee is greater than the amount to be bridged
-     */
-    error ConnextBridgeRelayerFeeGtAmount(uint256 relayerFee, uint256 amountIn);
-
-    /**
-     * @dev The minimum amount out is greater than the amount to be bridged minus the relayer fee
-     */
-    error ConnextBridgeMinAmountOutTooBig(uint256 minAmountOut, uint256 amountIn, uint256 relayerFee);
-
-    /**
-     * @dev The post token balance is lower than the previous token balance minus the amount bridged
-     */
-    error ConnextBridgeBadPostTokenBalance(uint256 postBalance, uint256 preBalance, uint256 amount);
-
+contract ConnextConnector is IConnextConnector {
     // List of chain domains supported by Connext
     uint32 private constant ETHEREUM_DOMAIN = 6648936;
     uint32 private constant POLYGON_DOMAIN = 1886350457;
@@ -72,14 +43,14 @@ contract ConnextConnector {
     uint256 private constant BSC_ID = 56;
 
     // Reference to the Connext contract of the source chain
-    IConnext public immutable connext;
+    address public immutable override connext;
 
     /**
      * @dev Creates a new Connext connector
      * @param _connext Address of the Connext contract for the source chain
      */
     constructor(address _connext) {
-        connext = IConnext(_connext);
+        connext = _connext;
     }
 
     /**
@@ -98,7 +69,7 @@ contract ConnextConnector {
         uint256 minAmountOut,
         address recipient,
         uint256 relayerFee
-    ) external {
+    ) external override {
         if (block.chainid == chainId) revert ConnextBridgeSameChain(chainId);
         if (recipient == address(0)) revert ConnextBridgeRecipientZero();
         if (relayerFee > amountIn) revert ConnextBridgeRelayerFeeGtAmount(relayerFee, amountIn);
@@ -114,9 +85,9 @@ contract ConnextConnector {
         uint256 slippage = 100 - ((minAmountOut * 100) / amountInAfterFees);
 
         uint256 preBalance = IERC20(token).balanceOf(address(this));
-        ERC20Helpers.approve(token, address(connext), amountIn);
+        ERC20Helpers.approve(token, connext, amountIn);
 
-        connext.xcall(
+        IConnext(connext).xcall(
             domain,
             recipient,
             token,

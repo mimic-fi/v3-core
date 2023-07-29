@@ -21,51 +21,37 @@ import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 
 import './ICvxPool.sol';
 import './ICvxBooster.sol';
+import '../../interfaces/liquidity/convex/IConvexConnector.sol';
 
 /**
  * @title ConvexConnector
  */
-contract ConvexConnector {
+contract ConvexConnector is IConvexConnector {
     using FixedPoint for uint256;
 
-    /**
-     * @dev Missing Convex pool for the requested Curve pool
-     */
-    error ConvexCvxPoolNotFound(address curvePool);
-
-    /**
-     * @dev Failed to deposit tokens into the Convex booster
-     */
-    error ConvexBoosterDepositFailed(uint256 poolId, uint256 amount);
-
-    /**
-     * @dev Failed to withdraw tokens from Convex pool
-     */
-    error ConvexCvxPoolWithdrawFailed(address cvxPool, uint256 amount);
-
     // Convex booster
-    ICvxBooster public immutable booster;
+    address public immutable override booster;
 
     /**
      * @dev Creates a new Convex connector
      */
-    constructor(ICvxBooster _booster) {
+    constructor(address _booster) {
         booster = _booster;
     }
 
     /**
      * @dev Finds the Curve pool address associated to a Convex pool
      */
-    function getCurvePool(address cvxPool) public view returns (address) {
+    function getCurvePool(address cvxPool) public view override returns (address) {
         uint256 poolId = ICvxPool(cvxPool).convexPoolId();
-        (address pool, , , , ) = booster.poolInfo(poolId);
+        (address pool, , , , ) = ICvxBooster(booster).poolInfo(poolId);
         return pool;
     }
 
     /**
      * @dev Finds the Curve pool address associated to a Convex pool
      */
-    function getCvxPool(address curvePool) public view returns (address) {
+    function getCvxPool(address curvePool) public view override returns (address) {
         (, ICvxPool pool) = _findCvxPoolInfo(curvePool);
         return address(pool);
     }
@@ -73,7 +59,7 @@ contract ConvexConnector {
     /**
      * @dev Claims Convex pool rewards for a Curve pool
      */
-    function claim(address cvxPool) external returns (address[] memory tokens, uint256[] memory amounts) {
+    function claim(address cvxPool) external override returns (address[] memory tokens, uint256[] memory amounts) {
         IERC20 crv = IERC20(ICvxPool(cvxPool).crv());
 
         uint256 initialCrvBalance = crv.balanceOf(address(this));
@@ -92,13 +78,13 @@ contract ConvexConnector {
      * @param curvePool Address of the Curve pool to join Convex
      * @param amount Amount of Curve pool tokens to be deposited into Convex
      */
-    function join(address curvePool, uint256 amount) external returns (uint256) {
+    function join(address curvePool, uint256 amount) external override returns (uint256) {
         if (amount == 0) return 0;
         (uint256 poolId, ICvxPool cvxPool) = _findCvxPoolInfo(curvePool);
 
         uint256 initialCvxPoolTokenBalance = cvxPool.balanceOf(address(this));
-        IERC20(curvePool).approve(address(booster), amount);
-        if (!booster.deposit(poolId, amount)) revert ConvexBoosterDepositFailed(poolId, amount);
+        IERC20(curvePool).approve(booster, amount);
+        if (!ICvxBooster(booster).deposit(poolId, amount)) revert ConvexBoosterDepositFailed(poolId, amount);
 
         uint256 finalCvxPoolTokenBalance = cvxPool.balanceOf(address(this));
         return finalCvxPoolTokenBalance - initialCvxPoolTokenBalance;
@@ -109,7 +95,7 @@ contract ConvexConnector {
      * @param cvxPool Address of the Convex pool to exit from Convex
      * @param amount Amount of Convex tokens to be withdrawn
      */
-    function exit(address cvxPool, uint256 amount) external returns (uint256) {
+    function exit(address cvxPool, uint256 amount) external override returns (uint256) {
         if (amount == 0) return 0;
         address curvePool = getCurvePool(cvxPool);
 
@@ -124,8 +110,8 @@ contract ConvexConnector {
      * @dev Finds the Convex pool information associated to the given Curve pool
      */
     function _findCvxPoolInfo(address curvePool) internal view returns (uint256 poolId, ICvxPool cvxPool) {
-        for (uint256 i = 0; i < booster.poolLength(); i++) {
-            (address lp, , address rewards, bool shutdown, ) = booster.poolInfo(i);
+        for (uint256 i = 0; i < ICvxBooster(booster).poolLength(); i++) {
+            (address lp, , address rewards, bool shutdown, ) = ICvxBooster(booster).poolInfo(i);
             if (lp == curvePool && !shutdown) {
                 return (i, ICvxPool(rewards));
             }

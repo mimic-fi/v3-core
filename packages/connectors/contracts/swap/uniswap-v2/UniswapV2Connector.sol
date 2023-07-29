@@ -22,41 +22,22 @@ import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import './IUniswapV2Factory.sol';
 import './IUniswapV2Router02.sol';
+import '../../interfaces/swap/IUniswapV2Connector.sol';
 
 /**
  * @title UniswapV2Connector
  * @dev Interfaces with Uniswap V2 to swap tokens
  */
-contract UniswapV2Connector {
-    /**
-     * @dev The token in is the same as the token out
-     */
-    error UniswapV2SwapSameToken(address token);
-
-    /**
-     * @dev The pool does not exist
-     */
-    error UniswapV2InvalidPool(address tokenA, address tokenB);
-
-    /**
-     * @dev The amount out is lower than the minimum amount out
-     */
-    error UniswapV2BadAmountOut(uint256 amountOut, uint256 minAmountOut);
-
-    /**
-     * @dev The post token in balance is lower than the previous token in balance minus the amount in
-     */
-    error UniswapV2BadPostTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
-
+contract UniswapV2Connector is IUniswapV2Connector {
     // Reference to UniswapV2 router
-    IUniswapV2Router02 public immutable uniswapV2Router;
+    address public immutable override uniswapV2Router;
 
     /**
      * @dev Initializes the UniswapV2Connector contract
      * @param _uniswapV2Router Uniswap V2 router reference
      */
     constructor(address _uniswapV2Router) {
-        uniswapV2Router = IUniswapV2Router02(_uniswapV2Router);
+        uniswapV2Router = _uniswapV2Router;
     }
 
     /**
@@ -79,7 +60,7 @@ contract UniswapV2Connector {
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
 
-        ERC20Helpers.approve(tokenIn, address(uniswapV2Router), amountIn);
+        ERC20Helpers.approve(tokenIn, uniswapV2Router, amountIn);
         hopTokens.length == 0
             ? _singleSwap(tokenIn, tokenOut, amountIn, minAmountOut)
             : _batchSwap(tokenIn, tokenOut, amountIn, minAmountOut, hopTokens);
@@ -104,10 +85,11 @@ contract UniswapV2Connector {
         internal
         returns (uint256[] memory)
     {
-        address factory = uniswapV2Router.factory();
+        IUniswapV2Router02 router = IUniswapV2Router02(uniswapV2Router);
+        address factory = router.factory();
         address[] memory tokens = Arrays.from(tokenIn, tokenOut);
         _validatePool(factory, tokenIn, tokenOut);
-        return uniswapV2Router.swapExactTokensForTokens(amountIn, minAmountOut, tokens, address(this), block.timestamp);
+        return router.swapExactTokensForTokens(amountIn, minAmountOut, tokens, address(this), block.timestamp);
     }
 
     /**
@@ -125,12 +107,11 @@ contract UniswapV2Connector {
         uint256 minAmountOut,
         address[] memory hopTokens
     ) internal returns (uint256[] memory) {
-        address factory = uniswapV2Router.factory();
+        IUniswapV2Router02 router = IUniswapV2Router02(uniswapV2Router);
+        address factory = router.factory();
         address[] memory tokens = Arrays.from(tokenIn, hopTokens, tokenOut);
-        for (uint256 i = 0; i < tokens.length - 1; i++) {
-            _validatePool(factory, tokens[i], tokens[i + 1]);
-        }
-        return uniswapV2Router.swapExactTokensForTokens(amountIn, minAmountOut, tokens, address(this), block.timestamp);
+        for (uint256 i = 0; i < tokens.length - 1; i++) _validatePool(factory, tokens[i], tokens[i + 1]);
+        return router.swapExactTokensForTokens(amountIn, minAmountOut, tokens, address(this), block.timestamp);
     }
 
     /**

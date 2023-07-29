@@ -18,7 +18,7 @@ import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/swap/paraswap-v5/ParaswapV5Connector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IParaswapV5Connector.sol';
 
 import './BaseSwapTask.sol';
 import '../interfaces/swap/IParaswapV5Swapper.sol';
@@ -106,7 +106,7 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
         );
 
         bytes memory connectorData = abi.encodeWithSelector(
-            ParaswapV5Connector.execute.selector,
+            IParaswapV5Connector.execute.selector,
             tokenIn,
             tokenOut,
             amountIn,

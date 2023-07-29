@@ -15,7 +15,7 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/liquidity/convex/ConvexConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/liquidity/convex/IConvexConnector.sol';
 
 import './BaseConvexTask.sol';
 import '../../interfaces/liquidity/convex/IConvexExiter.sol';
@@ -70,9 +70,9 @@ contract ConvexExiter is IConvexExiter, BaseConvexTask {
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
         if (amount == 0) amount = getTaskAmount(token);
         _beforeConvexExiter(token, amount);
-        bytes memory connectorData = abi.encodeWithSelector(ConvexConnector.exit.selector, token, amount);
+        bytes memory connectorData = abi.encodeWithSelector(IConvexConnector.exit.selector, token, amount);
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
-        _afterConvexExiter(token, amount, ConvexConnector(connector).getCurvePool(token), result.toUint256());
+        _afterConvexExiter(token, amount, IConvexConnector(connector).getCurvePool(token), result.toUint256());
     }
 
     /**
