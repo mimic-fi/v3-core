@@ -18,7 +18,7 @@ contract HopConnectorMock {
     event LogExecute(
         uint256 chainId,
         address token,
-        uint256 amountIn,
+        uint256 amount,
         uint256 minAmountOut,
         address recipient,
         address bridge,
@@ -30,7 +30,7 @@ contract HopConnectorMock {
     function execute(
         uint256 chainId,
         address token,
-        uint256 amountIn,
+        uint256 amount,
         uint256 minAmountOut,
         address recipient,
         address bridge,
@@ -38,6 +38,6 @@ contract HopConnectorMock {
         address relayer,
         uint256 fee
     ) external {
-        emit LogExecute(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, relayer, fee);
+        emit LogExecute(chainId, token, amount, minAmountOut, recipient, bridge, deadline, relayer, fee);
     }
 }

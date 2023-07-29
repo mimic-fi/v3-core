@@ -15,9 +15,9 @@
 pragma solidity ^0.8.0;
 
 contract AxelarConnectorMock {
-    event LogExecute(uint256 chainId, address token, uint256 amountIn, address recipient);
+    event LogExecute(uint256 chainId, address token, uint256 amount, address recipient);
 
-    function execute(uint256 chainId, address token, uint256 amountIn, address recipient) external {
-        emit LogExecute(chainId, token, amountIn, recipient);
+    function execute(uint256 chainId, address token, uint256 amount, address recipient) external {
+        emit LogExecute(chainId, token, amount, recipient);
     }
 }
