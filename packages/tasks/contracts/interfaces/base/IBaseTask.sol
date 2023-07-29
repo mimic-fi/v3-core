@@ -32,7 +32,7 @@ interface IBaseTask is IAuthorized {
     /**
      * @dev The smart vault's price oracle is not set
      */
-    error TaskSmartVaultPriceOracleNotSet(address base, address quote);
+    error TaskSmartVaultPriceOracleNotSet(address smartVault);
 
     /**
      * @dev Emitted every time a task is executed

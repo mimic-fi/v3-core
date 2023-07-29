@@ -221,6 +221,7 @@ describe('BaseTask', () => {
 
       context('when there is not enough balance in the connector', () => {
         it('reverts', async () => {
+          // TODO: Hardhat does not decode smart vault error properly
           await expect(task.call(token, amount)).to.be.reverted
         })
       })

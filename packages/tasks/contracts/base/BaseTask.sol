@@ -147,8 +147,12 @@ abstract contract BaseTask is IBaseTask, Authorized {
      */
     function _getPrice(address base, address quote) internal view virtual returns (uint256) {
         address priceOracle = ISmartVault(smartVault).priceOracle();
-        if (priceOracle == address(0)) revert TaskSmartVaultPriceOracleNotSet(base, quote);
-        return IPriceOracle(priceOracle).getPrice(_wrappedIfNative(base), _wrappedIfNative(quote));
+        if (priceOracle == address(0)) revert TaskSmartVaultPriceOracleNotSet(smartVault);
+        bytes memory extraCallData = _decodeExtraCallData();
+        return
+            extraCallData.length == 0
+                ? IPriceOracle(priceOracle).getPrice(_wrappedIfNative(base), _wrappedIfNative(quote))
+                : IPriceOracle(priceOracle).getPrice(_wrappedIfNative(base), _wrappedIfNative(quote), extraCallData);
     }
 
     /**
@@ -171,5 +175,30 @@ abstract contract BaseTask is IBaseTask, Authorized {
      */
     function _wrappedNativeToken() internal view returns (address) {
         return ISmartVault(smartVault).wrappedNativeToken();
+    }
+
+    /**
+     * @dev Decodes any potential extra calldata stored in the calldata space. Tasks relying on the extra calldata
+     * pattern, assume that the last word of the calldata stores the extra calldata length so it can be decoded. Note
+     * that tasks relying on this pattern must contemplate this function may return bogus data if no extra calldata
+     * was given.
+     */
+    function _decodeExtraCallData() private pure returns (bytes memory data) {
+        uint256 length = uint256(_decodeLastCallDataWord());
+        if (msg.data.length < length) return new bytes(0);
+        data = new bytes(length);
+        assembly {
+            calldatacopy(add(data, 0x20), sub(sub(calldatasize(), length), 0x20), length)
+        }
+    }
+
+    /**
+     * @dev Returns the last calldata word. This function returns zero if the calldata is not long enough.
+     */
+    function _decodeLastCallDataWord() private pure returns (bytes32 result) {
+        if (msg.data.length < 36) return bytes32(0);
+        assembly {
+            result := calldataload(sub(calldatasize(), 0x20))
+        }
     }
 }
