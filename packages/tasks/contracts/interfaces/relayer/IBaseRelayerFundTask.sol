@@ -38,12 +38,12 @@ interface IBaseRelayerFundTask is ITask {
     /**
      * @dev The deposited amount is above the minimum threshold
      */
-    error TaskDepositAboveMinThreshold(uint256 deposited, uint256 min);
+    error TaskDepositAboveMinThreshold(uint256 balance, uint256 min);
 
     /**
      * @dev The requested amount would result in a new balance above the maximum threshold plus the used quota
      */
-    error TaskDepositAboveMaxThreshold(uint256 newBalance, uint256 max, uint256 usedQuota);
+    error TaskDepositAboveMaxThreshold(uint256 balance, uint256 max);
 
     /**
      * @dev Emitted every time the relayer is set

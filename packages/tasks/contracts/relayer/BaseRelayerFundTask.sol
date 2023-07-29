@@ -64,9 +64,9 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
         if (threshold.token == address(0)) return 0;
 
         uint256 depositedThresholdToken = _getDepositedInThresholdToken(threshold.token);
-        uint256 usedQuotaThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);
         if (depositedThresholdToken >= threshold.min) return 0;
 
+        uint256 usedQuotaThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);
         uint256 diff = threshold.max - depositedThresholdToken + usedQuotaThresholdToken;
         return (token == threshold.token) ? diff : diff.mulUp(_getPrice(threshold.token, token));
     }
@@ -88,14 +88,13 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
 
         uint256 amountInThresholdToken = amount.mulUp(_getPrice(token, threshold.token));
         uint256 depositedInThresholdToken = _getDepositedInThresholdToken(threshold.token);
-        uint256 usedQuotaInThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);
-
-        bool isAboveMin = depositedInThresholdToken >= threshold.min + usedQuotaInThresholdToken;
+        bool isAboveMin = depositedInThresholdToken >= threshold.min;
         if (isAboveMin) revert TaskDepositAboveMinThreshold(depositedInThresholdToken, threshold.min);
 
-        uint256 newBalance = amountInThresholdToken + depositedInThresholdToken;
-        bool isAboveMax = newBalance > threshold.max + usedQuotaInThresholdToken;
-        if (isAboveMax) revert TaskDepositAboveMaxThreshold(newBalance, threshold.max, usedQuotaInThresholdToken);
+        uint256 usedQuotaInThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);
+        uint256 balanceAfterDeposit = amountInThresholdToken + depositedInThresholdToken - usedQuotaInThresholdToken;
+        bool isAboveMax = balanceAfterDeposit > threshold.max;
+        if (isAboveMax) revert TaskDepositAboveMaxThreshold(balanceAfterDeposit, threshold.max);
     }
 
     /**
