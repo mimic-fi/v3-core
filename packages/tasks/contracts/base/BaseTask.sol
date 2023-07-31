@@ -95,6 +95,44 @@ abstract contract BaseTask is IBaseTask, Authorized {
     }
 
     /**
+     * @dev Tells the wrapped native token address if the given address is the native token
+     * @param token Address of the token to be checked
+     */
+    function _wrappedIfNative(address token) internal view returns (address) {
+        return Denominations.isNativeToken(token) ? _wrappedNativeToken() : token;
+    }
+
+    /**
+     * @dev Tells whether a token is the native or the wrapped native token
+     * @param token Address of the token to be checked
+     */
+    function _isWrappedOrNative(address token) internal view returns (bool) {
+        return Denominations.isNativeToken(token) || token == _wrappedNativeToken();
+    }
+
+    /**
+     * @dev Tells the wrapped native token address
+     */
+    function _wrappedNativeToken() internal view returns (address) {
+        return ISmartVault(smartVault).wrappedNativeToken();
+    }
+
+    /**
+     * @dev Fetches a base/quote price from the smart vault's price oracle
+     * @param base Token to rate
+     * @param quote Token used for the price rate
+     */
+    function _getPrice(address base, address quote) internal view virtual returns (uint256) {
+        address priceOracle = ISmartVault(smartVault).priceOracle();
+        if (priceOracle == address(0)) revert TaskSmartVaultPriceOracleNotSet(smartVault);
+        bytes memory extraCallData = _decodeExtraCallData();
+        return
+            extraCallData.length == 0
+                ? IPriceOracle(priceOracle).getPrice(_wrappedIfNative(base), _wrappedIfNative(quote))
+                : IPriceOracle(priceOracle).getPrice(_wrappedIfNative(base), _wrappedIfNative(quote), extraCallData);
+    }
+
+    /**
      * @dev Before base task hook
      */
     function _beforeBaseTask(address token, uint256 amount) internal virtual {
@@ -140,41 +178,6 @@ abstract contract BaseTask is IBaseTask, Authorized {
         previousBalanceConnectorId = previous;
         nextBalanceConnectorId = next;
         emit BalanceConnectorsSet(previous, next);
-    }
-
-    /**
-     * @dev Fetches a base/quote price from the smart vault's price oracle
-     */
-    function _getPrice(address base, address quote) internal view virtual returns (uint256) {
-        address priceOracle = ISmartVault(smartVault).priceOracle();
-        if (priceOracle == address(0)) revert TaskSmartVaultPriceOracleNotSet(smartVault);
-        bytes memory extraCallData = _decodeExtraCallData();
-        return
-            extraCallData.length == 0
-                ? IPriceOracle(priceOracle).getPrice(_wrappedIfNative(base), _wrappedIfNative(quote))
-                : IPriceOracle(priceOracle).getPrice(_wrappedIfNative(base), _wrappedIfNative(quote), extraCallData);
-    }
-
-    /**
-     * @dev Tells the wrapped native token address if the given address is the native token
-     * @param token Address of the token to be checked
-     */
-    function _wrappedIfNative(address token) internal view returns (address) {
-        return Denominations.isNativeToken(token) ? _wrappedNativeToken() : token;
-    }
-
-    /**
-     * @dev Tells whether a token is the native or the wrapped native token
-     */
-    function _isWrappedOrNative(address token) internal view returns (bool) {
-        return Denominations.isNativeToken(token) || token == _wrappedNativeToken();
-    }
-
-    /**
-     * @dev Tells the wrapped native token address
-     */
-    function _wrappedNativeToken() internal view returns (address) {
-        return ISmartVault(smartVault).wrappedNativeToken();
     }
 
     /**
