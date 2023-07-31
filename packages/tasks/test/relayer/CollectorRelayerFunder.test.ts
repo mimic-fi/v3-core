@@ -8,42 +8,34 @@ import {
   fp,
   getSigners,
   NATIVE_TOKEN_ADDRESS,
+  ZERO_ADDRESS,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 
-import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
+import { buildEmptyTaskConfig, deployEnvironment, Mimic } from '../../src/setup'
 import { itBehavesLikeBaseRelayerFundTask } from './BaseRelayerFundTask.behavior'
 
 /* eslint-disable no-secrets/no-secrets */
 
 describe('CollectorRelayerFunder', () => {
   let task: Contract, relayer: Contract
-  let smartVault: Contract, authorizer: Contract, priceOracle: Contract
+  let smartVault: Contract, authorizer: Contract, priceOracle: Contract, mimic: Mimic
   let owner: SignerWithAddress, tokensSource: SignerWithAddress
 
   before('setup', async () => {
     // eslint-disable-next-line prettier/prettier
     ([, owner, tokensSource] = await getSigners())
-    ;({ authorizer, smartVault, priceOracle } = await deployEnvironment(owner))
-  })
-
-  before('deploy relayer', async () => {
-    relayer = await deploy('RelayerMock', [])
+    ;({ authorizer, smartVault, priceOracle, mimic } = await deployEnvironment(owner))
   })
 
   beforeEach('deploy task', async () => {
+    relayer = await deploy('RelayerMock', [])
     task = await deployProxy(
       'CollectorRelayerFunder',
       [],
-      [
-        {
-          tokensSource: tokensSource.address,
-          taskConfig: buildEmptyTaskConfig(owner, smartVault),
-        },
-        relayer.address,
-      ],
+      [{ tokensSource: tokensSource.address, taskConfig: buildEmptyTaskConfig(owner, smartVault) }, relayer.address],
       'initializeCollectorRelayerFunder'
     )
   })
@@ -77,15 +69,6 @@ describe('CollectorRelayerFunder', () => {
   })
 
   describe('collector', () => {
-    let token: Contract
-
-    const amount = fp(10) // in usdc
-    const tokenRate = 2000 // 1 eth = 2000 usdc
-
-    beforeEach('set token', async () => {
-      token = await deployTokenMock('USDC')
-    })
-
     beforeEach('authorize task', async () => {
       const collectRole = smartVault.interface.getSighash('collect')
       await authorizer.connect(owner).authorize(task.address, smartVault.address, collectRole, [])
@@ -104,43 +87,24 @@ describe('CollectorRelayerFunder', () => {
         task = task.connect(owner)
       })
 
-      beforeEach('set tokens acceptance type', async () => {
-        const setTokensAcceptanceTypeRole = task.interface.getSighash('setTokensAcceptanceType')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setTokensAcceptanceTypeRole, [])
-        await task.connect(owner).setTokensAcceptanceType(1)
-      })
+      context('when the given token is not zero', () => {
+        let token: Contract
+        const tokenRate = 2000 // 1 eth = 2000 usdc
 
-      context('when the given token is allowed', () => {
-        beforeEach('set tokens acceptance list', async () => {
-          const setTokensAcceptanceListRole = task.interface.getSighash('setTokensAcceptanceList')
-          await authorizer.connect(owner).authorize(owner.address, task.address, setTokensAcceptanceListRole, [])
-          await task.connect(owner).setTokensAcceptanceList([token.address], [true])
+        beforeEach('deploy token', async () => {
+          token = await deployTokenMock('USDC')
         })
 
         beforeEach('set price feed', async function () {
-          const feed = await deployFeedMock(fp(tokenRate), 18)
+          const feed = await deployFeedMock(fp(tokenRate))
           const setFeedRole = priceOracle.interface.getSighash('setFeed')
-          const wrappedNativeToken = await smartVault.wrappedNativeToken()
           await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
-          await priceOracle.connect(owner).setFeed(wrappedNativeToken, token.address, feed.address)
+          await priceOracle.connect(owner).setFeed(mimic.wrappedNativeToken.address, token.address, feed.address)
         })
 
-        context('when the balance is below the min threshold', () => {
-          const thresholdMin = amount.mul(2) // in usdc
-          const thresholdMax = thresholdMin.mul(2) // in usdc
-
-          beforeEach('allow smart vault', async () => {
-            await token.mint(tokensSource.address, amount)
-            await token.connect(tokensSource).approve(smartVault.address, amount)
-          })
-
-          beforeEach('set smart vault balance in relayer', async function () {
-            const balance = await relayer.getSmartVaultBalance(smartVault.address)
-            await relayer.withdraw(smartVault.address, balance)
-
-            const amountInNativeToken = amount.div(tokenRate)
-            await relayer.deposit(smartVault.address, amountInNativeToken)
-          })
+        context('when there is a threshold set for the given token', () => {
+          const thresholdMin = fp(1)
+          const thresholdMax = thresholdMin.mul(10)
 
           beforeEach('set default token threshold', async () => {
             const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
@@ -148,61 +112,128 @@ describe('CollectorRelayerFunder', () => {
             await task.connect(owner).setDefaultTokenThreshold(token.address, thresholdMin, thresholdMax)
           })
 
-          context('when the resulting balance is below the max threshold', () => {
-            it('calls the collect primitive', async () => {
-              const tx = await task.call(token.address, amount)
-              await assertIndirectEvent(tx, smartVault.interface, 'Collected', { token, from: tokensSource, amount })
+          context('when the used quota is zero', () => {
+            context('when the balance is below the min threshold', () => {
+              const deposited = thresholdMin.div(tokenRate).sub(1)
+
+              beforeEach('set smart vault balance in relayer', async () => {
+                await relayer.deposit(smartVault.address, deposited)
+              })
+
+              context('when the resulting balance is below the max threshold', () => {
+                const amount = thresholdMax.sub(deposited.mul(tokenRate))
+
+                beforeEach('fund tokens source', async () => {
+                  await token.mint(tokensSource.address, amount)
+                  await token.connect(tokensSource).approve(smartVault.address, amount)
+                })
+
+                it('calls the collect primitive', async () => {
+                  const tx = await task.call(token.address, amount)
+                  await assertIndirectEvent(tx, smartVault.interface, 'Collected', {
+                    token,
+                    from: tokensSource,
+                    amount,
+                  })
+                })
+
+                it('emits an Executed event', async () => {
+                  const tx = await task.call(token.address, amount)
+                  await assertEvent(tx, 'Executed')
+                })
+              })
+
+              context('when the resulting balance is above the max threshold', () => {
+                const amount = thresholdMax.sub(deposited.mul(tokenRate)).add(1)
+
+                it('reverts', async () => {
+                  await expect(task.call(token.address, amount)).to.be.revertedWith('TaskNewDepositAboveMaxThreshold')
+                })
+              })
             })
 
-            it('emits an Executed event', async () => {
-              const tx = await task.call(token.address, amount)
-              await assertEvent(tx, 'Executed')
+            context('when the deposited balance is above the min threshold', () => {
+              const deposited = thresholdMin.div(tokenRate)
+
+              beforeEach('set smart vault balance in relayer', async () => {
+                await relayer.deposit(smartVault.address, deposited)
+              })
+
+              it('reverts', async () => {
+                await expect(task.call(token.address, 0)).to.be.revertedWith('TaskDepositAboveMinThreshold')
+              })
             })
           })
 
-          context('when the resulting balance is above the max threshold', () => {
-            const diff = thresholdMax.sub(amount)
-            const bigAmount = amount.add(diff.add(1))
+          context('when the used quota is not zero', () => {
+            const usedQuota = fp(1)
 
-            it('reverts', async () => {
-              await expect(task.call(token.address, bigAmount)).to.be.revertedWith('TaskDepositAboveMaxThreshold')
+            beforeEach('set used quota', async () => {
+              await relayer.setSmartVaultUsedQuota(smartVault.address, usedQuota)
+            })
+
+            context('when the amount covers the used quota', () => {
+              context('when the resulting balance is below the max threshold', () => {
+                const amount = thresholdMax.add(usedQuota.mul(tokenRate))
+
+                beforeEach('fund tokens source', async () => {
+                  await token.mint(tokensSource.address, amount)
+                  await token.connect(tokensSource).approve(smartVault.address, amount)
+                })
+
+                it('calls the collect primitive', async () => {
+                  const tx = await task.call(token.address, amount)
+                  await assertIndirectEvent(tx, smartVault.interface, 'Collected', {
+                    token,
+                    from: tokensSource,
+                    amount,
+                  })
+                })
+
+                it('emits an Executed event', async () => {
+                  const tx = await task.call(token.address, amount)
+                  await assertEvent(tx, 'Executed')
+                })
+              })
+
+              context('when the resulting balance is above the max threshold', () => {
+                const amount = thresholdMax.add(usedQuota.mul(tokenRate)).add(1)
+
+                it('reverts', async () => {
+                  await expect(task.call(token.address, amount)).to.be.revertedWith('TaskNewDepositAboveMaxThreshold')
+                })
+              })
+            })
+
+            context('when the amount does not cover the used quota', () => {
+              const amount = usedQuota.mul(tokenRate).sub(1)
+
+              it('reverts', async () => {
+                await expect(task.call(token.address, amount)).to.be.revertedWith('TaskDepositBelowUsedQuota')
+              })
             })
           })
         })
 
-        context('when the balance is above the min threshold', () => {
-          const threshold = amount.div(2)
-
-          beforeEach('set smart vault balance in relayer', async function () {
-            const balance = await relayer.getSmartVaultBalance(smartVault.address)
-            await relayer.withdraw(smartVault.address, balance)
-
-            const amountInNativeToken = amount.div(tokenRate)
-            await relayer.deposit(smartVault.address, amountInNativeToken)
-          })
-
-          beforeEach('set default token threshold', async () => {
-            const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
-            await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-            await task.connect(owner).setDefaultTokenThreshold(token.address, threshold, fp(10000))
-          })
-
+        context('when there is no threshold set for the given token', () => {
           it('reverts', async () => {
-            await expect(task.call(token.address, amount)).to.be.revertedWith('TaskDepositAboveMinThreshold')
+            await expect(task.call(NATIVE_TOKEN_ADDRESS, 0)).to.be.revertedWith('TaskTokenThresholdNotSet')
           })
         })
       })
 
-      context('when the given token is not allowed', () => {
+      context('when the given token is zero', () => {
+        const token = ZERO_ADDRESS
+
         it('reverts', async () => {
-          await expect(task.call(NATIVE_TOKEN_ADDRESS, 0)).to.be.revertedWith('TaskTokenNotAllowed')
+          await expect(task.call(token, 0)).to.be.revertedWith('TaskTokenThresholdNotSet')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(token.address, 0)).to.be.revertedWith('AuthSenderNotAllowed')
+        await expect(task.call(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
