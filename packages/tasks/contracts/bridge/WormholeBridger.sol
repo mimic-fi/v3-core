@@ -15,7 +15,7 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-connectors/contracts/bridge/wormhole/WormholeConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/bridge/IWormholeConnector.sol';
 
 import './BaseBridgeTask.sol';
 import '../interfaces/bridge/IWormholeBridger.sol';
@@ -75,7 +75,7 @@ contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
 
         uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
-            WormholeConnector.execute.selector,
+            IWormholeConnector.execute.selector,
             getDestinationChain(token),
             token,
             amount,

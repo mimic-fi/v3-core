@@ -15,7 +15,7 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-connectors/contracts/bridge/axelar/AxelarConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/bridge/IAxelarConnector.sol';
 
 import './BaseBridgeTask.sol';
 import '../interfaces/bridge/IAxelarBridger.sol';
@@ -70,7 +70,7 @@ contract AxelarBridger is IAxelarBridger, BaseBridgeTask {
         _beforeAxelarBridger(token, amount);
 
         bytes memory connectorData = abi.encodeWithSelector(
-            AxelarConnector.execute.selector,
+            IAxelarConnector.execute.selector,
             getDestinationChain(token),
             token,
             amount,

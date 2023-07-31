@@ -16,7 +16,7 @@ pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/swap/1inch-v5/OneInchV5Connector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IOneInchV5Connector.sol';
 
 import './BaseSwapTask.sol';
 import '../interfaces/swap/IOneInchV5Swapper.sol';
@@ -79,7 +79,7 @@ contract OneInchV5Swapper is IOneInchV5Swapper, BaseSwapTask {
         uint256 price = _getPrice(tokenIn, tokenOut);
         uint256 minAmountOut = amountIn.mulUp(price).mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
-            OneInchV5Connector.execute.selector,
+            IOneInchV5Connector.execute.selector,
             tokenIn,
             tokenOut,
             amountIn,

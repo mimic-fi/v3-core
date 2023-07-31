@@ -15,7 +15,7 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-connectors/contracts/bridge/connext/ConnextConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/bridge/IConnextConnector.sol';
 
 import './BaseBridgeTask.sol';
 import '../interfaces/bridge/IConnextBridger.sol';
@@ -126,7 +126,7 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
 
         uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
-            ConnextConnector.execute.selector,
+            IConnextConnector.execute.selector,
             getDestinationChain(token),
             token,
             amount,

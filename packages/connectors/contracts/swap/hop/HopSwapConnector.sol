@@ -19,32 +19,13 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import './IHopDex.sol';
+import '../../interfaces/swap/IHopSwapConnector.sol';
 
 /**
  * @title HopSwapConnector
  * @dev Interfaces with Hop to swap tokens
  */
-contract HopSwapConnector {
-    /**
-     * @dev The token in is the same as the token out
-     */
-    error HopSwapSameToken(address token);
-
-    /**
-     * @dev The dex address is zero
-     */
-    error HopDexAddressZero();
-
-    /**
-     * @dev The amount out is lower than the minimum amount out
-     */
-    error HopBadAmountOut(uint256 amountOut, uint256 minAmountOut);
-
-    /**
-     * @dev The post token in balance is lower than the pre token in balance minus the amount in
-     */
-    error HopBadPostTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
-
+contract HopSwapConnector is IHopSwapConnector {
     /**
      * @dev Executes a token swap in Hop
      * @param tokenIn Token being sent
@@ -55,6 +36,7 @@ contract HopSwapConnector {
      */
     function execute(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, address hopDexAddress)
         external
+        override
         returns (uint256 amountOut)
     {
         if (tokenIn == tokenOut) revert HopSwapSameToken(tokenIn);

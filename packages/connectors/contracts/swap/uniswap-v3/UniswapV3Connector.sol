@@ -23,48 +23,24 @@ import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 import './IUniswapV3Factory.sol';
 import './IUniswapV3SwapRouter.sol';
 import './IUniswapV3PeripheryImmutableState.sol';
+import '../../interfaces/swap/IUniswapV3Connector.sol';
 
 /**
  * @title UniswapV3Connector
  * @dev Interfaces with Uniswap V3 to swap tokens
  */
-contract UniswapV3Connector {
+contract UniswapV3Connector is IUniswapV3Connector {
     using BytesHelpers for bytes;
 
-    /**
-     * @dev The input length mismatch
-     */
-    error UniswapV3InputLengthMismatch();
-
-    /**
-     * @dev The token in is the same as the token out
-     */
-    error UniswapV3SwapSameToken(address token);
-
-    /**
-     * @dev A pool with the given tokens and fee does not exist
-     */
-    error UniswapV3InvalidPoolFee(address token0, address token1, uint24 fee);
-
-    /**
-     * @dev The amount out is lower than the minimum amount out
-     */
-    error UniswapV3BadAmountOut(uint256 amountOut, uint256 minAmountOut);
-
-    /**
-     * @dev The post token in balance is lower than the previous token in balance minus the amount in
-     */
-    error UniswapV3BadPostTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
-
     // Reference to UniswapV3 router
-    IUniswapV3SwapRouter public immutable uniswapV3Router;
+    address public immutable override uniswapV3Router;
 
     /**
      * @dev Initializes the UniswapV3Connector contract
      * @param _uniswapV3Router Uniswap V3 router reference
      */
     constructor(address _uniswapV3Router) {
-        uniswapV3Router = IUniswapV3SwapRouter(_uniswapV3Router);
+        uniswapV3Router = _uniswapV3Router;
     }
 
     /**
@@ -92,7 +68,7 @@ contract UniswapV3Connector {
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
 
-        ERC20Helpers.approve(tokenIn, address(uniswapV3Router), amountIn);
+        ERC20Helpers.approve(tokenIn, uniswapV3Router, amountIn);
         hopTokens.length == 0
             ? _singleSwap(tokenIn, tokenOut, amountIn, minAmountOut, fee)
             : _batchSwap(tokenIn, tokenOut, amountIn, minAmountOut, fee, hopTokens, hopFees);
@@ -129,7 +105,7 @@ contract UniswapV3Connector {
         input.amountIn = amountIn;
         input.amountOutMinimum = minAmountOut;
         input.sqrtPriceLimitX96 = 0;
-        return uniswapV3Router.exactInputSingle(input);
+        return IUniswapV3SwapRouter(uniswapV3Router).exactInputSingle(input);
     }
 
     /**
@@ -166,7 +142,7 @@ contract UniswapV3Connector {
         input.amountOutMinimum = minAmountOut;
         input.recipient = address(this);
         input.deadline = block.timestamp;
-        return uniswapV3Router.exactInput(input);
+        return IUniswapV3SwapRouter(uniswapV3Router).exactInput(input);
     }
 
     /**
@@ -174,7 +150,7 @@ contract UniswapV3Connector {
      * @return Address of the Uniswap V3 factory contract
      */
     function _uniswapV3Factory() internal view returns (address) {
-        return IUniswapV3PeripheryImmutableState(address(uniswapV3Router)).factory();
+        return IUniswapV3PeripheryImmutableState(uniswapV3Router).factory();
     }
 
     /**

@@ -15,7 +15,7 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/liquidity/curve/Curve2CrvConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/liquidity/curve/ICurve2CrvConnector.sol';
 
 import './BaseCurveTask.sol';
 import '../../interfaces/liquidity/curve/ICurve2CrvExiter.sol';
@@ -77,7 +77,7 @@ contract Curve2CrvExiter is ICurve2CrvExiter, BaseCurveTask {
 
         address tokenOut = getTokenOut(token);
         bytes memory connectorData = abi.encodeWithSelector(
-            Curve2CrvConnector.exit.selector,
+            ICurve2CrvConnector.exit.selector,
             token,
             amount,
             tokenOut,
