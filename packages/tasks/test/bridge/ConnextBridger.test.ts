@@ -157,10 +157,10 @@ describe('ConnextBridger', () => {
         })
 
         context('when the amount is not zero', () => {
-          const amountIn = fp(100)
+          const amount = fp(100)
           const slippage = fp(0.5)
-          const relayerFee = amountIn.div(10)
-          const minAmountOut = amountIn.sub(amountIn.mul(slippage).div(fp(1)))
+          const relayerFee = amount.div(10)
+          const minAmountOut = amount.sub(amount.mul(slippage).div(fp(1)))
 
           context('when the destination chain was set', () => {
             const chainId = 1
@@ -173,7 +173,7 @@ describe('ConnextBridger', () => {
 
             context('when the given token is allowed', () => {
               context('when the current balance passes the threshold', () => {
-                const threshold = amountIn
+                const threshold = amount
 
                 beforeEach('set threshold', async () => {
                   const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
@@ -184,7 +184,7 @@ describe('ConnextBridger', () => {
                 })
 
                 beforeEach('fund smart vault', async () => {
-                  await token.mint(smartVault.address, amountIn)
+                  await token.mint(smartVault.address, amount)
                 })
 
                 context('when the slippage is below the limit', () => {
@@ -212,7 +212,7 @@ describe('ConnextBridger', () => {
                         const connectorData = connector.interface.encodeFunctionData('execute', [
                           chainId,
                           token.address,
-                          amountIn,
+                          amount,
                           minAmountOut,
                           smartVault.address,
                           relayerFee,
@@ -225,7 +225,7 @@ describe('ConnextBridger', () => {
                         await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
                           chainId,
                           token,
-                          amountIn,
+                          amount,
                           minAmountOut,
                           recipient: smartVault,
                           relayerFee,
@@ -240,7 +240,7 @@ describe('ConnextBridger', () => {
                     }
 
                     context('without balance connectors', () => {
-                      const requestedAmount = amountIn
+                      const requestedAmount = amount
 
                       itExecutesTheTaskProperly(requestedAmount)
 
@@ -270,25 +270,25 @@ describe('ConnextBridger', () => {
                           .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
                       })
 
-                      beforeEach('assign amount in to previous balance connector', async () => {
+                      beforeEach('assign amount to previous balance connector', async () => {
                         const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
                         await authorizer
                           .connect(owner)
                           .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
                         await smartVault
                           .connect(owner)
-                          .updateBalanceConnector(prevConnectorId, token.address, amountIn, true)
+                          .updateBalanceConnector(prevConnectorId, token.address, amount, true)
                       })
 
                       itExecutesTheTaskProperly(requestedAmount)
 
                       it('updates the balance connectors properly', async () => {
-                        const tx = await task.call(token.address, amountIn, slippage, relayerFee)
+                        const tx = await task.call(token.address, amount, slippage, relayerFee)
 
                         await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
                           id: prevConnectorId,
                           token,
-                          amount: amountIn,
+                          amount: amount,
                           added: false,
                         })
                       })
@@ -297,7 +297,7 @@ describe('ConnextBridger', () => {
 
                   context('when the given fee is above the limit', () => {
                     it('reverts', async () => {
-                      await expect(task.call(token.address, amountIn, 0, relayerFee)).to.be.revertedWith(
+                      await expect(task.call(token.address, amount, 0, relayerFee)).to.be.revertedWith(
                         'TaskFeePctAboveMax'
                       )
                     })
@@ -306,7 +306,7 @@ describe('ConnextBridger', () => {
 
                 context('when the slippage is above the limit', () => {
                   it('reverts', async () => {
-                    await expect(task.call(token.address, amountIn, slippage, 0)).to.be.revertedWith(
+                    await expect(task.call(token.address, amount, slippage, 0)).to.be.revertedWith(
                       'TaskSlippageAboveMax'
                     )
                   })
@@ -314,7 +314,7 @@ describe('ConnextBridger', () => {
               })
 
               context('when the current balance does not pass the threshold', () => {
-                const threshold = amountIn.add(1)
+                const threshold = amount.add(1)
 
                 beforeEach('set threshold', async () => {
                   const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
@@ -325,7 +325,7 @@ describe('ConnextBridger', () => {
                 })
 
                 it('reverts', async () => {
-                  await expect(task.call(token.address, amountIn, slippage, relayerFee)).to.be.revertedWith(
+                  await expect(task.call(token.address, amount, slippage, relayerFee)).to.be.revertedWith(
                     'TaskTokenThresholdNotMet'
                   )
                 })
@@ -340,7 +340,7 @@ describe('ConnextBridger', () => {
               })
 
               it('reverts', async () => {
-                await expect(task.call(token.address, amountIn, slippage, relayerFee)).to.be.revertedWith(
+                await expect(task.call(token.address, amount, slippage, relayerFee)).to.be.revertedWith(
                   'TaskTokenNotAllowed'
                 )
               })
@@ -349,7 +349,7 @@ describe('ConnextBridger', () => {
 
           context('when the destination chain was not set', () => {
             it('reverts', async () => {
-              await expect(task.call(token.address, amountIn, slippage, relayerFee)).to.be.revertedWith(
+              await expect(task.call(token.address, amount, slippage, relayerFee)).to.be.revertedWith(
                 'TaskDestinationChainNotSet'
               )
             })

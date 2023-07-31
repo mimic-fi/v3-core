@@ -27,13 +27,13 @@ export function itBehavesLikeHopNativeConnector(
   })
 
   context('when the recipient is not the zero address', async () => {
-    let amountIn: BigNumber, minAmountOut: BigNumber, bonderFee: BigNumber, deadline: BigNumber
+    let amount: BigNumber, minAmountOut: BigNumber, bonderFee: BigNumber, deadline: BigNumber
 
     const slippage = 0.01
 
-    beforeEach('set amount in', async () => {
-      amountIn = sourceChainId === 137 || sourceChainId === 100 ? fp(100) : fp(4)
-      minAmountOut = amountIn.sub(amountIn.mul(fp(slippage)).div(fp(1)))
+    beforeEach('set amount and min amount out', async () => {
+      amount = sourceChainId === 137 || sourceChainId === 100 ? fp(100) : fp(4)
+      minAmountOut = amount.sub(amount.mul(fp(slippage)).div(fp(1)))
     })
 
     function bridgesFromL2Properly(destinationChainId: number) {
@@ -44,7 +44,7 @@ export function itBehavesLikeHopNativeConnector(
       if (!ignoreChains.includes(destinationChainId)) {
         if (destinationChainId != sourceChainId) {
           beforeEach('estimate bonder fee and compute data', async function () {
-            bonderFee = await getHopBonderFee(sourceChainId, destinationChainId, wrappedNativeToken, amountIn, slippage)
+            bonderFee = await getHopBonderFee(sourceChainId, destinationChainId, wrappedNativeToken, amount, slippage)
           })
 
           it('should send the canonical tokens to the exchange', async function () {
@@ -52,13 +52,13 @@ export function itBehavesLikeHopNativeConnector(
             const previousExchangeBalance = await wrappedNativeToken.balanceOf(ammExchangeAddress)
             const previousConnectorBalance = await wrappedNativeToken.balanceOf(this.connector.address)
 
-            await wrappedNativeToken.connect(whale).transfer(this.connector.address, amountIn)
+            await wrappedNativeToken.connect(whale).transfer(this.connector.address, amount)
             await this.connector
               .connect(whale)
               .execute(
                 destinationChainId,
                 wrappedNativeTokenAddress,
-                amountIn,
+                amount,
                 minAmountOut,
                 whale.address,
                 nativeTokenAmmAddress,
@@ -68,10 +68,10 @@ export function itBehavesLikeHopNativeConnector(
               )
 
             const currentSenderBalance = await wrappedNativeToken.balanceOf(whale.address)
-            expect(currentSenderBalance).to.be.equal(previousSenderBalance.sub(amountIn))
+            expect(currentSenderBalance).to.be.equal(previousSenderBalance.sub(amount))
 
             const currentExchangeBalance = await wrappedNativeToken.balanceOf(ammExchangeAddress)
-            expect(currentExchangeBalance).to.be.equal(previousExchangeBalance.add(amountIn))
+            expect(currentExchangeBalance).to.be.equal(previousExchangeBalance.add(amount))
 
             const currentConnectorBalance = await wrappedNativeToken.balanceOf(this.connector.address)
             expect(currentConnectorBalance).to.be.equal(previousConnectorBalance)
@@ -80,13 +80,13 @@ export function itBehavesLikeHopNativeConnector(
           it('should burn at least the requested hop tokens', async function () {
             const previousHopTokenSupply = await hToken.totalSupply()
 
-            await wrappedNativeToken.connect(whale).transfer(this.connector.address, amountIn)
+            await wrappedNativeToken.connect(whale).transfer(this.connector.address, amount)
             await this.connector
               .connect(whale)
               .execute(
                 destinationChainId,
                 wrappedNativeTokenAddress,
-                amountIn,
+                amount,
                 minAmountOut,
                 whale.address,
                 nativeTokenAmmAddress,
@@ -103,13 +103,13 @@ export function itBehavesLikeHopNativeConnector(
           it('does not affect the canonical token balance of the amm', async function () {
             const previousAmmTokenBalance = await wrappedNativeToken.balanceOf(nativeTokenAmmAddress)
 
-            await wrappedNativeToken.connect(whale).transfer(this.connector.address, amountIn)
+            await wrappedNativeToken.connect(whale).transfer(this.connector.address, amount)
             await this.connector
               .connect(whale)
               .execute(
                 destinationChainId,
                 wrappedNativeTokenAddress,
-                amountIn,
+                amount,
                 minAmountOut,
                 whale.address,
                 nativeTokenAmmAddress,
@@ -129,7 +129,7 @@ export function itBehavesLikeHopNativeConnector(
                 .execute(
                   destinationChainId,
                   wrappedNativeTokenAddress,
-                  amountIn,
+                  amount,
                   minAmountOut,
                   whale.address,
                   nativeTokenAmmAddress,

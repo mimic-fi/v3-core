@@ -89,7 +89,7 @@ describe('AxelarBridger', () => {
         })
 
         context('when the amount is not zero', () => {
-          const amountIn = fp(100)
+          const amount = fp(100)
 
           context('when the destination chain was set', () => {
             const chainId = 1
@@ -102,7 +102,7 @@ describe('AxelarBridger', () => {
 
             context('when the given token is allowed', () => {
               context('when the current balance passes the threshold', () => {
-                const threshold = amountIn
+                const threshold = amount
 
                 beforeEach('set threshold', async () => {
                   const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
@@ -113,7 +113,7 @@ describe('AxelarBridger', () => {
                 })
 
                 beforeEach('fund smart vault', async () => {
-                  await token.mint(smartVault.address, amountIn)
+                  await token.mint(smartVault.address, amount)
                 })
 
                 const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
@@ -123,7 +123,7 @@ describe('AxelarBridger', () => {
                     const connectorData = connector.interface.encodeFunctionData('execute', [
                       chainId,
                       token.address,
-                      amountIn,
+                      amount,
                       smartVault.address,
                     ])
                     await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
@@ -134,7 +134,7 @@ describe('AxelarBridger', () => {
                     await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
                       chainId,
                       token,
-                      amountIn,
+                      amount,
                       recipient: smartVault,
                     })
                   })
@@ -147,7 +147,7 @@ describe('AxelarBridger', () => {
                 }
 
                 context('without balance connectors', () => {
-                  const requestedAmount = amountIn
+                  const requestedAmount = amount
 
                   itExecutesTheTaskProperly(requestedAmount)
 
@@ -175,25 +175,23 @@ describe('AxelarBridger', () => {
                       .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
                   })
 
-                  beforeEach('assign amount in to previous balance connector', async () => {
+                  beforeEach('assign amount to previous balance connector', async () => {
                     const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
                     await authorizer
                       .connect(owner)
                       .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
-                    await smartVault
-                      .connect(owner)
-                      .updateBalanceConnector(prevConnectorId, token.address, amountIn, true)
+                    await smartVault.connect(owner).updateBalanceConnector(prevConnectorId, token.address, amount, true)
                   })
 
                   itExecutesTheTaskProperly(requestedAmount)
 
                   it('updates the balance connectors properly', async () => {
-                    const tx = await task.call(token.address, amountIn)
+                    const tx = await task.call(token.address, amount)
 
                     await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
                       id: prevConnectorId,
                       token,
-                      amount: amountIn,
+                      amount: amount,
                       added: false,
                     })
                   })
@@ -201,7 +199,7 @@ describe('AxelarBridger', () => {
               })
 
               context('when the current balance does not pass the threshold', () => {
-                const threshold = amountIn.add(1)
+                const threshold = amount.add(1)
 
                 beforeEach('set threshold', async () => {
                   const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
@@ -212,7 +210,7 @@ describe('AxelarBridger', () => {
                 })
 
                 it('reverts', async () => {
-                  await expect(task.call(token.address, amountIn)).to.be.revertedWith('TaskTokenThresholdNotMet')
+                  await expect(task.call(token.address, amount)).to.be.revertedWith('TaskTokenThresholdNotMet')
                 })
               })
             })
@@ -225,14 +223,14 @@ describe('AxelarBridger', () => {
               })
 
               it('reverts', async () => {
-                await expect(task.call(token.address, amountIn)).to.be.revertedWith('TaskTokenNotAllowed')
+                await expect(task.call(token.address, amount)).to.be.revertedWith('TaskTokenNotAllowed')
               })
             })
           })
 
           context('when the destination chain was not set', () => {
             it('reverts', async () => {
-              await expect(task.call(token.address, amountIn)).to.be.revertedWith('TaskDestinationChainNotSet')
+              await expect(task.call(token.address, amount)).to.be.revertedWith('TaskDestinationChainNotSet')
             })
           })
         })

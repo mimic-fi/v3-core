@@ -65,26 +65,26 @@ contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
     /**
      * @dev Execute Wormhole bridger
      */
-    function call(address token, uint256 amountIn, uint256 slippage)
+    function call(address token, uint256 amount, uint256 slippage)
         external
         override
-        authP(authParams(token, amountIn, slippage))
+        authP(authParams(token, amount, slippage))
     {
-        if (amountIn == 0) amountIn = getTaskAmount(token);
-        _beforeWormholeBridger(token, amountIn, slippage);
+        if (amount == 0) amount = getTaskAmount(token);
+        _beforeWormholeBridger(token, amount, slippage);
 
-        uint256 minAmountOut = amountIn.mulUp(FixedPoint.ONE - slippage);
+        uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
             WormholeConnector.execute.selector,
             getDestinationChain(token),
             token,
-            amountIn,
+            amount,
             minAmountOut,
             recipient
         );
 
         ISmartVault(smartVault).execute(connector, connectorData);
-        _afterWormholeBridger(token, amountIn, slippage);
+        _afterWormholeBridger(token, amount, slippage);
     }
 
     /**

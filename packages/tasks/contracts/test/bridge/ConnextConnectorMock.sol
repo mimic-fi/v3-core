@@ -18,7 +18,7 @@ contract ConnextConnectorMock {
     event LogExecute(
         uint256 chainId,
         address token,
-        uint256 amountIn,
+        uint256 amount,
         uint256 minAmountOut,
         address recipient,
         uint256 relayerFee
@@ -27,11 +27,11 @@ contract ConnextConnectorMock {
     function execute(
         uint256 chainId,
         address token,
-        uint256 amountIn,
+        uint256 amount,
         uint256 minAmountOut,
         address recipient,
         uint256 relayerFee
     ) external {
-        emit LogExecute(chainId, token, amountIn, minAmountOut, recipient, relayerFee);
+        emit LogExecute(chainId, token, amount, minAmountOut, recipient, relayerFee);
     }
 }

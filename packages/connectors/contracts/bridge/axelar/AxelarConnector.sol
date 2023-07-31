@@ -77,23 +77,23 @@ contract AxelarConnector {
      * @dev Executes a bridge of assets using Axelar
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
-     * @param amountIn Amount of tokens to be bridged
+     * @param amount Amount of tokens to be bridged
      * @param recipient Address that will receive the tokens on the destination chain
      */
-    function execute(uint256 chainId, address token, uint256 amountIn, address recipient) external {
+    function execute(uint256 chainId, address token, uint256 amount, address recipient) external {
         if (block.chainid == chainId) revert AxelarBridgeSameChain(chainId);
         if (recipient == address(0)) revert AxelarBridgeRecipientZero();
 
         string memory chainName = _getChainName(chainId);
         string memory symbol = IERC20Metadata(token).symbol();
-        uint256 preBalanceIn = IERC20(token).balanceOf(address(this));
 
-        ERC20Helpers.approve(token, address(axelarGateway), amountIn);
-        axelarGateway.sendToken(chainName, Strings.toHexString(recipient), symbol, amountIn);
+        uint256 preBalance = IERC20(token).balanceOf(address(this));
+        ERC20Helpers.approve(token, address(axelarGateway), amount);
+        axelarGateway.sendToken(chainName, Strings.toHexString(recipient), symbol, amount);
 
-        uint256 postBalanceIn = IERC20(token).balanceOf(address(this));
-        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
-        if (isPostBalanceInUnexpected) revert AxelarBridgeBadPostTokenBalance(postBalanceIn, preBalanceIn, amountIn);
+        uint256 postBalance = IERC20(token).balanceOf(address(this));
+        bool isPostBalanceUnexpected = postBalance < preBalance - amount;
+        if (isPostBalanceUnexpected) revert AxelarBridgeBadPostTokenBalance(postBalance, preBalance, amount);
     }
 
     /**

@@ -8,7 +8,7 @@ import { BigNumber, Contract } from 'ethers'
 export function itBehavesLikeConnextConnector(
   sourceChainId: number,
   tokenAddress: string,
-  amountIn: BigNumber,
+  amount: BigNumber,
   connextAddress: string,
   whaleAddress: string
 ): void {
@@ -21,13 +21,13 @@ export function itBehavesLikeConnextConnector(
 
   context('when the recipient is not the zero address', async () => {
     const slippage = 0.5
-    const relayerFee = amountIn.div(10)
+    const relayerFee = amount.div(10)
 
-    let minAmountOut: BigNumber, amountInAfterFees: BigNumber
+    let minAmountOut: BigNumber, amountAfterFees: BigNumber
 
     beforeEach('set min amount out', async () => {
-      amountInAfterFees = amountIn.sub(relayerFee)
-      minAmountOut = amountInAfterFees.mul(fp(1).sub(fp(slippage))).div(fp(1))
+      amountAfterFees = amount.sub(relayerFee)
+      minAmountOut = amountAfterFees.mul(fp(1).sub(fp(slippage))).div(fp(1))
     })
 
     function bridgesProperly(destinationChainId: number) {
@@ -37,42 +37,42 @@ export function itBehavesLikeConnextConnector(
           const previousGatewayBalance = await token.balanceOf(connextAddress)
           const previousConnectorBalance = await token.balanceOf(this.connector.address)
 
-          await token.connect(whale).transfer(this.connector.address, amountIn)
+          await token.connect(whale).transfer(this.connector.address, amount)
           await this.connector
             .connect(whale)
-            .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
+            .execute(destinationChainId, tokenAddress, amount, minAmountOut, whale.address, relayerFee)
 
           const currentSenderBalance = await token.balanceOf(whale.address)
-          expect(currentSenderBalance).to.be.equal(previousSenderBalance.sub(amountIn))
+          expect(currentSenderBalance).to.be.equal(previousSenderBalance.sub(amount))
 
-          const amountInAfterFees = amountIn.sub(relayerFee)
+          const amountAfterFees = amount.sub(relayerFee)
           const currentGatewayBalance = await token.balanceOf(connextAddress)
-          expect(currentGatewayBalance).to.be.equal(previousGatewayBalance.add(amountInAfterFees))
+          expect(currentGatewayBalance).to.be.equal(previousGatewayBalance.add(amountAfterFees))
 
           const currentConnectorBalance = await token.balanceOf(this.connector.address)
           expect(currentConnectorBalance).to.be.equal(previousConnectorBalance)
         })
 
-        context('when relayerFee is greater than amountIn', () => {
-          const relayerFee = amountIn.add(1)
+        context('when relayerFee is greater than amount', () => {
+          const relayerFee = amount.add(1)
 
           it('reverts', async function () {
             await expect(
               this.connector
                 .connect(whale)
-                .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
+                .execute(destinationChainId, tokenAddress, amount, minAmountOut, whale.address, relayerFee)
             ).to.be.revertedWith('ConnextBridgeRelayerFeeGtAmount')
           })
         })
 
-        context('when minAmountOut is greater than amountIn minus relayerFee', () => {
-          const minAmountOut = amountIn.add(1)
+        context('when minAmountOut is greater than amount minus relayerFee', () => {
+          const minAmountOut = amount.add(1)
 
           it('reverts', async function () {
             await expect(
               this.connector
                 .connect(whale)
-                .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
+                .execute(destinationChainId, tokenAddress, amount, minAmountOut, whale.address, relayerFee)
             ).to.be.revertedWith('ConnextBridgeMinAmountOutTooBig')
           })
         })
@@ -81,7 +81,7 @@ export function itBehavesLikeConnextConnector(
           await expect(
             this.connector
               .connect(whale)
-              .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
+              .execute(destinationChainId, tokenAddress, amount, minAmountOut, whale.address, relayerFee)
           ).to.be.revertedWith('ConnextBridgeSameChain')
         })
       }
@@ -130,7 +130,7 @@ export function itBehavesLikeConnextConnector(
         await expect(
           this.connector
             .connect(whale)
-            .execute(destinationChainId, tokenAddress, amountIn, minAmountOut, whale.address, relayerFee)
+            .execute(destinationChainId, tokenAddress, amount, minAmountOut, whale.address, relayerFee)
         ).to.be.revertedWith('ConnextBridgeUnknownChainId')
       })
     })

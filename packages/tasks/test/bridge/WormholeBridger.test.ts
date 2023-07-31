@@ -89,9 +89,9 @@ describe('WormholeBridger', () => {
         })
 
         context('when the amount is not zero', () => {
-          const amountIn = fp(100)
+          const amount = fp(100)
           const relayerFee = fp(35)
-          const minAmountOut = amountIn.sub(relayerFee)
+          const minAmountOut = amount.sub(relayerFee)
           const slippage = fp(0.35)
 
           context('when the destination chain was set', () => {
@@ -105,7 +105,7 @@ describe('WormholeBridger', () => {
 
             context('when the given token is allowed', () => {
               context('when the current balance passes the threshold', () => {
-                const threshold = amountIn
+                const threshold = amount
 
                 beforeEach('set threshold', async () => {
                   const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
@@ -116,7 +116,7 @@ describe('WormholeBridger', () => {
                 })
 
                 beforeEach('fund smart vault', async () => {
-                  await token.mint(smartVault.address, amountIn)
+                  await token.mint(smartVault.address, amount)
                 })
 
                 context('when the slippage is below the limit', () => {
@@ -135,7 +135,7 @@ describe('WormholeBridger', () => {
                       const connectorData = connector.interface.encodeFunctionData('execute', [
                         chainId,
                         token.address,
-                        amountIn,
+                        amount,
                         minAmountOut,
                         smartVault.address,
                       ])
@@ -148,7 +148,7 @@ describe('WormholeBridger', () => {
                       await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
                         chainId,
                         token,
-                        amountIn,
+                        amount,
                         minAmountOut,
                         recipient: smartVault,
                       })
@@ -162,7 +162,7 @@ describe('WormholeBridger', () => {
                   }
 
                   context('without balance connectors', () => {
-                    const requestedAmount = amountIn
+                    const requestedAmount = amount
 
                     itExecutesTheTaskProperly(requestedAmount)
 
@@ -192,14 +192,14 @@ describe('WormholeBridger', () => {
                         .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
                     })
 
-                    beforeEach('assign amount in to previous balance connector', async () => {
+                    beforeEach('assign amount to previous balance connector', async () => {
                       const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
                       await authorizer
                         .connect(owner)
                         .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
                       await smartVault
                         .connect(owner)
-                        .updateBalanceConnector(prevConnectorId, token.address, amountIn, true)
+                        .updateBalanceConnector(prevConnectorId, token.address, amount, true)
                     })
 
                     itExecutesTheTaskProperly(requestedAmount)
@@ -210,7 +210,7 @@ describe('WormholeBridger', () => {
                       await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
                         id: prevConnectorId,
                         token,
-                        amount: amountIn,
+                        amount: amount,
                         added: false,
                       })
                     })
@@ -219,15 +219,13 @@ describe('WormholeBridger', () => {
 
                 context('when the slippage is above the limit', () => {
                   it('reverts', async () => {
-                    await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith(
-                      'TaskSlippageAboveMax'
-                    )
+                    await expect(task.call(token.address, amount, slippage)).to.be.revertedWith('TaskSlippageAboveMax')
                   })
                 })
               })
 
               context('when the current balance does not pass the threshold', () => {
-                const threshold = amountIn.add(1)
+                const threshold = amount.add(1)
 
                 beforeEach('set threshold', async () => {
                   const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
@@ -238,7 +236,7 @@ describe('WormholeBridger', () => {
                 })
 
                 it('reverts', async () => {
-                  await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith(
+                  await expect(task.call(token.address, amount, slippage)).to.be.revertedWith(
                     'TaskTokenThresholdNotMet'
                   )
                 })
@@ -253,16 +251,14 @@ describe('WormholeBridger', () => {
               })
 
               it('reverts', async () => {
-                await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith('TaskTokenNotAllowed')
+                await expect(task.call(token.address, amount, slippage)).to.be.revertedWith('TaskTokenNotAllowed')
               })
             })
           })
 
           context('when the destination chain was not set', () => {
             it('reverts', async () => {
-              await expect(task.call(token.address, amountIn, slippage)).to.be.revertedWith(
-                'TaskDestinationChainNotSet'
-              )
+              await expect(task.call(token.address, amount, slippage)).to.be.revertedWith('TaskDestinationChainNotSet')
             })
           })
         })

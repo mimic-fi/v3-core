@@ -116,27 +116,27 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     /**
      * @dev Execute Connext bridger
      */
-    function call(address token, uint256 amountIn, uint256 slippage, uint256 fee)
+    function call(address token, uint256 amount, uint256 slippage, uint256 fee)
         external
         override
-        authP(authParams(token, amountIn, slippage, fee))
+        authP(authParams(token, amount, slippage, fee))
     {
-        if (amountIn == 0) amountIn = getTaskAmount(token);
-        _beforeConnextBridger(token, amountIn, slippage, fee);
+        if (amount == 0) amount = getTaskAmount(token);
+        _beforeConnextBridger(token, amount, slippage, fee);
 
-        uint256 minAmountOut = amountIn.mulUp(FixedPoint.ONE - slippage);
+        uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
             ConnextConnector.execute.selector,
             getDestinationChain(token),
             token,
-            amountIn,
+            amount,
             minAmountOut,
             recipient,
             fee
         );
 
         ISmartVault(smartVault).execute(connector, connectorData);
-        _afterConnextBridger(token, amountIn, slippage, fee);
+        _afterConnextBridger(token, amount, slippage, fee);
     }
 
     /**
