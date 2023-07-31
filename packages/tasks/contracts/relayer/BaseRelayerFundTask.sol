@@ -64,9 +64,9 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
         if (threshold.token == address(0)) return 0;
 
         uint256 depositedThresholdToken = _getDepositedInThresholdToken(threshold.token);
-        uint256 usedQuotaThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);
         if (depositedThresholdToken >= threshold.min) return 0;
 
+        uint256 usedQuotaThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);
         uint256 diff = threshold.max - depositedThresholdToken + usedQuotaThresholdToken;
         return (token == threshold.token) ? diff : diff.mulUp(_getPrice(threshold.token, token));
     }
@@ -88,14 +88,19 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
 
         uint256 amountInThresholdToken = amount.mulUp(_getPrice(token, threshold.token));
         uint256 depositedInThresholdToken = _getDepositedInThresholdToken(threshold.token);
+        bool isCurrentBalanceAboveMin = depositedInThresholdToken >= threshold.min;
+        if (isCurrentBalanceAboveMin) revert TaskDepositAboveMinThreshold(depositedInThresholdToken, threshold.min);
+
         uint256 usedQuotaInThresholdToken = _getUsedQuotaInThresholdToken(threshold.token);
+        bool coversUsedQuota = amountInThresholdToken > usedQuotaInThresholdToken;
+        if (!coversUsedQuota) revert TaskDepositBelowUsedQuota(amountInThresholdToken, usedQuotaInThresholdToken);
 
-        bool isAboveMin = depositedInThresholdToken >= threshold.min + usedQuotaInThresholdToken;
-        if (isAboveMin) revert TaskDepositAboveMinThreshold(depositedInThresholdToken, threshold.min);
+        uint256 balanceAfterDeposit = amountInThresholdToken + depositedInThresholdToken - usedQuotaInThresholdToken;
+        bool isNewBalanceBelowMin = balanceAfterDeposit < threshold.min;
+        if (isNewBalanceBelowMin) revert TaskNewDepositBelowMinThreshold(balanceAfterDeposit, threshold.min);
 
-        uint256 newBalance = amountInThresholdToken + depositedInThresholdToken;
-        bool isAboveMax = newBalance > threshold.max + usedQuotaInThresholdToken;
-        if (isAboveMax) revert TaskDepositAboveMaxThreshold(newBalance, threshold.max, usedQuotaInThresholdToken);
+        bool isNewBalanceAboveMax = balanceAfterDeposit > threshold.max;
+        if (isNewBalanceAboveMax) revert TaskNewDepositAboveMaxThreshold(balanceAfterDeposit, threshold.max);
     }
 
     /**
