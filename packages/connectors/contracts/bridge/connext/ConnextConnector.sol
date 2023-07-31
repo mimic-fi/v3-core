@@ -57,7 +57,7 @@ contract ConnextConnector is IConnextConnector {
      * @dev Executes a bridge of assets using Connext
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
-     * @param amountIn Amount of tokens to be bridged
+     * @param amount Amount of tokens to be bridged
      * @param minAmountOut Min amount of tokens to receive on the destination chain after relayer fees and slippage
      * @param recipient Address that will receive the tokens on the destination chain
      * @param relayerFee Fee to be paid to the relayer
@@ -65,42 +65,41 @@ contract ConnextConnector is IConnextConnector {
     function execute(
         uint256 chainId,
         address token,
-        uint256 amountIn,
+        uint256 amount,
         uint256 minAmountOut,
         address recipient,
         uint256 relayerFee
     ) external override {
         if (block.chainid == chainId) revert ConnextBridgeSameChain(chainId);
         if (recipient == address(0)) revert ConnextBridgeRecipientZero();
-        if (relayerFee > amountIn) revert ConnextBridgeRelayerFeeGtAmount(relayerFee, amountIn);
+        if (relayerFee > amount) revert ConnextBridgeRelayerFeeGtAmount(relayerFee, amount);
 
-        bool isMinAmountTooBig = minAmountOut > amountIn - relayerFee;
-        if (isMinAmountTooBig) revert ConnextBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
+        bool isMinAmountTooBig = minAmountOut > amount - relayerFee;
+        if (isMinAmountTooBig) revert ConnextBridgeMinAmountOutTooBig(minAmountOut, amount, relayerFee);
 
         uint32 domain = _getChainDomain(chainId);
-        uint256 amountInAfterFees = amountIn - relayerFee;
+        uint256 amountAfterFees = amount - relayerFee;
 
-        // We validated `minAmountOut` is lower than or equal to `amountInAfterFees`
+        // We validated `minAmountOut` is lower than or equal to `amountAfterFees`
         // then we can compute slippage in BPS (e.g. 30 = 0.3%)
-        uint256 slippage = 100 - ((minAmountOut * 100) / amountInAfterFees);
+        uint256 slippage = 100 - ((minAmountOut * 100) / amountAfterFees);
 
         uint256 preBalance = IERC20(token).balanceOf(address(this));
-        ERC20Helpers.approve(token, connext, amountIn);
-
+        ERC20Helpers.approve(token, connext, amount);
         IConnext(connext).xcall(
             domain,
             recipient,
             token,
             address(this), // This is the delegate address, the one that will be able to act in case the bridge fails
-            amountInAfterFees,
+            amountAfterFees,
             slippage,
             new bytes(0), // No call on the destination chain needed
             relayerFee
         );
 
         uint256 postBalance = IERC20(token).balanceOf(address(this));
-        bool isPostBalanceUnexpected = postBalance < preBalance - amountIn;
-        if (isPostBalanceUnexpected) revert ConnextBridgeBadPostTokenBalance(postBalance, preBalance, amountIn);
+        bool isPostBalanceUnexpected = postBalance < preBalance - amount;
+        if (isPostBalanceUnexpected) revert ConnextBridgeBadPostTokenBalance(postBalance, preBalance, amount);
     }
 
     /**

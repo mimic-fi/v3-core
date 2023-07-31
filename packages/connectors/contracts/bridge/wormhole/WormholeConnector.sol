@@ -60,11 +60,11 @@ contract WormholeConnector is IWormholeConnector {
      * @dev Executes a bridge of assets using Wormhole's CircleRelayer integration
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
-     * @param amountIn Amount of tokens to be bridged
+     * @param amount Amount of tokens to be bridged
      * @param minAmountOut Minimum amount of tokens willing to receive on the destination chain after relayer fees
      * @param recipient Address that will receive the tokens on the destination chain
      */
-    function execute(uint256 chainId, address token, uint256 amountIn, uint256 minAmountOut, address recipient)
+    function execute(uint256 chainId, address token, uint256 amount, uint256 minAmountOut, address recipient)
         external
         override
     {
@@ -73,25 +73,24 @@ contract WormholeConnector is IWormholeConnector {
 
         uint16 wormholeNetworkId = _getWormholeNetworkId(chainId);
         uint256 relayerFee = IWormhole(wormholeCircleRelayer).relayerFee(wormholeNetworkId, token);
-        if (relayerFee > amountIn) revert WormholeBridgeRelayerFeeGtAmount(relayerFee, amountIn);
+        if (relayerFee > amount) revert WormholeBridgeRelayerFeeGtAmount(relayerFee, amount);
 
-        bool isMinAmountTooBig = minAmountOut > amountIn - relayerFee;
-        if (isMinAmountTooBig) revert WormholeBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
+        bool isMinAmountTooBig = minAmountOut > amount - relayerFee;
+        if (isMinAmountTooBig) revert WormholeBridgeMinAmountOutTooBig(minAmountOut, amount, relayerFee);
 
         uint256 preBalance = IERC20(token).balanceOf(address(this));
-
-        ERC20Helpers.approve(token, wormholeCircleRelayer, amountIn);
+        ERC20Helpers.approve(token, wormholeCircleRelayer, amount);
         IWormhole(wormholeCircleRelayer).transferTokensWithRelay(
             token,
-            amountIn,
+            amount,
             0, // don't swap to native token
             wormholeNetworkId,
-            bytes32(uint256(uint160(recipient))) // convert from address to bytes32
+            bytes32(uint256(uint160(recipient)))
         );
 
         uint256 postBalance = IERC20(token).balanceOf(address(this));
-        bool isPostBalanceUnexpected = postBalance < preBalance - amountIn;
-        if (isPostBalanceUnexpected) revert WormholeBridgeBadPostTokenBalance(postBalance, preBalance, amountIn);
+        bool isPostBalanceUnexpected = postBalance < preBalance - amount;
+        if (isPostBalanceUnexpected) revert WormholeBridgeBadPostTokenBalance(postBalance, preBalance, amount);
     }
 
     /**

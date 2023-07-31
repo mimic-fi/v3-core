@@ -192,7 +192,7 @@ describe('WormholeBridger', () => {
                         .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
                     })
 
-                    beforeEach('assign amount in to previous balance connector', async () => {
+                    beforeEach('assign amount to previous balance connector', async () => {
                       const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
                       await authorizer
                         .connect(owner)

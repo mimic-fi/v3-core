@@ -47,8 +47,8 @@ interface IAxelarConnector {
      * @dev Executes a bridge of assets using Axelar
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
-     * @param amountIn Amount of tokens to be bridged
+     * @param amount Amount of tokens to be bridged
      * @param recipient Address that will receive the tokens on the destination chain
      */
-    function execute(uint256 chainId, address token, uint256 amountIn, address recipient) external;
+    function execute(uint256 chainId, address token, uint256 amount, address recipient) external;
 }

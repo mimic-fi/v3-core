@@ -62,7 +62,7 @@ interface IHopConnector {
      * @dev Executes a bridge of assets using Hop Exchange
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
-     * @param amountIn Amount of tokens to be bridged
+     * @param amount Amount of tokens to be bridged
      * @param minAmountOut Minimum amount of tokens willing to receive on the destination chain
      * @param recipient Address that will receive the tokens on the destination chain
      * @param bridge Address of the bridge component (i.e. hopBridge or hopAMM)
@@ -73,7 +73,7 @@ interface IHopConnector {
     function execute(
         uint256 chainId,
         address token,
-        uint256 amountIn,
+        uint256 amount,
         uint256 minAmountOut,
         address recipient,
         address bridge,

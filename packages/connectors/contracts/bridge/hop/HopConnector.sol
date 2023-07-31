@@ -62,7 +62,7 @@ contract HopConnector is IHopConnector {
      * @dev Executes a bridge of assets using Hop Exchange
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
-     * @param amountIn Amount of tokens to be bridged
+     * @param amount Amount of tokens to be bridged
      * @param minAmountOut Minimum amount of tokens willing to receive on the destination chain
      * @param recipient Address that will receive the tokens on the destination chain
      * @param bridge Address of the bridge component (i.e. hopBridge or hopAMM)
@@ -73,7 +73,7 @@ contract HopConnector is IHopConnector {
     function execute(
         uint256 chainId,
         address token,
-        uint256 amountIn,
+        uint256 amount,
         uint256 minAmountOut,
         address recipient,
         address bridge,
@@ -89,25 +89,25 @@ contract HopConnector is IHopConnector {
         uint256 preBalance = IERC20(token).balanceOf(address(this));
 
         if (fromL1 && toL2)
-            _bridgeFromL1ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, relayer, fee);
+            _bridgeFromL1ToL2(chainId, token, amount, minAmountOut, recipient, bridge, deadline, relayer, fee);
         else if (!fromL1 && toL2) {
             if (relayer != address(0)) revert HopBridgeRelayerNotNeeded();
-            _bridgeFromL2ToL2(chainId, token, amountIn, minAmountOut, recipient, bridge, deadline, fee);
+            _bridgeFromL2ToL2(chainId, token, amount, minAmountOut, recipient, bridge, deadline, fee);
         } else if (!fromL1 && !toL2) {
             if (deadline != 0) revert HopBridgeDeadlineNotNeeded();
-            _bridgeFromL2ToL1(chainId, token, amountIn, minAmountOut, recipient, bridge, fee);
+            _bridgeFromL2ToL1(chainId, token, amount, minAmountOut, recipient, bridge, fee);
         } else revert HopBridgeOpNotSupported();
 
         uint256 postBalance = IERC20(token).balanceOf(address(this));
-        bool isPostBalanceUnexpected = postBalance < preBalance - amountIn;
-        if (isPostBalanceUnexpected) revert HopBridgeBadPostTokenBalance(postBalance, preBalance, amountIn);
+        bool isPostBalanceUnexpected = postBalance < preBalance - amount;
+        if (isPostBalanceUnexpected) revert HopBridgeBadPostTokenBalance(postBalance, preBalance, amount);
     }
 
     /**
      * @dev Bridges assets from L1 to L2
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
-     * @param amountIn Amount of tokens to be bridged
+     * @param amount Amount of tokens to be bridged
      * @param minAmountOut Minimum amount of tokens willing to receive on the destination chain
      * @param recipient Address that will receive the tokens on the destination chain
      * @param hopBridge Address of the Hop bridge corresponding to the token to be bridged
@@ -118,7 +118,7 @@ contract HopConnector is IHopConnector {
     function _bridgeFromL1ToL2(
         uint256 chainId,
         address token,
-        uint256 amountIn,
+        uint256 amount,
         uint256 minAmountOut,
         address recipient,
         address hopBridge,
@@ -128,11 +128,11 @@ contract HopConnector is IHopConnector {
     ) internal {
         if (deadline <= block.timestamp) revert HopBridgePastDeadline(deadline, block.timestamp);
 
-        uint256 value = _unwrapOrApproveTokens(hopBridge, token, amountIn);
+        uint256 value = _unwrapOrApproveTokens(hopBridge, token, amount);
         IHopL1Bridge(hopBridge).sendToL2{ value: value }(
             chainId,
             recipient,
-            amountIn,
+            amount,
             minAmountOut,
             deadline,
             relayer,
@@ -144,7 +144,7 @@ contract HopConnector is IHopConnector {
      * @dev Bridges assets from L2 to L1
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
-     * @param amountIn Amount of tokens to be bridged
+     * @param amount Amount of tokens to be bridged
      * @param minAmountOut Minimum amount of tokens willing to receive on the destination chain
      * @param recipient Address that will receive the tokens on the destination chain
      * @param hopAMM Address of the Hop AMM corresponding to the token to be bridged
@@ -153,18 +153,18 @@ contract HopConnector is IHopConnector {
     function _bridgeFromL2ToL1(
         uint256 chainId,
         address token,
-        uint256 amountIn,
+        uint256 amount,
         uint256 minAmountOut,
         address recipient,
         address hopAMM,
         uint256 bonderFee
     ) internal {
-        uint256 value = _unwrapOrApproveTokens(hopAMM, token, amountIn);
+        uint256 value = _unwrapOrApproveTokens(hopAMM, token, amount);
         // No destination min amount nor deadline needed since there is no AMM on L1
         IHopL2AMM(hopAMM).swapAndSend{ value: value }(
             chainId,
             recipient,
-            amountIn,
+            amount,
             bonderFee,
             minAmountOut,
             block.timestamp,
@@ -177,7 +177,7 @@ contract HopConnector is IHopConnector {
      * @dev Bridges assets from L2 to L2
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
-     * @param amountIn Amount of tokens to be bridged
+     * @param amount Amount of tokens to be bridged
      * @param minAmountOut Minimum amount of tokens willing to receive on the destination chain
      * @param recipient Address that will receive the tokens on the destination chain
      * @param hopAMM Address of the Hop AMM corresponding to the token to be bridged
@@ -187,7 +187,7 @@ contract HopConnector is IHopConnector {
     function _bridgeFromL2ToL2(
         uint256 chainId,
         address token,
-        uint256 amountIn,
+        uint256 amount,
         uint256 minAmountOut,
         address recipient,
         address hopAMM,
@@ -196,11 +196,11 @@ contract HopConnector is IHopConnector {
     ) internal {
         if (deadline <= block.timestamp) revert HopBridgePastDeadline(deadline, block.timestamp);
 
-        uint256 intermediateMinAmountOut = amountIn - ((amountIn - minAmountOut) / 2);
-        IHopL2AMM(hopAMM).swapAndSend{ value: _unwrapOrApproveTokens(hopAMM, token, amountIn) }(
+        uint256 intermediateMinAmountOut = amount - ((amount - minAmountOut) / 2);
+        IHopL2AMM(hopAMM).swapAndSend{ value: _unwrapOrApproveTokens(hopAMM, token, amount) }(
             chainId,
             recipient,
-            amountIn,
+            amount,
             bonderFee,
             intermediateMinAmountOut,
             block.timestamp,

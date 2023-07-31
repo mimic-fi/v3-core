@@ -37,12 +37,12 @@ interface IConnextConnector {
     /**
      * @dev The relayer fee is greater than the amount to be bridged
      */
-    error ConnextBridgeRelayerFeeGtAmount(uint256 relayerFee, uint256 amountIn);
+    error ConnextBridgeRelayerFeeGtAmount(uint256 relayerFee, uint256 amount);
 
     /**
      * @dev The minimum amount out is greater than the amount to be bridged minus the relayer fee
      */
-    error ConnextBridgeMinAmountOutTooBig(uint256 minAmountOut, uint256 amountIn, uint256 relayerFee);
+    error ConnextBridgeMinAmountOutTooBig(uint256 minAmountOut, uint256 amount, uint256 relayerFee);
 
     /**
      * @dev The post token balance is lower than the previous token balance minus the amount bridged
@@ -58,7 +58,7 @@ interface IConnextConnector {
      * @dev Executes a bridge of assets using Connext
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
-     * @param amountIn Amount of tokens to be bridged
+     * @param amount Amount of tokens to be bridged
      * @param minAmountOut Min amount of tokens to receive on the destination chain after relayer fees and slippage
      * @param recipient Address that will receive the tokens on the destination chain
      * @param relayerFee Fee to be paid to the relayer
@@ -66,7 +66,7 @@ interface IConnextConnector {
     function execute(
         uint256 chainId,
         address token,
-        uint256 amountIn,
+        uint256 amount,
         uint256 minAmountOut,
         address recipient,
         uint256 relayerFee

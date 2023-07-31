@@ -36,12 +36,12 @@ interface IWormholeConnector {
     /**
      * @dev The relayer fee is greater than the amount to be bridged
      */
-    error WormholeBridgeRelayerFeeGtAmount(uint256 relayerFee, uint256 amountIn);
+    error WormholeBridgeRelayerFeeGtAmount(uint256 relayerFee, uint256 amount);
 
     /**
      * @dev The minimum amount out is greater than the amount to be bridged minus the relayer fee
      */
-    error WormholeBridgeMinAmountOutTooBig(uint256 minAmountOut, uint256 amountIn, uint256 relayerFee);
+    error WormholeBridgeMinAmountOutTooBig(uint256 minAmountOut, uint256 amount, uint256 relayerFee);
 
     /**
      * @dev The post token balance is lower than the previous token balance minus the amount bridged
@@ -57,10 +57,9 @@ interface IWormholeConnector {
      * @dev Executes a bridge of assets using Wormhole's CircleRelayer integration
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
-     * @param amountIn Amount of tokens to be bridged
+     * @param amount Amount of tokens to be bridged
      * @param minAmountOut Minimum amount of tokens willing to receive on the destination chain after relayer fees
      * @param recipient Address that will receive the tokens on the destination chain
      */
-    function execute(uint256 chainId, address token, uint256 amountIn, uint256 minAmountOut, address recipient)
-        external;
+    function execute(uint256 chainId, address token, uint256 amount, uint256 minAmountOut, address recipient) external;
 }
