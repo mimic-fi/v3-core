@@ -36,7 +36,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     // Maximum deadline in seconds
     uint256 public override maxDeadline;
 
-    // Default max fee pct
+    // Default max fee percentage
     uint256 public override defaultMaxFeePct;
 
     // Max fee percentage per token
@@ -112,6 +112,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
 
     /**
      * @dev Tells the max fee percentage that should be used for a token
+     * @param token Address of the token being queried
      */
     function getMaxFeePct(address token) public view virtual override returns (uint256) {
         uint256 maxFeePct = customMaxFeePct[token];
@@ -203,8 +204,8 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     function _beforeHopBridger(address token, uint256 amount, uint256 slippage, uint256 fee) internal virtual {
         _beforeBaseBridgeTask(token, amount, slippage);
         if (tokenHopEntrypoint[token] == address(0)) revert TaskMissingHopEntrypoint();
-        uint256 maxFeePct = getMaxFeePct(token);
         uint256 feePct = fee.divUp(amount);
+        uint256 maxFeePct = getMaxFeePct(token);
         if (feePct > maxFeePct) revert TaskFeePctAboveMax(feePct, maxFeePct);
     }
 
@@ -242,17 +243,6 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Set a Hop entrypoint for a token
-     * @param token Address of the token to set a Hop entrypoint for
-     * @param entrypoint Hop entrypoint to be set
-     */
-    function _setTokenHopEntrypoint(address token, address entrypoint) internal {
-        if (token == address(0)) revert TaskTokenZero();
-        tokenHopEntrypoint[token] = entrypoint;
-        emit TokenHopEntrypointSet(token, entrypoint);
-    }
-
-    /**
      * @dev Sets a custom max fee percentage for a token
      * @param token Address of the token to set a custom max fee percentage for
      * @param maxFeePct Max fee percentage to be set for the given token
@@ -261,5 +251,16 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
         if (token == address(0)) revert TaskTokenZero();
         customMaxFeePct[token] = maxFeePct;
         emit CustomMaxFeePctSet(token, maxFeePct);
+    }
+
+    /**
+     * @dev Set a Hop entrypoint for a token
+     * @param token Address of the token to set a Hop entrypoint for
+     * @param entrypoint Hop entrypoint to be set
+     */
+    function _setTokenHopEntrypoint(address token, address entrypoint) internal {
+        if (token == address(0)) revert TaskTokenZero();
+        tokenHopEntrypoint[token] = entrypoint;
+        emit TokenHopEntrypointSet(token, entrypoint);
     }
 }
