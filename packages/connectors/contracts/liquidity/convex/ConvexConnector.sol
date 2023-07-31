@@ -15,9 +15,9 @@
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
+import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import './ICvxPool.sol';
 import './ICvxBooster.sol';
@@ -83,7 +83,7 @@ contract ConvexConnector is IConvexConnector {
         (uint256 poolId, ICvxPool cvxPool) = _findCvxPoolInfo(curvePool);
 
         uint256 initialCvxPoolTokenBalance = cvxPool.balanceOf(address(this));
-        IERC20(curvePool).approve(booster, amount);
+        ERC20Helpers.approve(curvePool, booster, amount);
         if (!ICvxBooster(booster).deposit(poolId, amount)) revert ConvexBoosterDepositFailed(poolId, amount);
 
         uint256 finalCvxPoolTokenBalance = cvxPool.balanceOf(address(this));
