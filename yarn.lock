@@ -919,6 +919,14 @@
     "@mimic-fi/v3-helpers" "0.0.1"
     "@openzeppelin/contracts" "4.7.0"
 
+"@mimic-fi/v3-fee-controller@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-fee-controller/-/v3-fee-controller-0.0.1.tgz#cf76f8c8cf501f9ac9b0e3327c34ff96a08f911f"
+  integrity sha512-8000yPVdnmfrlllNORChmqdkrdYeUHc2d3Ppe/U81rk3hJqbnfaEQG8MK0gZbA7+k/3U/yLGTsmKNdm0/FnOUw==
+  dependencies:
+    "@mimic-fi/v3-helpers" "0.0.1"
+    "@openzeppelin/contracts" "4.7.0"
+
 "@mimic-fi/v3-helpers@0.0.1":
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/@mimic-fi/v3-helpers/-/v3-helpers-0.0.1.tgz#27a9aa67e07cfe87a37de47733569fe7a2891bf9"
@@ -934,6 +942,37 @@
     ethers "~5.6.0"
     hardhat "^2.14.1"
     mocha "^6.2.3"
+
+"@mimic-fi/v3-price-oracle@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-price-oracle/-/v3-price-oracle-0.0.1.tgz#a30009f27af83ca10de875c1e04e9496e8b19921"
+  integrity sha512-8AM9FpRV9u+0zLQoiH+83MD6SwCox3AmoG5zfI20CcNEQNc9JS8QcR2OMC5bVFTQB35kAYQb5u2dQQfH6qJxYw==
+  dependencies:
+    "@chainlink/contracts" "^0.2.1"
+    "@mimic-fi/v3-helpers" "0.0.1"
+    "@openzeppelin/contracts" "4.7.0"
+
+"@mimic-fi/v3-registry@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-registry/-/v3-registry-0.0.1.tgz#90d5c62073609a5d0843985debeccf2a918d6287"
+  integrity sha512-fjoMduHW9CVH9C5gF1zhXZpZPm3MUSzGD6WGw4dWMyCTRPq3B7T5WS6ZoGqjWfY+lpmRb9Dg6P7nXK/WtGWTKA==
+  dependencies:
+    "@mimic-fi/v3-helpers" "0.0.1"
+    "@openzeppelin/contracts" "4.7.0"
+    solmate "^6.7.0"
+
+"@mimic-fi/v3-smart-vault@0.0.1":
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-smart-vault/-/v3-smart-vault-0.0.1.tgz#26c0d7780f0365b1668bdff2e11fcfca37d02beb"
+  integrity sha512-qTJJbkvDswTK8LqkLPzvyV0CPH6udYaiSLR4ke9gObEyA9Y9IhRyhy9MdcFkQYT9LXl5Pf3N5BHLhZtZ21h/Wg==
+  dependencies:
+    "@mimic-fi/v3-authorizer" "0.0.1"
+    "@mimic-fi/v3-fee-controller" "0.0.1"
+    "@mimic-fi/v3-helpers" "0.0.1"
+    "@mimic-fi/v3-price-oracle" "0.0.1"
+    "@mimic-fi/v3-registry" "0.0.1"
+    "@openzeppelin/contracts" "4.7.0"
+    "@openzeppelin/contracts-upgradeable" "4.7.0"
 
 "@mimic-fi/v3-tasks@0.0.1":
   version "0.0.1"
