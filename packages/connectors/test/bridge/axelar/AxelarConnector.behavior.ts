@@ -21,7 +21,7 @@ export function itBehavesLikeAxelarConnector(
   context('when the recipient is not the zero address', async () => {
     let amount: BigNumber
 
-    beforeEach('set amount in', async () => {
+    beforeEach('set amount', async () => {
       const decimals = await token.decimals()
       amount = bn(300).mul(bn(10).pow(decimals))
     })

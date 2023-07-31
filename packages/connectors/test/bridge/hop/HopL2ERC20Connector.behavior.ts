@@ -29,7 +29,7 @@ export function itBehavesLikeHopERC20Connector(
 
     const slippage = 0.01
 
-    beforeEach('set amount in', async () => {
+    beforeEach('set amount and min amount out', async () => {
       const decimals = await token.decimals()
       amount = bn(300).mul(bn(10).pow(decimals))
       minAmountOut = amount.sub(amount.mul(fp(slippage)).div(fp(1)))

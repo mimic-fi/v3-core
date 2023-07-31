@@ -31,7 +31,7 @@ export function itBehavesLikeHopNativeConnector(
 
     const slippage = 0.01
 
-    beforeEach('set amount in', async () => {
+    beforeEach('set amount and min amount out', async () => {
       amount = sourceChainId === 137 || sourceChainId === 100 ? fp(100) : fp(4)
       minAmountOut = amount.sub(amount.mul(fp(slippage)).div(fp(1)))
     })

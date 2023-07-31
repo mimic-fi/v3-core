@@ -44,12 +44,12 @@ contract WormholeConnector {
     /**
      * @dev The relayer fee is greater than the amount to be bridged
      */
-    error WormholeBridgeRelayerFeeGtAmount(uint256 relayerFee, uint256 amountIn);
+    error WormholeBridgeRelayerFeeGtAmount(uint256 relayerFee, uint256 amount);
 
     /**
      * @dev The minimum amount out is greater than the amount to be bridged minus the relayer fee
      */
-    error WormholeBridgeMinAmountOutTooBig(uint256 minAmountOut, uint256 amountIn, uint256 relayerFee);
+    error WormholeBridgeMinAmountOutTooBig(uint256 minAmountOut, uint256 amount, uint256 relayerFee);
 
     /**
      * @dev The post token balance is lower than the previous token balance minus the amount bridged
@@ -89,37 +89,34 @@ contract WormholeConnector {
      * @dev Executes a bridge of assets using Wormhole's CircleRelayer integration
      * @param chainId ID of the destination chain
      * @param token Address of the token to be bridged
-     * @param amountIn Amount of tokens to be bridged
+     * @param amount Amount of tokens to be bridged
      * @param minAmountOut Minimum amount of tokens willing to receive on the destination chain after relayer fees
      * @param recipient Address that will receive the tokens on the destination chain
      */
-    function execute(uint256 chainId, address token, uint256 amountIn, uint256 minAmountOut, address recipient)
-        external
-    {
+    function execute(uint256 chainId, address token, uint256 amount, uint256 minAmountOut, address recipient) external {
         if (block.chainid == chainId) revert WormholeBridgeSameChain(chainId);
         if (recipient == address(0)) revert WormholeBridgeRecipientZero();
 
         uint16 wormholeNetworkId = _getWormholeNetworkId(chainId);
         uint256 relayerFee = wormholeCircleRelayer.relayerFee(wormholeNetworkId, token);
-        if (relayerFee > amountIn) revert WormholeBridgeRelayerFeeGtAmount(relayerFee, amountIn);
+        if (relayerFee > amount) revert WormholeBridgeRelayerFeeGtAmount(relayerFee, amount);
 
-        bool isMinAmountTooBig = minAmountOut > amountIn - relayerFee;
-        if (isMinAmountTooBig) revert WormholeBridgeMinAmountOutTooBig(minAmountOut, amountIn, relayerFee);
+        bool isMinAmountTooBig = minAmountOut > amount - relayerFee;
+        if (isMinAmountTooBig) revert WormholeBridgeMinAmountOutTooBig(minAmountOut, amount, relayerFee);
 
         uint256 preBalance = IERC20(token).balanceOf(address(this));
-
-        ERC20Helpers.approve(token, address(wormholeCircleRelayer), amountIn);
+        ERC20Helpers.approve(token, address(wormholeCircleRelayer), amount);
         wormholeCircleRelayer.transferTokensWithRelay(
             token,
-            amountIn,
+            amount,
             0, // don't swap to native token
             wormholeNetworkId,
-            bytes32(uint256(uint160(recipient))) // convert from address to bytes32
+            bytes32(uint256(uint160(recipient)))
         );
 
         uint256 postBalance = IERC20(token).balanceOf(address(this));
-        bool isPostBalanceUnexpected = postBalance < preBalance - amountIn;
-        if (isPostBalanceUnexpected) revert WormholeBridgeBadPostTokenBalance(postBalance, preBalance, amountIn);
+        bool isPostBalanceUnexpected = postBalance < preBalance - amount;
+        if (isPostBalanceUnexpected) revert WormholeBridgeBadPostTokenBalance(postBalance, preBalance, amount);
     }
 
     /**
