@@ -104,6 +104,7 @@ abstract contract BaseTask is IBaseTask, Authorized {
 
     /**
      * @dev Tells whether a token is the native or the wrapped native token
+     * @param token Address of the token to be checked
      */
     function _isWrappedOrNative(address token) internal view returns (bool) {
         return Denominations.isNativeToken(token) || token == _wrappedNativeToken();
@@ -118,6 +119,8 @@ abstract contract BaseTask is IBaseTask, Authorized {
 
     /**
      * @dev Fetches a base/quote price from the smart vault's price oracle
+     * @param base Token to rate
+     * @param quote Token used for the price rate
      */
     function _getPrice(address base, address quote) internal view virtual returns (uint256) {
         address priceOracle = ISmartVault(smartVault).priceOracle();
