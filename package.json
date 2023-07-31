@@ -16,9 +16,9 @@
       "packages/authorizer",
       "packages/price-oracle",
       "packages/smart-vault",
+      "packages/connectors",
       "packages/tasks",
       "packages/deployer",
-      "packages/connectors",
       "packages/relayer"
     ]
   }
