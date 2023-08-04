@@ -45,26 +45,25 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
      * @dev Supplies tokens to the Aave protocol using Morpho. Eligible for the peer-to-peer matching
      * @param token Address of the token to supply
      * @param amount Amount of tokens to supply
-     * @param maxIterations Maximum number of iterations allowed during the matching process. Using 4 is recommended by Morpho
+     * @param maxIterations Maximum number of iterations allowed during the matching process. Using 4 is recommended by Morpho.
      */
-    function supply(address token, uint256 amount, uint256 maxIterations) external override returns (uint256 supplied) {
+    function join(address token, uint256 amount, uint256 maxIterations) external override returns (uint256 supplied) {
         // TODO: eth support?
         ERC20Helpers.approve(token, morpho, amount);
         supplied = IMorphoV3(morpho).supply(token, amount, address(this), maxIterations);
+        if (supplied < amount) revert MorphoAaveV3InvalidSupply();
     }
 
     /**
      * @dev Withdraws tokens from Morpho's supply balance
      * @param token Address of the token to withdraw
      * @param amount Amount of tokens to withdraw
-     * @param maxIterations Maximum number of iterations allowed during the matching process. If it is less than the default, the latter will be used. Pass 0 to fallback to the default
+     * @param maxIterations Maximum number of iterations allowed during the matching process.
+     *  If it is less than the default, the latter will be used. Pass 0 to fallback to the default.
      */
-    function withdraw(address token, uint256 amount, uint256 maxIterations)
-        external
-        override
-        returns (uint256 withdrawn)
-    {
+    function exit(address token, uint256 amount, uint256 maxIterations) external override returns (uint256 withdrawn) {
         withdrawn = IMorphoV3(morpho).withdraw(token, amount, address(this), address(this), maxIterations);
+        if (withdrawn != amount) revert MorphoAaveV3InvalidWithdraw();
     }
 
     /**
@@ -72,15 +71,7 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
      * @param amount Amount of Morpho tokens to claim
      * @param proof Merkle proof
      */
-    function claimMorphoRewards(uint256 amount, bytes32[] calldata proof) external override {
+    function claim(uint256 amount, bytes32[] calldata proof) external override {
         IRewardsDistributior(rewardsDistributor).claim(address(this), amount, proof);
-    }
-
-    /**
-     * @dev Returns the amount of tokens supplied to the Morpho protocol, both P2P and on Aave
-     * @param token Address of the token to get the supplied amount
-     */
-    function supplyBalance(address token) external view override returns (uint256) {
-        return IMorphoV3(morpho).supplyBalance(token, address(this));
     }
 }

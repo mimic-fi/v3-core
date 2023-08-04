@@ -19,6 +19,16 @@ pragma solidity ^0.8.0;
  */
 interface IMorphoAaveV3Connector {
     /**
+     * @dev The amount supplied is lower than the expected amount
+     */
+    error MorphoAaveV3InvalidSupply();
+
+    /**
+     * @dev The withdraw amount differs with the expected amount
+     */
+    error MorphoAaveV3InvalidWithdraw();
+
+    /**
      * @dev Tells the reference to the MorphoAaveV3 proxy
      */
     function morpho() external view returns (address);
@@ -34,7 +44,7 @@ interface IMorphoAaveV3Connector {
      * @param amount Amount of tokens to supply
      * @param maxIterations Maximum number of iterations allowed during the matching process. Using 4 is recommended by Morpho
      */
-    function supply(address token, uint256 amount, uint256 maxIterations) external returns (uint256);
+    function join(address token, uint256 amount, uint256 maxIterations) external returns (uint256);
 
     /**
      * @dev Withdraws tokens from Morpho's supply balance
@@ -42,18 +52,12 @@ interface IMorphoAaveV3Connector {
      * @param amount Amount of tokens to withdraw
      * @param maxIterations Maximum number of iterations allowed during the matching process. If it is less than the default, the latter will be used. Pass 0 to fallback to the default
      */
-    function withdraw(address token, uint256 amount, uint256 maxIterations) external returns (uint256);
+    function exit(address token, uint256 amount, uint256 maxIterations) external returns (uint256);
 
     /**
      * @dev Claims Morpho token rewards
      * @param amount Amount of Morpho tokens to claim
      * @param proof Merkle proof
      */
-    function claimMorphoRewards(uint256 amount, bytes32[] calldata proof) external;
-
-    /**
-     * @dev Returns the amount of tokens supplied to the Morpho protocol, both P2P and on Aave
-     * @param token Address of the token to get the supplied amount
-     */
-    function supplyBalance(address token) external view returns (uint256);
+    function claim(uint256 amount, bytes32[] calldata proof) external;
 }

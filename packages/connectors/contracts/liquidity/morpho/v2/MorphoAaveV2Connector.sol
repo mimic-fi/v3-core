@@ -18,7 +18,6 @@ import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import './IMorphoV2.sol';
-import './ILens.sol';
 import '../IRewardsDistributior.sol';
 import '../../../interfaces/liquidity/morpho/IMorphoAaveV2Connector.sol';
 
@@ -31,18 +30,14 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
     // Reference to MorphoAaveV2
     address public immutable override morpho;
 
-    // Reference to Morpho's Lens
-    address public immutable override lens;
-
     // Reference to Morpho's RewardsDistributor
     address public immutable override rewardsDistributor;
 
     /**
      * @dev Creates a new MorphoAaveV2 connector
      */
-    constructor(address _morpho, address _lens, address _rewardsDistributor) {
+    constructor(address _morpho, address _rewardsDistributor) {
         morpho = _morpho;
-        lens = _lens;
         rewardsDistributor = _rewardsDistributor;
     }
 
@@ -52,13 +47,13 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
      * @param token Address of the token to supply
      * @param amount Amount of tokens to supply
      */
-    function supply(address aToken, address token, uint256 amount) external override {
+    function join(address aToken, address token, uint256 amount) external override {
         // TODO: eth support?
         ERC20Helpers.approve(token, morpho, amount);
         IMorphoV2(morpho).supply(aToken, amount);
     }
 
-    // function supply(address aToken, address token, uint256 amount, uint256 maxGasForMatching)
+    // function join(address aToken, address token, uint256 amount, uint256 maxGasForMatching)
     //     external
     // {
     //     ERC20Helpers.approve(token, morpho, amount);
@@ -70,7 +65,7 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
      * @param aToken Address of the Aave market the user wants to interact with
      * @param amount Amount of the underlying token to withdraw
      */
-    function withdraw(address aToken, uint256 amount) external override {
+    function exit(address aToken, uint256 amount) external override {
         IMorphoV2(morpho).withdraw(aToken, amount);
     }
 
@@ -79,15 +74,7 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
      * @param amount Amount of Morpho tokens to claim
      * @param proof Merkle proof of the rewards
      */
-    function claimMorphoRewards(uint256 amount, bytes32[] calldata proof) external override {
+    function claim(uint256 amount, bytes32[] calldata proof) external override {
         IRewardsDistributior(rewardsDistributor).claim(address(this), amount, proof);
-    }
-
-    /**
-     * @dev Returns the amount of tokens supplied to the Morpho protocol, both P2P and on Aave
-     * @param aToken Address of the Aave market the user wants to get the underlying token balance of
-     */
-    function supplyBalance(address aToken) external view override returns (uint256 totalSupplied) {
-        (, , totalSupplied) = ILens(lens).getCurrentSupplyBalanceInOf(aToken, address(this));
     }
 }

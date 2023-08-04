@@ -24,11 +24,6 @@ interface IMorphoAaveV2Connector {
     function morpho() external view returns (address);
 
     /**
-     * @dev Tells the reference to Morpho's Lens
-     */
-    function lens() external view returns (address);
-
-    /**
      * @dev Tells the reference to the Morpho's rewards distributor
      */
     function rewardsDistributor() external view returns (address);
@@ -39,25 +34,19 @@ interface IMorphoAaveV2Connector {
      * @param token Address of the token to supply
      * @param amount Amount of tokens to supply
      */
-    function supply(address aToken, address token, uint256 amount) external;
+    function join(address aToken, address token, uint256 amount) external;
 
     /**
      * @dev Withdraws tokens from Morpho's supply balance
      * @param aToken Address of the Aave market the user wants to interact with
      * @param amount Amount of the underlying token to withdraw
      */
-    function withdraw(address aToken, uint256 amount) external;
+    function exit(address aToken, uint256 amount) external;
 
     /**
      * @dev Claims Morpho token rewards
      * @param amount Amount of Morpho tokens to claim
      * @param proof Merkle proof of the rewards
      */
-    function claimMorphoRewards(uint256 amount, bytes32[] calldata proof) external;
-
-    /**
-     * @dev Returns the amount of tokens supplied to the Morpho protocol, both P2P and on Aave
-     * @param aToken Address of the Aave market the user wants to get the underlying token balance of
-     */
-    function supplyBalance(address aToken) external view returns (uint256);
+    function claim(uint256 amount, bytes32[] calldata proof) external;
 }

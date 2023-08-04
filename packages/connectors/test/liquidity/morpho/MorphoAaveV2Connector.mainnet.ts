@@ -26,7 +26,7 @@ const WHALE = '0xf584f8728b874a6a5c7a8d4d387c9aae9172d621'
 
 describe('MorphoAaveV2Connector', function () {
   let whale: SignerWithAddress
-  let connector: Contract, usdc: Contract
+  let connector: Contract, lens: Contract, usdc: Contract
 
   const SUPPLY_AMOUNT = toUSDC(50)
 
@@ -35,7 +35,8 @@ describe('MorphoAaveV2Connector', function () {
   })
 
   before('deploy connector', async () => {
-    connector = await deploy('MorphoAaveV2Connector', [MORPHO, LENS, REWARDS_DISTRIBUTOR])
+    connector = await deploy('MorphoAaveV2Connector', [MORPHO, REWARDS_DISTRIBUTOR])
+    lens = await instanceAt('ILens', LENS)
     usdc = await instanceAt('IERC20', USDC)
   })
 
@@ -43,33 +44,38 @@ describe('MorphoAaveV2Connector', function () {
     expect(await connector.morpho()).to.be.equal(MORPHO)
   })
 
+  async function supplyBalance() {
+    const [, , totalBalance] = await lens.getCurrentSupplyBalanceInOf(AUSDC, connector.address)
+    return totalBalance
+  }
+
   it('supplies liquidity', async () => {
     await usdc.connect(whale).transfer(connector.address, SUPPLY_AMOUNT)
 
     const previousUsdcBalance = await usdc.balanceOf(connector.address)
-    const previousSupplyBalance = await connector.supplyBalance(AUSDC)
+    const previousSupplyBalance = await supplyBalance()
 
-    await connector.connect(whale).supply(AUSDC, USDC, SUPPLY_AMOUNT)
+    await connector.connect(whale).join(AUSDC, USDC, SUPPLY_AMOUNT)
 
     const currentUsdcBalance = await usdc.balanceOf(connector.address)
     expect(currentUsdcBalance).to.be.equal(previousUsdcBalance.sub(SUPPLY_AMOUNT))
 
-    const currentSupplyBalance = await connector.supplyBalance(AUSDC)
+    const currentSupplyBalance = await supplyBalance()
     expect(currentSupplyBalance).to.be.equal(previousSupplyBalance.add(SUPPLY_AMOUNT))
   })
 
   it('accumulates yield over time', async () => {
     const previousUsdcBalance = await usdc.balanceOf(connector.address)
-    const previousSupplyBalance = await connector.supplyBalance(AUSDC)
+    const previousSupplyBalance = await supplyBalance()
 
     await advanceTime(MONTH)
 
-    const currentSupplyBalance = await connector.supplyBalance(AUSDC)
+    const currentSupplyBalance = await supplyBalance()
 
     const earnings = currentSupplyBalance.sub(previousSupplyBalance)
     expect(earnings).to.be.gt(0)
 
-    await connector.withdraw(AUSDC, earnings)
+    await connector.exit(AUSDC, earnings)
 
     const currentUsdcBalance = await usdc.balanceOf(connector.address)
     expect(currentUsdcBalance).to.be.equal(previousUsdcBalance.add(earnings))
@@ -77,15 +83,15 @@ describe('MorphoAaveV2Connector', function () {
 
   it('exits with a 50%', async () => {
     const previousUsdcBalance = await usdc.balanceOf(connector.address)
-    const previousSupplyBalance = await connector.supplyBalance(AUSDC)
+    const previousSupplyBalance = await supplyBalance()
 
     const toWithdraw = previousSupplyBalance.div(2)
-    await connector.withdraw(AUSDC, toWithdraw)
+    await connector.exit(AUSDC, toWithdraw)
 
     const currentUsdcBalance = await usdc.balanceOf(connector.address)
     expect(currentUsdcBalance).to.be.equal(previousUsdcBalance.add(toWithdraw))
 
-    const currentSupplyBalance = await connector.supplyBalance(AUSDC)
+    const currentSupplyBalance = await supplyBalance()
     assertAlmostEqual(currentSupplyBalance, previousSupplyBalance.sub(toWithdraw), 0.0005)
   })
 
