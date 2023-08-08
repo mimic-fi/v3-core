@@ -166,13 +166,58 @@ contract Relayer is IRelayer, Ownable {
             (bool taskSuccess, bytes memory result) = task.call(data[i]);
             uint256 gasUsed = initialGas - gasleft();
             totalGasUsed += gasUsed;
-            emit TaskExecuted(smartVault, task, data[i], taskSuccess, result, gasUsed);
+            emit TaskExecuted(smartVault, task, data[i], taskSuccess, result, gasUsed, i);
             if (!taskSuccess && !continueIfFailed) break;
         }
 
         // solhint-disable-next-line avoid-low-level-calls
         uint256 totalGasCost = totalGasUsed * tx.gasprice;
         _payTransactionGasToRelayer(smartVault, totalGasCost);
+    }
+
+    /**
+     * @dev Simulates a call to execute
+     * @dev This method always revert. Successful result or task execution failure are SimulationResult error. Other errors are failures.
+     * @dev WARNING: THIS METHOD IS MEANT TO BE USED AS A VIEW FUNCTION
+     * @param tasks Addresses of the tasks to simulate execution of
+     * @param data List of calldata to simulate each of the given tasks execution
+     * @param continueIfFailed Whether the simulation should fail in case one of the tasks execution fail
+     */
+    function simulateExecution(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external override {
+        TaskFailure[] memory taskFailures = new TaskFailure[](tasks.length);
+        uint256 failuresIdx;
+
+        if (!isExecutorAllowed[msg.sender]) revert RelayerExecutorNotAllowed(msg.sender);
+        if (tasks.length == 0) revert RelayerNoTaskGiven();
+        if (tasks.length != data.length) revert RelayerInputLengthMismatch();
+
+        uint256 totalGasUsed = BASE_GAS;
+        address smartVault = ITask(tasks[0]).smartVault();
+        for (uint256 i = 0; i < tasks.length; i++) {
+            uint256 initialGas = gasleft();
+            address task = tasks[i];
+
+            address taskSmartVault = ITask(task).smartVault();
+            if (taskSmartVault != smartVault) revert RelayerMultipleTaskSmartVaults(task, taskSmartVault, smartVault);
+
+            bool hasPermissions = ISmartVault(smartVault).hasPermissions(task);
+            if (!hasPermissions) revert RelayerTaskDoesNotHavePermissions(task, smartVault);
+
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool taskSuccess, bytes memory result) = task.call(data[i]);
+            uint256 gasUsed = initialGas - gasleft();
+            totalGasUsed += gasUsed;
+            if (!taskSuccess) {
+                taskFailures[failuresIdx++] = (TaskFailure(i, task, result));
+                if (!continueIfFailed) break;
+            }
+        }
+
+        // solhint-disable-next-line avoid-low-level-calls
+        uint256 totalGasCost = totalGasUsed * tx.gasprice;
+        _payTransactionGasToRelayer(smartVault, totalGasCost);
+
+        revert RelayerSimulationResult(taskFailures);
     }
 
     /**

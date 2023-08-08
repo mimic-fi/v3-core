@@ -94,6 +94,11 @@ interface IRelayer {
     error RelayerValueDoesNotMatchAmount(uint256 value, uint256 amount);
 
     /**
+     * @dev The simulation executed properly
+     */
+    error RelayerSimulationResult(TaskFailure[] taskFailures);
+
+    /**
      * @dev Emitted every time an executor is configured
      */
     event ExecutorSet(address indexed executor, bool allowed);
@@ -122,7 +127,8 @@ interface IRelayer {
         bytes data,
         bool success,
         bytes result,
-        uint256 gas
+        uint256 gas,
+        uint256 index
     );
 
     /**
@@ -149,6 +155,18 @@ interface IRelayer {
      * @dev Emitted every time a smart vault pays for transaction gas to the relayer
      */
     event GasPaid(address indexed smartVault, uint256 amount, uint256 quota);
+
+    /**
+     * @dev Task failure
+     * @param index Index of the task
+     * @param task Address of the task
+     * @param result Result of the task execution
+     */
+    struct TaskFailure {
+        uint256 index;
+        address task;
+        bytes result;
+    }
 
     /**
      * @dev Tells the default collector address
@@ -238,6 +256,16 @@ interface IRelayer {
      * @param continueIfFailed Whether the execution should fail in case one of the tasks fail
      */
     function execute(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external;
+
+    /**
+     * @dev Simulates a call to execute
+     * @dev This method always revert. Successful result or task execution failure are SimulationResult error. Other errors are failures.
+     * @dev WARNING: THIS METHOD IS MEANT TO BE USED AS A VIEW FUNCTION
+     * @param tasks Addresses of the tasks to execute
+     * @param data List of calldata to execute each of the given tasks
+     * @param continueIfFailed Whether the execution should fail in case one of the tasks fail
+     */
+    function simulateExecution(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external;
 
     /**
      * @dev Withdraw ERC20 tokens to an external account. To be used in case of accidental token transfers.
