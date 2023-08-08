@@ -1,4 +1,4 @@
-import { deploy, ONES_ADDRESS } from '@mimic-fi/v3-helpers'
+import { bn, deploy, ONES_ADDRESS } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 
@@ -9,24 +9,27 @@ describe('AuthorizedHelpers', () => {
 
   before('create authorizer', async () => {
     authorizedHelpers = await deploy('AuthorizedHelpersMock', [])
-    console.log('f', authorizedHelpers.functions)
   })
 
   describe('authParams', () => {
     const address = ONES_ADDRESS
     const bytes32 = '0x0000000000000000000000000000000000000000000000000000000000000002'
-    const uint256 = BigInt(100)
-    const bool = 1
+    const uint256 = bn(100)
+    const bool = true
     const bytes4 = '0x00000001'
 
     function itBehavesLikeAuthParams(params: string, ...args) {
       it('creates the array properly', async () => {
         const functionSignature = 'getAuthParams(' + params + ')'
-        const result: BigInt[] = await authorizedHelpers[functionSignature](...args)
+        const result = await authorizedHelpers[functionSignature](...args)
 
         expect(result.length).to.be.equal(args.length)
 
-        result.forEach((v, i) => expect(v).to.be.equal(args[i]))
+        result.forEach((v, i) => {
+          const arg = args[i]
+          const expectedValue = typeof arg === 'boolean' ? Number(arg) : arg
+          expect(v).to.be.equal(expectedValue)
+        })
       })
     }
 
