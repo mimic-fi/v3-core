@@ -256,12 +256,12 @@ interface IRelayer {
     function execute(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external;
 
     /**
-     * @dev Simulates a call to execute
-     * @dev This method always revert. Successful result or task execution failure are SimulationResult error. Other errors are failures.
+     * @dev Simulates an execution
+     * @dev This method always revert. Successful result or task execution failure are returned as RelayerSimulationResult errors. Other errors are failures.
      * @dev WARNING: THIS METHOD IS MEANT TO BE USED AS A VIEW FUNCTION
-     * @param tasks Addresses of the tasks to execute
-     * @param data List of calldata to execute each of the given tasks
-     * @param continueIfFailed Whether the execution should fail in case one of the tasks fail
+     * @param tasks Addresses of the tasks to simulate the execution of
+     * @param data List of calldata to simulate each of the given tasks execution
+     * @param continueIfFailed Whether the simulation should fail in case one of the tasks execution fails
      */
     function simulate(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external;
 

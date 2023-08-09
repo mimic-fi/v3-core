@@ -32,7 +32,7 @@ contract Relayer is IRelayer, Ownable {
     using SafeERC20 for IERC20;
 
     // Gas amount charged to cover base costs
-    uint256 public constant BASE_GAS = 71e3;
+    uint256 public constant BASE_GAS = 70.5e3;
 
     // Default collector address
     address public override defaultCollector;
@@ -150,12 +150,12 @@ contract Relayer is IRelayer, Ownable {
     }
 
     /**
-     * @dev Simulates a call to execute
-     * @dev This method always revert. Successful result or task execution failure are SimulationResult error. Other errors are failures.
+     * @dev Simulates an execution
+     * @dev This method always revert. Successful result or task execution failure are returned as RelayerSimulationResult errors. Other errors are failures.
      * @dev WARNING: THIS METHOD IS MEANT TO BE USED AS A VIEW FUNCTION
-     * @param tasks Addresses of the tasks to simulate execution of
+     * @param tasks Addresses of the tasks to simulate the execution of
      * @param data List of calldata to simulate each of the given tasks execution
-     * @param continueIfFailed Whether the simulation should fail in case one of the tasks execution fail
+     * @param continueIfFailed Whether the simulation should fail in case one of the tasks execution fails
      */
     function simulate(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external override {
         revert RelayerSimulationResult(_execute(tasks, data, continueIfFailed));
@@ -213,7 +213,6 @@ contract Relayer is IRelayer, Ownable {
         if (tasks.length != data.length) revert RelayerInputLengthMismatch();
 
         taskResults = new TaskResult[](tasks.length);
-        uint256 resultsIdx;
 
         uint256 totalGasUsed = BASE_GAS;
         address smartVault = ITask(tasks[0]).smartVault();
@@ -224,14 +223,14 @@ contract Relayer is IRelayer, Ownable {
             address taskSmartVault = ITask(task).smartVault();
             if (taskSmartVault != smartVault) revert RelayerMultipleTaskSmartVaults(task, taskSmartVault, smartVault);
 
-            if (!ISmartVault(smartVault).hasPermissions(task))
-                revert RelayerTaskDoesNotHavePermissions(task, smartVault);
+            bool hasPermissions = ISmartVault(smartVault).hasPermissions(task);
+            if (!hasPermissions) revert RelayerTaskDoesNotHavePermissions(task, smartVault);
 
             // solhint-disable-next-line avoid-low-level-calls
             (bool taskSuccess, bytes memory result) = task.call(data[i]);
+            taskResults[i] = TaskResult(taskSuccess, result);
             uint256 gasUsed = initialGas - gasleft();
             totalGasUsed += gasUsed;
-            taskResults[resultsIdx++] = (TaskResult(taskSuccess, result));
             emit TaskExecuted(smartVault, task, data[i], taskSuccess, result, gasUsed, i);
             if (!taskSuccess && !continueIfFailed) break;
         }
