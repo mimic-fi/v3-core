@@ -96,7 +96,7 @@ interface IRelayer {
     /**
      * @dev The simulation executed properly
      */
-    error RelayerSimulationResult(TaskFailure[] taskFailures);
+    error RelayerSimulationResult(TaskResult[] taskResults);
 
     /**
      * @dev Emitted every time an executor is configured
@@ -157,14 +157,12 @@ interface IRelayer {
     event GasPaid(address indexed smartVault, uint256 amount, uint256 quota);
 
     /**
-     * @dev Task failure
-     * @param index Index of the task
-     * @param task Address of the task
+     * @dev Task result
+     * @param succes Whether the task execution succeed or not
      * @param result Result of the task execution
      */
-    struct TaskFailure {
-        uint256 index;
-        address task;
+    struct TaskResult {
+        bool success;
         bytes result;
     }
 
@@ -265,7 +263,7 @@ interface IRelayer {
      * @param data List of calldata to execute each of the given tasks
      * @param continueIfFailed Whether the execution should fail in case one of the tasks fail
      */
-    function simulateExecution(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external;
+    function simulate(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external;
 
     /**
      * @dev Withdraw ERC20 tokens to an external account. To be used in case of accidental token transfers.

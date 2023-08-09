@@ -681,7 +681,7 @@ describe('Relayer', () => {
     })
   })
 
-  describe('simulateExecution', () => {
+  describe('simulate', () => {
     let task: Contract, smartVault: Contract, authorizer: Contract, smartVaultOwner: SignerWithAddress
 
     beforeEach('deploy smart vault', async () => {
@@ -707,6 +707,12 @@ describe('Relayer', () => {
         context('when the smart vault has enough balance deposited', () => {
           let datas: string[], tasks: string[]
 
+          const successList = [true, false]
+          const resultList = [
+            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            '0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000b5441534b5f4641494c4544000000000000000000000000000000000000000000',
+          ]
+
           beforeEach('deposit funds', async () => {
             await relayer.deposit(smartVault.address, fp(0.5), { value: fp(0.5) })
           })
@@ -722,10 +728,9 @@ describe('Relayer', () => {
             })
 
             it('reverts properly', async () => {
-              await expect(relayer.simulateExecution(tasks, datas, continueIfFail)).to.be.revertedWith(
-                'RelayerSimulationResult'
+              await expect(relayer.simulate(tasks, datas, continueIfFail)).to.be.revertedWith(
+                `RelayerSimulationResult([[${successList[0]}, "${resultList[0]}"]])`
               )
-              // TODO: we should validate the error args
             })
           })
 
@@ -745,10 +750,9 @@ describe('Relayer', () => {
               })
 
               it('reverts properly', async () => {
-                await expect(relayer.simulateExecution(tasks, datas, continueIfFail)).to.be.revertedWith(
-                  'RelayerSimulationResult'
+                await expect(relayer.simulate(tasks, datas, continueIfFail)).to.be.revertedWith(
+                  `RelayerSimulationResult([[${successList[1]}, "${resultList[1]}"]])`
                 )
-                // TODO: we should validate the error args
               })
             })
 
@@ -765,10 +769,9 @@ describe('Relayer', () => {
                 const continueIfFail = true
 
                 it('reverts properly', async () => {
-                  await expect(relayer.simulateExecution(tasks, datas, continueIfFail)).to.be.revertedWith(
-                    'RelayerSimulationResult'
+                  await expect(relayer.simulate(tasks, datas, continueIfFail)).to.be.revertedWith(
+                    `RelayerSimulationResult([[${successList[1]}, "${resultList[1]}"], [${successList[0]}, "${resultList[0]}"]])`
                   )
-                  // TODO: we should validate the error args
                 })
               })
 
@@ -776,10 +779,9 @@ describe('Relayer', () => {
                 const continueIfFail = false
 
                 it('reverts properly', async () => {
-                  await expect(relayer.simulateExecution(tasks, datas, continueIfFail)).to.be.revertedWith(
-                    'RelayerSimulationResult'
+                  await expect(relayer.simulate(tasks, datas, continueIfFail)).to.be.revertedWith(
+                    `RelayerSimulationResult([[${successList[1]}, "${resultList[1]}"], [${successList[1]}, "0x"]])`
                   )
-                  // TODO: we should validate the error args
                 })
               })
             })
@@ -788,6 +790,9 @@ describe('Relayer', () => {
 
         context('when the smart vault does not have enough balance deposited', () => {
           let data: string
+
+          const success = true
+          const result = '0x0000000000000000000000000000000000000000000000000000000000000001'
 
           beforeEach('build call data', async () => {
             data = task.interface.encodeFunctionData('succeed')
@@ -800,16 +805,15 @@ describe('Relayer', () => {
             })
 
             it('reverts properly', async () => {
-              await expect(relayer.simulateExecution([task.address], [data], false)).to.be.revertedWith(
-                'RelayerSimulationResult'
+              await expect(relayer.simulate([task.address], [data], false)).to.be.revertedWith(
+                `RelayerSimulationResult([[${success}, "${result}"]])`
               )
-              // TODO: we should validate the error args
             })
           })
 
           context('when the available quota is not enough', () => {
             it('reverts', async () => {
-              await expect(relayer.simulateExecution([task.address], ['0x'], false)).to.be.revertedWith(
+              await expect(relayer.simulate([task.address], ['0x'], false)).to.be.revertedWith(
                 'RelayerPaymentInsufficientBalance'
               )
             })
@@ -819,7 +823,7 @@ describe('Relayer', () => {
 
       context('when the task does not have permissions over the associated smart vault', () => {
         it('reverts', async () => {
-          await expect(relayer.simulateExecution([task.address], ['0x'], false)).to.be.revertedWith(
+          await expect(relayer.simulate([task.address], ['0x'], false)).to.be.revertedWith(
             'RelayerTaskDoesNotHavePermissions'
           )
         })
@@ -828,9 +832,7 @@ describe('Relayer', () => {
 
     context('when the sender is not an executor', () => {
       it('reverts', async () => {
-        await expect(relayer.simulateExecution([task.address], ['0x'], false)).to.be.revertedWith(
-          'RelayerExecutorNotAllowed'
-        )
+        await expect(relayer.simulate([task.address], ['0x'], false)).to.be.revertedWith('RelayerExecutorNotAllowed')
       })
     })
   })
