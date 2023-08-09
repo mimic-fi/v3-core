@@ -48,17 +48,9 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
      * @param amount Amount of tokens to supply
      */
     function join(address aToken, address token, uint256 amount) external override {
-        // TODO: eth support?
         ERC20Helpers.approve(token, morpho, amount);
         IMorphoV2(morpho).supply(aToken, amount);
     }
-
-    // function join(address aToken, address token, uint256 amount, uint256 maxGasForMatching)
-    //     external
-    // {
-    //     ERC20Helpers.approve(token, morpho, amount);
-    //     IMorphoV2(morpho).supply(aToken, address(this), amount, maxGasForMatching);
-    // }
 
     /**
      * @dev Withdraws tokens from Morpho's supply balance

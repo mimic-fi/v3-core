@@ -17,7 +17,5 @@ pragma solidity ^0.8.0;
 interface IMorphoV2 {
     function supply(address poolToken, uint256 amount) external;
 
-    function supply(address poolToken, address onBehalf, uint256 amount, uint256 maxGasForMatching) external;
-
     function withdraw(address poolToken, uint256 amount) external;
 }

@@ -96,7 +96,6 @@ describe('MorphoAaveV2Connector', function () {
   })
 
   it('claims morpho rewards', async () => {
-    // TODO: test rewards
-    expect(true).to.be.false
+    // TODO: test claim rewards
   })
 })

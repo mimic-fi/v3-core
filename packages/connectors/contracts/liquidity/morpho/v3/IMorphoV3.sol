@@ -26,8 +26,4 @@ interface IMorphoV3 is IMorphoGetters {
     function withdraw(address underlying, uint256 amount, address onBehalf, address receiver, uint256 maxIterations)
         external
         returns (uint256);
-
-    function claimRewards(address[] calldata assets, address onBehalf)
-        external
-        returns (address[] memory, uint256[] memory);
 }

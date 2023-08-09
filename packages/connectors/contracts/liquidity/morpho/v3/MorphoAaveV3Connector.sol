@@ -48,7 +48,6 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
      * @param maxIterations Maximum number of iterations allowed during the matching process. Using 4 is recommended by Morpho.
      */
     function join(address token, uint256 amount, uint256 maxIterations) external override returns (uint256 supplied) {
-        // TODO: eth support?
         ERC20Helpers.approve(token, morpho, amount);
         supplied = IMorphoV3(morpho).supply(token, amount, address(this), maxIterations);
         if (supplied < amount) revert MorphoAaveV3InvalidSupply();
