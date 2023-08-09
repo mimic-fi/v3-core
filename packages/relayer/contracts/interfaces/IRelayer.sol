@@ -158,7 +158,7 @@ interface IRelayer {
 
     /**
      * @dev Task result
-     * @param succes Whether the task execution succeed or not
+     * @param success Whether the task execution succeeds or not
      * @param result Result of the task execution
      */
     struct TaskResult {
