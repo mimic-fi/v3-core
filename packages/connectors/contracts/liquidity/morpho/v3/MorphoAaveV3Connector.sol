@@ -48,6 +48,7 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
      * @param maxIterations Maximum number of iterations allowed during the matching process. Using 4 is recommended by Morpho.
      */
     function join(address token, uint256 amount, uint256 maxIterations) external override returns (uint256 supplied) {
+        if (amount == 0) return 0;
         ERC20Helpers.approve(token, morpho, amount);
         supplied = IMorphoV3(morpho).supply(token, amount, address(this), maxIterations);
         if (supplied < amount) revert MorphoAaveV3InvalidSupply();
@@ -61,6 +62,7 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
      *  If it is less than the default, the latter will be used. Pass 0 to fallback to the default.
      */
     function exit(address token, uint256 amount, uint256 maxIterations) external override returns (uint256 withdrawn) {
+        if (amount == 0) return 0;
         withdrawn = IMorphoV3(morpho).withdraw(token, amount, address(this), address(this), maxIterations);
         if (withdrawn != amount) revert MorphoAaveV3InvalidWithdraw();
     }
@@ -71,6 +73,7 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
      * @param proof Merkle proof
      */
     function claim(uint256 amount, bytes32[] calldata proof) external override {
+        if (amount == 0) return;
         IRewardsDistributior(rewardsDistributor).claim(address(this), amount, proof);
     }
 }

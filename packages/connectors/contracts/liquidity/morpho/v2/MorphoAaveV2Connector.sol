@@ -48,6 +48,7 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
      * @param amount Amount of tokens to supply
      */
     function join(address aToken, address token, uint256 amount) external override {
+        if (amount == 0) return;
         ERC20Helpers.approve(token, morpho, amount);
         IMorphoV2(morpho).supply(aToken, amount);
     }
@@ -58,6 +59,7 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
      * @param amount Amount of the underlying token to withdraw
      */
     function exit(address aToken, uint256 amount) external override {
+        if (amount == 0) return;
         IMorphoV2(morpho).withdraw(aToken, amount);
     }
 
@@ -67,6 +69,7 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
      * @param proof Merkle proof of the rewards
      */
     function claim(uint256 amount, bytes32[] calldata proof) external override {
+        if (amount == 0) return;
         IRewardsDistributior(rewardsDistributor).claim(address(this), amount, proof);
     }
 }
