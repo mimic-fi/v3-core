@@ -94,6 +94,11 @@ interface IRelayer {
     error RelayerValueDoesNotMatchAmount(uint256 value, uint256 amount);
 
     /**
+     * @dev The simulation executed properly
+     */
+    error RelayerSimulationResult(TaskResult[] taskResults);
+
+    /**
      * @dev Emitted every time an executor is configured
      */
     event ExecutorSet(address indexed executor, bool allowed);
@@ -122,7 +127,8 @@ interface IRelayer {
         bytes data,
         bool success,
         bytes result,
-        uint256 gas
+        uint256 gas,
+        uint256 index
     );
 
     /**
@@ -149,6 +155,16 @@ interface IRelayer {
      * @dev Emitted every time a smart vault pays for transaction gas to the relayer
      */
     event GasPaid(address indexed smartVault, uint256 amount, uint256 quota);
+
+    /**
+     * @dev Task result
+     * @param success Whether the task execution succeeds or not
+     * @param result Result of the task execution
+     */
+    struct TaskResult {
+        bool success;
+        bytes result;
+    }
 
     /**
      * @dev Tells the default collector address
@@ -238,6 +254,17 @@ interface IRelayer {
      * @param continueIfFailed Whether the execution should fail in case one of the tasks fail
      */
     function execute(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external;
+
+    /**
+     * @dev Simulates an execution.
+     * WARNING: THIS METHOD IS MEANT TO BE USED AS A VIEW FUNCTION
+     * This method will always revert. Successful results or task execution errors are returned as
+     * `RelayerSimulationResult` errors. Any other error should be treated as failure.
+     * @param tasks Addresses of the tasks to simulate the execution of
+     * @param data List of calldata to simulate each of the given tasks execution
+     * @param continueIfFailed Whether the simulation should fail in case one of the tasks execution fails
+     */
+    function simulate(address[] memory tasks, bytes[] memory data, bool continueIfFailed) external;
 
     /**
      * @dev Withdraw ERC20 tokens to an external account. To be used in case of accidental token transfers.
