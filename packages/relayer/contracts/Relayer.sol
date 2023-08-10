@@ -150,9 +150,10 @@ contract Relayer is IRelayer, Ownable {
     }
 
     /**
-     * @dev Simulates an execution
-     * @dev This method always revert. Successful result or task execution failure are returned as RelayerSimulationResult errors. Other errors are failures.
-     * @dev WARNING: THIS METHOD IS MEANT TO BE USED AS A VIEW FUNCTION
+     * @dev Simulates an execution.
+     * WARNING: THIS METHOD IS MEANT TO BE USED AS A VIEW FUNCTION
+     * This method will always revert. Successful results or task execution errors are returned as
+     * `RelayerSimulationResult` errors. Any other error should be treated as failure.
      * @param tasks Addresses of the tasks to simulate the execution of
      * @param data List of calldata to simulate each of the given tasks execution
      * @param continueIfFailed Whether the simulation should fail in case one of the tasks execution fails
@@ -212,10 +213,10 @@ contract Relayer is IRelayer, Ownable {
         if (tasks.length == 0) revert RelayerNoTaskGiven();
         if (tasks.length != data.length) revert RelayerInputLengthMismatch();
 
-        taskResults = new TaskResult[](tasks.length);
-
         uint256 totalGasUsed = BASE_GAS;
         address smartVault = ITask(tasks[0]).smartVault();
+        taskResults = new TaskResult[](tasks.length);
+
         for (uint256 i = 0; i < tasks.length; i++) {
             uint256 initialGas = gasleft();
             address task = tasks[i];
@@ -227,12 +228,13 @@ contract Relayer is IRelayer, Ownable {
             if (!hasPermissions) revert RelayerTaskDoesNotHavePermissions(task, smartVault);
 
             // solhint-disable-next-line avoid-low-level-calls
-            (bool taskSuccess, bytes memory result) = task.call(data[i]);
-            taskResults[i] = TaskResult(taskSuccess, result);
+            (bool success, bytes memory result) = task.call(data[i]);
+            taskResults[i] = TaskResult(success, result);
             uint256 gasUsed = initialGas - gasleft();
             totalGasUsed += gasUsed;
-            emit TaskExecuted(smartVault, task, data[i], taskSuccess, result, gasUsed, i);
-            if (!taskSuccess && !continueIfFailed) break;
+
+            emit TaskExecuted(smartVault, task, data[i], success, result, gasUsed, i);
+            if (!success && !continueIfFailed) break;
         }
 
         // solhint-disable-next-line avoid-low-level-calls
