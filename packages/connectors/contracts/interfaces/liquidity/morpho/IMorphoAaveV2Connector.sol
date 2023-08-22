@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @title MorphoAaveV2 connector interface
@@ -24,29 +24,33 @@ interface IMorphoAaveV2Connector {
     function morpho() external view returns (address);
 
     /**
+     * @dev Tells the reference to Morpho's lens
+     */
+    function lens() external view returns (address);
+
+    /**
      * @dev Tells the reference to the Morpho's rewards distributor
      */
     function rewardsDistributor() external view returns (address);
 
     /**
      * @dev Supplies tokens to the Aave protocol using Morpho. Eligible for the peer-to-peer matching
-     * @param aToken Address of the Aave market the user wants to interact with
      * @param token Address of the token to supply
      * @param amount Amount of tokens to supply
      */
-    function join(address aToken, address token, uint256 amount) external;
+    function join(address token, uint256 amount) external returns (uint256);
 
     /**
      * @dev Withdraws tokens from Morpho's supply balance
-     * @param aToken Address of the Aave market the user wants to interact with
-     * @param amount Amount of the underlying token to withdraw
+     * @param token Address of the token to withdraw
+     * @param amount Amount of tokens to withdraw
      */
-    function exit(address aToken, uint256 amount) external;
+    function exit(address token, uint256 amount) external returns (uint256);
 
     /**
      * @dev Claims Morpho token rewards
      * @param amount Amount of Morpho tokens to claim
      * @param proof Merkle proof of the rewards
      */
-    function claim(uint256 amount, bytes32[] calldata proof) external;
+    function claim(uint256 amount, bytes32[] calldata proof) external returns (address[] memory, uint256[] memory);
 }

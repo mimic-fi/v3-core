@@ -18,8 +18,8 @@ import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import './IMorphoV3.sol';
-import '../IRewardsDistributior.sol';
-import '../../../interfaces/liquidity/morpho/IMorphoAaveV3Connector.sol';
+import '../morpho-v2/IRewardsDistributor.sol';
+import '../../interfaces/liquidity/morpho/IMorphoAaveV3Connector.sol';
 
 /**
  * @title MorphoAaveV3Connector
@@ -30,7 +30,7 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
     // Reference to MorphoAaveV3
     address public immutable override morpho;
 
-    // Reference to Morpho's RewardsDistributor
+    // Reference to Morpho's rewards distributor
     address public immutable override rewardsDistributor;
 
     /**
@@ -48,6 +48,7 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
      * @param maxIterations Maximum number of iterations allowed during the matching process. Using 4 is recommended by Morpho.
      */
     function join(address token, uint256 amount, uint256 maxIterations) external override returns (uint256 supplied) {
+        if (amount == 0) return 0;
         ERC20Helpers.approve(token, morpho, amount);
         supplied = IMorphoV3(morpho).supply(token, amount, address(this), maxIterations);
         if (supplied < amount) revert MorphoAaveV3InvalidSupply();
@@ -61,8 +62,9 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
      *  If it is less than the default, the latter will be used. Pass 0 to fallback to the default.
      */
     function exit(address token, uint256 amount, uint256 maxIterations) external override returns (uint256 withdrawn) {
+        if (amount == 0) return 0;
         withdrawn = IMorphoV3(morpho).withdraw(token, amount, address(this), address(this), maxIterations);
-        if (withdrawn != amount) revert MorphoAaveV3InvalidWithdraw();
+        if (withdrawn < amount) revert MorphoAaveV3InvalidWithdraw();
     }
 
     /**
@@ -70,7 +72,24 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
      * @param amount Amount of Morpho tokens to claim
      * @param proof Merkle proof
      */
-    function claim(uint256 amount, bytes32[] calldata proof) external override {
-        IRewardsDistributior(rewardsDistributor).claim(address(this), amount, proof);
+    function claim(uint256 amount, bytes32[] calldata proof)
+        external
+        override
+        returns (address[] memory tokens, uint256[] memory amounts)
+    {
+        IRewardsDistributor distributor = IRewardsDistributor(rewardsDistributor);
+        IERC20 morphoToken = distributor.MORPHO();
+
+        amounts = new uint256[](1);
+
+        tokens = new address[](1);
+        tokens[0] = address(morphoToken);
+
+        if (amount == 0) return (tokens, amounts);
+
+        uint256 initialMorphoBalance = morphoToken.balanceOf(address(this));
+        distributor.claim(address(this), amount, proof);
+        uint256 finalMorphoBalance = morphoToken.balanceOf(address(this));
+        amounts[0] = finalMorphoBalance - initialMorphoBalance;
     }
 }

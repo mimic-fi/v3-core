@@ -14,6 +14,6 @@
 
 pragma solidity ^0.8.0;
 
-interface IRewardsDistributior {
-    function claim(address account, uint256 claimable, bytes32[] calldata proof) external;
+interface ILendingPoolAddressesProvider {
+    function getLendingPool() external view returns (address);
 }

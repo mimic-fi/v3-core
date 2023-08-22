@@ -14,16 +14,10 @@
 
 pragma solidity ^0.8.0;
 
-interface IMorphoGetters {
-    function supplyBalance(address underlying, address user) external view returns (uint256);
-}
+import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 
-interface IMorphoV3 is IMorphoGetters {
-    function supply(address underlying, uint256 amount, address onBehalf, uint256 maxIterations)
-        external
-        returns (uint256);
+interface IRewardsDistributor {
+    function MORPHO() external returns (ERC20);
 
-    function withdraw(address underlying, uint256 amount, address onBehalf, address receiver, uint256 maxIterations)
-        external
-        returns (uint256);
+    function claim(address account, uint256 claimable, bytes32[] calldata proof) external;
 }

@@ -15,7 +15,6 @@ import { Contract } from 'ethers'
 /* eslint-disable no-secrets/no-secrets */
 
 const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
-// const MORPHO_TOKEN = '0x9994E35Db50125E0DF82e4c2dde62496CE330999'
 
 const MORPHO = '0x33333aea097c193e66081E930c33020272b33333'
 const REWARDS_DISTRIBUTOR = '0x3B14E5C73e0A56D607A8688098326fD4b4292135'
@@ -87,9 +86,5 @@ describe('MorphoAaveV3Connector', function () {
 
     const currentSupplyBalance = await morpho.supplyBalance(WETH, connector.address)
     assertAlmostEqual(currentSupplyBalance, previousSupplyBalance.sub(toWithdraw), 0.0005)
-  })
-
-  it('claims morpho rewards', async () => {
-    // TODO: test claim rewards
   })
 })
