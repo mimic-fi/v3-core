@@ -96,8 +96,8 @@ describe('OneInchV5Swapper', () => {
 
           context('when the token in is allowed', () => {
             context('when there is a token out set', () => {
-              let tokenOut: Contract,
-                extraCallData = ''
+              let tokenOut: Contract
+              let extraCallData = ''
 
               beforeEach('set default token out', async () => {
                 tokenOut = await deployTokenMock('TKN')

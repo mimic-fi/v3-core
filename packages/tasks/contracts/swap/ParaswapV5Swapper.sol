@@ -38,7 +38,7 @@ contract ParaswapV5Swapper is IParaswapV5Swapper, BaseSwapTask {
     address public override quoteSigner;
 
     /**
-     * @dev Paraswap v5 swap config
+     * @dev Paraswap v5 swap config. Only used in the initializer.
      */
     struct ParaswapV5SwapConfig {
         address quoteSigner;
