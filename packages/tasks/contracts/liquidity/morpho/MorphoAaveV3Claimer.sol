@@ -30,14 +30,10 @@ contract MorphoAaveV3Claimer is IMorphoAaveV3Claimer, BaseMorphoAaveV3Task {
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('MORPHO_AAVE_V3_CLAIMER');
 
-    // Morpho token address
-    address public override morphoToken;
-
     /**
      * @dev Morpho-Aave V3 claim config. Only used in the initializer.
      */
     struct MorphoAaveV3ClaimConfig {
-        address morphoToken;
         BaseMorphoAaveV3Config baseMorphoAaveV3Config;
     }
 
@@ -63,15 +59,7 @@ contract MorphoAaveV3Claimer is IMorphoAaveV3Claimer, BaseMorphoAaveV3Task {
      * @param config Morpho-Aave V3 claim config
      */
     function __MorphoAaveV3Claimer_init_unchained(MorphoAaveV3ClaimConfig memory config) internal onlyInitializing {
-        _setMorphoToken(config.morphoToken);
-    }
-
-    /**
-     * @dev Sets the Morpho token address
-     * @param newMorphoToken Address of the Morpho token
-     */
-    function setMorphoToken(address newMorphoToken) external override authP(authParams(newMorphoToken)) {
-        _setMorphoToken(newMorphoToken);
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     /**
@@ -79,37 +67,41 @@ contract MorphoAaveV3Claimer is IMorphoAaveV3Claimer, BaseMorphoAaveV3Task {
      * @param amount Amount of Morpho-Aave V3 pool tokens to be claimed
      * @param proof Merkle proof of the Morpho rewards
      */
-    function call(uint256 amount, bytes32[] calldata proof) external override authP(authParams(amount)) {
-        if (amount == 0) amount = getTaskAmount(morphoToken);
-        _beforeMorphoAaveV3Claimer(amount, proof);
+    function call(address token, uint256 amount, bytes32[] calldata proof)
+        external
+        override
+        authP(authParams(token, amount))
+    {
+        if (amount == 0) amount = getTaskAmount(token);
+        _beforeMorphoAaveV3Claimer(token, amount, proof);
         bytes memory connectorData = abi.encodeWithSelector(IMorphoAaveV3Connector.claim.selector, amount, proof);
-        ISmartVault(smartVault).execute(connector, connectorData);
-        _afterMorphoAaveV3Claimer(amount);
+        bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
+        (address[] memory tokens, uint256[] memory amounts) = abi.decode(result, (address[], uint256[]));
+        _afterMorphoAaveV3Claimer(token, amount, tokens, amounts);
     }
 
     /**
      * @dev Before Morpho-Aave V3 claimer hook
      */
-    function _beforeMorphoAaveV3Claimer(uint256 amount, bytes32[] calldata proof) internal virtual {
-        _beforeBaseMorphoAaveV3Task(morphoToken, amount);
+    function _beforeMorphoAaveV3Claimer(address token, uint256 amount, bytes32[] calldata proof) internal virtual {
+        _beforeBaseMorphoAaveV3Task(token, amount);
+        bytes memory connectorData = abi.encodeWithSelector(IMorphoAaveV3Connector.morphoToken.selector);
+        bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
+        if (token != abi.decode(result, (address))) revert TaskTokenNotMorpho();
         if (proof.length == 0) revert TaskProofEmpty();
     }
 
     /**
      * @dev After Morpho-Aave V3 claimer hook
      */
-    function _afterMorphoAaveV3Claimer(uint256 amount) internal virtual {
-        _increaseBalanceConnector(morphoToken, amount);
-        _afterBaseMorphoAaveV3Task(morphoToken, amount);
-    }
-
-    /**
-     * @dev Sets the Morpho token address
-     * @param newMorphoToken Address of the Morpho token
-     */
-    function _setMorphoToken(address newMorphoToken) internal {
-        if (newMorphoToken == address(0)) revert TaskMorphoTokenZero();
-        morphoToken = newMorphoToken;
-        emit MorphoTokenSet(newMorphoToken);
+    function _afterMorphoAaveV3Claimer(
+        address tokenIn,
+        uint256 amountIn,
+        address[] memory tokensOut,
+        uint256[] memory amountsOut
+    ) internal virtual {
+        if (tokensOut.length != amountsOut.length) revert TaskClaimResultLengthMismatch();
+        for (uint256 i = 0; i < tokensOut.length; i++) _increaseBalanceConnector(tokensOut[i], amountsOut[i]);
+        _afterBaseMorphoAaveV3Task(tokenIn, amountIn);
     }
 }

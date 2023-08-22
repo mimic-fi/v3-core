@@ -30,10 +30,26 @@ contract MorphoAaveV3Joiner is IMorphoAaveV3Joiner, BaseMorphoAaveV3Task {
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('MORPHO_AAVE_V3_JOINER');
 
+    // Default maximum iterations limit
+    uint256 public override defaultMaxIterationsLimit;
+
+    // Maximum iterations limit per token address
+    mapping (address => uint256) public override customMaxIterationsLimit;
+
+    /**
+     * @dev Custom max iterations limit config. Only used in the initializer.
+     */
+    struct CustomMaxIterationsLimit {
+        address token;
+        uint256 maxIterationsLimit;
+    }
+
     /**
      * @dev Morpho-Aave V3 join config. Only used in the initializer.
      */
     struct MorphoAaveV3JoinConfig {
+        uint256 maxIterationsLimit;
+        CustomMaxIterationsLimit[] customMaxIterationsLimits;
         BaseMorphoAaveV3Config baseMorphoAaveV3Config;
     }
 
@@ -59,7 +75,47 @@ contract MorphoAaveV3Joiner is IMorphoAaveV3Joiner, BaseMorphoAaveV3Task {
      * @param config Morpho-Aave V3 join config
      */
     function __MorphoAaveV3Joiner_init_unchained(MorphoAaveV3JoinConfig memory config) internal onlyInitializing {
-        // solhint-disable-previous-line no-empty-blocks
+        _setDefaultMaxIterationsLimit(config.maxIterationsLimit);
+
+        for (uint256 i = 0; i < config.customMaxIterationsLimits.length; i++) {
+            _setCustomMaxIterationsLimit(
+                config.customMaxIterationsLimits[i].token,
+                config.customMaxIterationsLimits[i].maxIterationsLimit
+            );
+        }
+    }
+
+    /**
+     * @dev Tells the max iterations limit that should be used for a token
+     */
+    function getMaxIterationsLimit(address token) public view virtual override returns (uint256) {
+        uint256 maxIterationsLimit = customMaxIterationsLimit[token];
+        return maxIterationsLimit == 0 ? defaultMaxIterationsLimit : maxIterationsLimit;
+    }
+
+    /**
+     * @dev Sets the default max iterations limit
+     * @param maxIterationsLimit Default max iterations limit to be set
+     */
+    function setDefaultMaxIterationsLimit(uint256 maxIterationsLimit)
+        external
+        override
+        authP(authParams(maxIterationsLimit))
+    {
+        _setDefaultMaxIterationsLimit(maxIterationsLimit);
+    }
+
+    /**
+     * @dev Sets a custom max iterations limit
+     * @param token Address of the token to set a custom max iterations limit for
+     * @param maxIterationsLimit Max iterations limit to be set
+     */
+    function setCustomMaxIterationsLimit(address token, uint256 maxIterationsLimit)
+        external
+        override
+        authP(authParams(token, maxIterationsLimit))
+    {
+        _setCustomMaxIterationsLimit(token, maxIterationsLimit);
     }
 
     /**
@@ -75,17 +131,6 @@ contract MorphoAaveV3Joiner is IMorphoAaveV3Joiner, BaseMorphoAaveV3Task {
     {
         if (amount == 0) amount = getTaskAmount(token);
         _beforeMorphoAaveV3Joiner(token, amount, maxIterations);
-        _call(token, amount, maxIterations);
-        _afterMorphoAaveV3Joiner(token, amount);
-    }
-
-    /**
-     * @dev Executes the Morpho-Aave V3 joiner task
-     * @param token Address of the token to be joined with
-     * @param amount Amount of tokens to be joined with
-     * @param maxIterations Maximum number of iterations allowed during the matching process. Using 4 is recommended by Morpho.
-     */
-    function _call(address token, uint256 amount, uint256 maxIterations) internal virtual {
         bytes memory connectorData = abi.encodeWithSelector(
             IMorphoAaveV3Connector.join.selector,
             token,
@@ -93,6 +138,7 @@ contract MorphoAaveV3Joiner is IMorphoAaveV3Joiner, BaseMorphoAaveV3Task {
             maxIterations
         );
         ISmartVault(smartVault).execute(connector, connectorData);
+        _afterMorphoAaveV3Joiner(token, amount);
     }
 
     /**
@@ -100,7 +146,9 @@ contract MorphoAaveV3Joiner is IMorphoAaveV3Joiner, BaseMorphoAaveV3Task {
      */
     function _beforeMorphoAaveV3Joiner(address token, uint256 amount, uint256 maxIterations) internal virtual {
         _beforeBaseMorphoAaveV3Task(token, amount);
-        if (maxIterations == 0) revert TaskMaxIterationsZero();
+        uint256 maxIterationsLimit = getMaxIterationsLimit(token);
+        if (maxIterations > maxIterationsLimit)
+            revert TaskMaxIterationsLimitAboveMax(maxIterations, maxIterationsLimit);
     }
 
     /**
@@ -108,5 +156,25 @@ contract MorphoAaveV3Joiner is IMorphoAaveV3Joiner, BaseMorphoAaveV3Task {
      */
     function _afterMorphoAaveV3Joiner(address token, uint256 amount) internal virtual {
         _afterBaseMorphoAaveV3Task(token, amount);
+    }
+
+    /**
+     * @dev Sets the default max iterations limit
+     * @param maxIterationsLimit Default max iterations limit to be set
+     */
+    function _setDefaultMaxIterationsLimit(uint256 maxIterationsLimit) internal {
+        defaultMaxIterationsLimit = maxIterationsLimit;
+        emit DefaultMaxIterationsLimitSet(maxIterationsLimit);
+    }
+
+    /**
+     * @dev Sets a custom max iterations limit for a token
+     * @param token Address of the token to set the custom max iterations limit for
+     * @param maxIterationsLimit Max iterations limit to be set
+     */
+    function _setCustomMaxIterationsLimit(address token, uint256 maxIterationsLimit) internal {
+        if (token == address(0)) revert TaskTokenZero();
+        customMaxIterationsLimit[token] = maxIterationsLimit;
+        emit CustomMaxIterationsLimitSet(token, maxIterationsLimit);
     }
 }

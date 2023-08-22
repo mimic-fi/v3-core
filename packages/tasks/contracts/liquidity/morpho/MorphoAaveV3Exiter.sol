@@ -30,10 +30,26 @@ contract MorphoAaveV3Exiter is IMorphoAaveV3Exiter, BaseMorphoAaveV3Task {
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('MORPHO_AAVE_V3_EXITER');
 
+    // Default maximum iterations limit
+    uint256 public override defaultMaxIterationsLimit;
+
+    // Maximum iterations limit per token address
+    mapping (address => uint256) public override customMaxIterationsLimit;
+
+    /**
+     * @dev Custom max iterations limit config. Only used in the initializer.
+     */
+    struct CustomMaxIterationsLimit {
+        address token;
+        uint256 maxIterationsLimit;
+    }
+
     /**
      * @dev Morpho-Aave V3 exit config. Only used in the initializer.
      */
     struct MorphoAaveV3ExitConfig {
+        uint256 maxIterationsLimit;
+        CustomMaxIterationsLimit[] customMaxIterationsLimits;
         BaseMorphoAaveV3Config baseMorphoAaveV3Config;
     }
 
@@ -59,7 +75,47 @@ contract MorphoAaveV3Exiter is IMorphoAaveV3Exiter, BaseMorphoAaveV3Task {
      * @param config Morpho-Aave V3 exit config
      */
     function __MorphoAaveV3Exiter_init_unchained(MorphoAaveV3ExitConfig memory config) internal onlyInitializing {
-        // solhint-disable-previous-line no-empty-blocks
+        _setDefaultMaxIterationsLimit(config.maxIterationsLimit);
+
+        for (uint256 i = 0; i < config.customMaxIterationsLimits.length; i++) {
+            _setCustomMaxIterationsLimit(
+                config.customMaxIterationsLimits[i].token,
+                config.customMaxIterationsLimits[i].maxIterationsLimit
+            );
+        }
+    }
+
+    /**
+     * @dev Tells the max iterations limit that should be used for a token
+     */
+    function getMaxIterationsLimit(address token) public view virtual override returns (uint256) {
+        uint256 maxIterationsLimit = customMaxIterationsLimit[token];
+        return maxIterationsLimit == 0 ? defaultMaxIterationsLimit : maxIterationsLimit;
+    }
+
+    /**
+     * @dev Sets the default max iterations limit
+     * @param maxIterationsLimit Default max iterations limit to be set
+     */
+    function setDefaultMaxIterationsLimit(uint256 maxIterationsLimit)
+        external
+        override
+        authP(authParams(maxIterationsLimit))
+    {
+        _setDefaultMaxIterationsLimit(maxIterationsLimit);
+    }
+
+    /**
+     * @dev Sets a custom max iterations limit
+     * @param token Address of the token to set a custom max iterations limit for
+     * @param maxIterationsLimit Max iterations limit to be set
+     */
+    function setCustomMaxIterationsLimit(address token, uint256 maxIterationsLimit)
+        external
+        override
+        authP(authParams(token, maxIterationsLimit))
+    {
+        _setCustomMaxIterationsLimit(token, maxIterationsLimit);
     }
 
     /**
@@ -75,19 +131,7 @@ contract MorphoAaveV3Exiter is IMorphoAaveV3Exiter, BaseMorphoAaveV3Task {
         authP(authParams(token, amount, maxIterations))
     {
         if (amount == 0) amount = getTaskAmount(token);
-        _beforeMorphoAaveV3Exiter(token, amount);
-        _call(token, amount, maxIterations);
-        _afterMorphoAaveV3Exiter(token, amount);
-    }
-
-    /**
-     * @dev Executes the Morpho-Aave V3 exiter task
-     * @param token Address of the Morpho-Aave V3 pool token to be exited with
-     * @param amount Amount of Morpho-Aave V3 pool tokens to be exited with
-     * @param maxIterations Maximum number of iterations allowed during the matching process.
-     *  If it is less than the default, the latter will be used. Pass 0 to fallback to the default.
-     */
-    function _call(address token, uint256 amount, uint256 maxIterations) internal virtual {
+        _beforeMorphoAaveV3Exiter(token, amount, maxIterations);
         bytes memory connectorData = abi.encodeWithSelector(
             IMorphoAaveV3Connector.exit.selector,
             token,
@@ -95,13 +139,17 @@ contract MorphoAaveV3Exiter is IMorphoAaveV3Exiter, BaseMorphoAaveV3Task {
             maxIterations
         );
         ISmartVault(smartVault).execute(connector, connectorData);
+        _afterMorphoAaveV3Exiter(token, amount);
     }
 
     /**
      * @dev Before Morpho-Aave V3 exiter hook
      */
-    function _beforeMorphoAaveV3Exiter(address token, uint256 amount) internal virtual {
+    function _beforeMorphoAaveV3Exiter(address token, uint256 amount, uint256 maxIterations) internal virtual {
         _beforeBaseMorphoAaveV3Task(token, amount);
+        uint256 maxIterationsLimit = getMaxIterationsLimit(token);
+        if (maxIterations > maxIterationsLimit)
+            revert TaskMaxIterationsLimitAboveMax(maxIterations, maxIterationsLimit);
     }
 
     /**
@@ -110,5 +158,25 @@ contract MorphoAaveV3Exiter is IMorphoAaveV3Exiter, BaseMorphoAaveV3Task {
     function _afterMorphoAaveV3Exiter(address token, uint256 amount) internal virtual {
         _increaseBalanceConnector(token, amount);
         _afterBaseMorphoAaveV3Task(token, amount);
+    }
+
+    /**
+     * @dev Sets the default max iterations limit
+     * @param maxIterationsLimit Default max iterations limit to be set
+     */
+    function _setDefaultMaxIterationsLimit(uint256 maxIterationsLimit) internal {
+        defaultMaxIterationsLimit = maxIterationsLimit;
+        emit DefaultMaxIterationsLimitSet(maxIterationsLimit);
+    }
+
+    /**
+     * @dev Sets a custom max iterations limit for a token
+     * @param token Address of the token to set the custom max iterations limit for
+     * @param maxIterationsLimit Max iterations limit to be set
+     */
+    function _setCustomMaxIterationsLimit(address token, uint256 maxIterationsLimit) internal {
+        if (token == address(0)) revert TaskTokenZero();
+        customMaxIterationsLimit[token] = maxIterationsLimit;
+        emit CustomMaxIterationsLimitSet(token, maxIterationsLimit);
     }
 }

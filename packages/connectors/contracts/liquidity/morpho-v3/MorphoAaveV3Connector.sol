@@ -77,19 +77,25 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
         override
         returns (address[] memory tokens, uint256[] memory amounts)
     {
-        IRewardsDistributor distributor = IRewardsDistributor(rewardsDistributor);
-        IERC20 morphoToken = distributor.MORPHO();
+        IERC20 token = IERC20(morphoToken());
 
         amounts = new uint256[](1);
 
         tokens = new address[](1);
-        tokens[0] = address(morphoToken);
+        tokens[0] = address(token);
 
         if (amount == 0) return (tokens, amounts);
 
-        uint256 initialMorphoBalance = morphoToken.balanceOf(address(this));
-        distributor.claim(address(this), amount, proof);
-        uint256 finalMorphoBalance = morphoToken.balanceOf(address(this));
+        uint256 initialMorphoBalance = token.balanceOf(address(this));
+        IRewardsDistributor(rewardsDistributor).claim(address(this), amount, proof);
+        uint256 finalMorphoBalance = token.balanceOf(address(this));
         amounts[0] = finalMorphoBalance - initialMorphoBalance;
+    }
+
+    /**
+     * @dev Returns the Morpho token address
+     */
+    function morphoToken() public returns (address) {
+        return address(IRewardsDistributor(rewardsDistributor).MORPHO());
     }
 }

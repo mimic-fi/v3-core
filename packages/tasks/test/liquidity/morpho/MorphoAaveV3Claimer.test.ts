@@ -5,9 +5,8 @@ import {
   assertNoEvent,
   deploy,
   deployProxy,
-  deployTokenMock,
   getSigners,
-  ZERO_ADDRESS,
+  ONES_ADDRESS,
   ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
@@ -20,8 +19,6 @@ import { itBehavesLikeBaseMorphoAaveV3Task } from './BaseMorphoAaveV3Task.behavi
 describe('MorphoAaveV3Claimer', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, connector: Contract, owner: SignerWithAddress
-
-  const MORPHO_TOKEN = '0x9994E35Db50125E0DF82e4c2dde62496CE330999'
 
   before('setup', async () => {
     // eslint-disable-next-line prettier/prettier
@@ -42,7 +39,6 @@ describe('MorphoAaveV3Claimer', () => {
       [],
       [
         {
-          morphoToken: MORPHO_TOKEN,
           baseMorphoAaveV3Config: {
             connector: connector.address,
             taskConfig: buildEmptyTaskConfig(owner, smartVault),
@@ -62,50 +58,6 @@ describe('MorphoAaveV3Claimer', () => {
     itBehavesLikeBaseMorphoAaveV3Task('MORPHO_AAVE_V3_CLAIMER')
   })
 
-  describe('setMorphoToken', () => {
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async function () {
-        const setConnectorRole = task.interface.getSighash('setMorphoToken')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setConnectorRole, [])
-        task = task.connect(owner)
-      })
-
-      context('when the new morpho token is not zero', () => {
-        let morphoToken: Contract
-
-        beforeEach('deploy token', async function () {
-          morphoToken = await deployTokenMock('MTKN')
-        })
-
-        it('sets the morpho token', async function () {
-          await task.setMorphoToken(morphoToken.address)
-
-          expect(await task.morphoToken()).to.be.equal(morphoToken.address)
-        })
-
-        it('emits an event', async function () {
-          const tx = await task.setMorphoToken(morphoToken.address)
-
-          await assertEvent(tx, 'MorphoTokenSet', { morphoToken })
-        })
-      })
-
-      context('when the new morpho token is zero', () => {
-        const morphoToken = ZERO_ADDRESS
-
-        it('reverts', async function () {
-          await expect(task.setMorphoToken(morphoToken)).to.be.revertedWith('TaskMorphoTokenZero')
-        })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async function () {
-        await expect(task.setMorphoToken(ZERO_ADDRESS)).to.be.revertedWith('AuthSenderNotAllowed')
-      })
-    })
-  })
-
   describe('call', () => {
     beforeEach('authorize task', async () => {
       const executeRole = smartVault.interface.getSighash('execute')
@@ -123,70 +75,82 @@ describe('MorphoAaveV3Claimer', () => {
       context('when the amount is not zero', () => {
         const amount = 1
 
-        context('when the proof is not empty', () => {
-          const proof = ['0x0000000000000000000000000000000000000000000000000000000000000001']
+        context('when the token is the morpho token', () => {
+          const MORPHO_TOKEN = '0x9994E35Db50125E0DF82e4c2dde62496CE330999'
 
-          const itExecutesTheTaskProperly = () => {
-            it('executes the expected connector', async () => {
-              const tx = await task.call(amount, proof)
+          context('when the proof is not empty', () => {
+            const proof = ['0x0000000000000000000000000000000000000000000000000000000000000001']
 
-              const connectorData = connector.interface.encodeFunctionData('claim', [amount, proof])
-              await assertIndirectEvent(tx, smartVault.interface, 'Executed', { connector, data: connectorData })
-              await assertIndirectEvent(tx, connector.interface, 'LogClaim', { amount })
+            const itExecutesTheTaskProperly = () => {
+              it('executes the expected connector', async () => {
+                const tx = await task.call(MORPHO_TOKEN, amount, proof)
+
+                const connectorData = connector.interface.encodeFunctionData('claim', [amount, proof])
+                await assertIndirectEvent(tx, smartVault.interface, 'Executed', { connector, data: connectorData })
+                await assertIndirectEvent(tx, connector.interface, 'LogClaim', { token: MORPHO_TOKEN, amount })
+              })
+
+              it('emits an Executed event', async () => {
+                const tx = await task.call(MORPHO_TOKEN, amount, proof)
+                await assertEvent(tx, 'Executed')
+              })
+            }
+
+            context('without balance connectors', () => {
+              itExecutesTheTaskProperly()
+
+              it('does not update any balance connectors', async () => {
+                const tx = await task.call(MORPHO_TOKEN, amount, proof)
+
+                await assertNoEvent(tx, 'BalanceConnectorUpdated')
+              })
             })
 
-            it('emits an Executed event', async () => {
-              const tx = await task.call(amount, proof)
-              await assertEvent(tx, 'Executed')
-            })
-          }
+            context('with balance connectors', () => {
+              const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
 
-          context('without balance connectors', () => {
-            itExecutesTheTaskProperly()
+              beforeEach('set balance connectors', async () => {
+                const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+                await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+                await task.connect(owner).setBalanceConnectors(ZERO_BYTES32, nextConnectorId)
+              })
 
-            it('does not update any balance connectors', async () => {
-              const tx = await task.call(amount, proof)
+              beforeEach('authorize task to update balance connectors', async () => {
+                const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                await authorizer
+                  .connect(owner)
+                  .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+              })
 
-              await assertNoEvent(tx, 'BalanceConnectorUpdated')
+              itExecutesTheTaskProperly()
+
+              it('updates the balance connectors properly', async () => {
+                const tx = await task.call(MORPHO_TOKEN, amount, proof)
+
+                await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+                  id: nextConnectorId,
+                  token: MORPHO_TOKEN,
+                  amount: amount,
+                  added: true,
+                })
+              })
             })
           })
 
-          context('with balance connectors', () => {
-            const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
+          context('when the proof is empty', () => {
+            const proof = []
 
-            beforeEach('set balance connectors', async () => {
-              const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
-              await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
-              await task.connect(owner).setBalanceConnectors(ZERO_BYTES32, nextConnectorId)
-            })
-
-            beforeEach('authorize task to update balance connectors', async () => {
-              const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-              await authorizer
-                .connect(owner)
-                .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
-            })
-
-            itExecutesTheTaskProperly()
-
-            it('updates the balance connectors properly', async () => {
-              const tx = await task.call(amount, proof)
-
-              await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
-                id: nextConnectorId,
-                token: MORPHO_TOKEN,
-                amount: amount,
-                added: true,
-              })
+            it('reverts', async () => {
+              await expect(task.call(MORPHO_TOKEN, amount, proof)).to.be.revertedWith('TaskProofEmpty')
             })
           })
         })
 
-        context('when the proof is empty', () => {
-          const proof = []
+        context('when the token is not the morpho token', () => {
+          const token = ONES_ADDRESS
 
           it('reverts', async () => {
-            await expect(task.call(amount, proof)).to.be.revertedWith('TaskProofEmpty')
+            await expect(task.call(token, amount, [])).to.be.revertedWith('TaskTokenNotMorpho')
           })
         })
       })
@@ -195,14 +159,14 @@ describe('MorphoAaveV3Claimer', () => {
         const amount = 0
 
         it('reverts', async () => {
-          await expect(task.call(amount, [])).to.be.revertedWith('TaskAmountZero')
+          await expect(task.call(ONES_ADDRESS, amount, [])).to.be.revertedWith('TaskAmountZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(0, [])).to.be.revertedWith('AuthSenderNotAllowed')
+        await expect(task.call(ONES_ADDRESS, 0, [])).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

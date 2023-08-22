@@ -21,9 +21,9 @@ import './IBaseMorphoAaveV3Task.sol';
  */
 interface IMorphoAaveV3Claimer is IBaseMorphoAaveV3Task {
     /**
-     * @dev The Morpho token is zero
+     * @dev The token is not the Morpho token
      */
-    error TaskMorphoTokenZero();
+    error TaskTokenNotMorpho();
 
     /**
      * @dev The proof array is empty
@@ -31,23 +31,12 @@ interface IMorphoAaveV3Claimer is IBaseMorphoAaveV3Task {
     error TaskProofEmpty();
 
     /**
-     * @dev Emitted every time the Morpho token is set
+     * @dev The length of the claim result mismatch
      */
-    event MorphoTokenSet(address indexed morphoToken);
-
-    /**
-     * @dev Tells the Morpho token tied to the task
-     */
-    function morphoToken() external view returns (address);
-
-    /**
-     * @dev Sets a new Morpho token
-     * @param newMorphoToken Address of the Morpho token to be set
-     */
-    function setMorphoToken(address newMorphoToken) external;
+    error TaskClaimResultLengthMismatch();
 
     /**
      * @dev Executes the Morpho-Aave V3 claimer task
      */
-    function call(uint256 amount, bytes32[] calldata proof) external;
+    function call(address token, uint256 amount, bytes32[] calldata proof) external;
 }

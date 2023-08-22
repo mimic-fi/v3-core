@@ -60,4 +60,9 @@ interface IMorphoAaveV3Connector {
      * @param proof Merkle proof
      */
     function claim(uint256 amount, bytes32[] calldata proof) external returns (address[] memory, uint256[] memory);
+
+    /**
+     * @dev Returns the Morpho token address
+     */
+    function morphoToken() external returns (address);
 }

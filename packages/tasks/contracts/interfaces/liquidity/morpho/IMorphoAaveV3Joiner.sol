@@ -21,9 +21,48 @@ import './IBaseMorphoAaveV3Task.sol';
  */
 interface IMorphoAaveV3Joiner is IBaseMorphoAaveV3Task {
     /**
-     * @dev The max iterations is zero
+     * @dev The max iterations is greater than the limit
      */
-    error TaskMaxIterationsZero();
+    error TaskMaxIterationsLimitAboveMax(uint256 maxIterations, uint256 maxIterationsLimit);
+
+    /**
+     * @dev Emitted every time the default max iterations limit is set
+     */
+    event DefaultMaxIterationsLimitSet(uint256 maxIterationsLimit);
+
+    /**
+     * @dev Emitted every time a custom max iterations limit is set
+     */
+    event CustomMaxIterationsLimitSet(address indexed token, uint256 maxIterationsLimit);
+
+    /**
+     * @dev Tells the default max iterations limit
+     */
+    function defaultMaxIterationsLimit() external view returns (uint256);
+
+    /**
+     * @dev Tells the max iterations limit defined for a specific token
+     * @param token Address of the token being queried
+     */
+    function customMaxIterationsLimit(address token) external view returns (uint256);
+
+    /**
+     * @dev Tells the max iterations limit that should be used for a token
+     */
+    function getMaxIterationsLimit(address token) external view returns (uint256);
+
+    /**
+     * @dev Sets the default max iterations limit
+     * @param maxIterationsLimit Default max iterations limit to be set
+     */
+    function setDefaultMaxIterationsLimit(uint256 maxIterationsLimit) external;
+
+    /**
+     * @dev Sets a custom max iterations limit
+     * @param token Address of the token to set a custom max iterations limit for
+     * @param maxIterationsLimit Max iterations limit to be set
+     */
+    function setCustomMaxIterationsLimit(address token, uint256 maxIterationsLimit) external;
 
     /**
      * @dev Executes the Morpho-Aave V3 joiner task

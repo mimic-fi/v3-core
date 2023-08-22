@@ -42,6 +42,8 @@ describe('MorphoAaveV3Joiner', () => {
       [],
       [
         {
+          maxIterationsLimit: 0,
+          customMaxIterationsLimits: [],
           baseMorphoAaveV3Config: {
             connector: connector.address,
             taskConfig: buildEmptyTaskConfig(owner, smartVault),
@@ -59,6 +61,72 @@ describe('MorphoAaveV3Joiner', () => {
     })
 
     itBehavesLikeBaseMorphoAaveV3Task('MORPHO_AAVE_V3_JOINER')
+  })
+
+  describe('setDefaultMaxIterationsLimit', () => {
+    context('when the sender is authorized', () => {
+      beforeEach('set sender', async function () {
+        const setDefaultMaxIterationsLimitRole = task.interface.getSighash('setDefaultMaxIterationsLimit')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxIterationsLimitRole, [])
+        task = task.connect(owner)
+      })
+
+      const maxIterations = 4
+
+      it('sets the max iterations limit', async function () {
+        await task.setDefaultMaxIterationsLimit(maxIterations)
+
+        expect(await task.defaultMaxIterationsLimit()).to.be.equal(maxIterations)
+      })
+
+      it('emits an event', async function () {
+        const tx = await task.setDefaultMaxIterationsLimit(maxIterations)
+
+        await assertEvent(tx, 'DefaultMaxIterationsLimitSet', { maxIterationsLimit: maxIterations })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(task.setDefaultMaxIterationsLimit(1)).to.be.revertedWith('AuthSenderNotAllowed')
+      })
+    })
+  })
+
+  describe('setCustomMaxIterationsLimit', () => {
+    let token: Contract
+
+    beforeEach('deploy token', async function () {
+      token = await deployTokenMock('TKN')
+    })
+
+    context('when the sender is authorized', () => {
+      beforeEach('set sender', async function () {
+        const setCustomMaxIterationsLimitRole = task.interface.getSighash('setCustomMaxIterationsLimit')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setCustomMaxIterationsLimitRole, [])
+        task = task.connect(owner)
+      })
+
+      const maxIterations = 4
+
+      it('sets the max iterations limit', async function () {
+        await task.setCustomMaxIterationsLimit(token.address, maxIterations)
+
+        expect(await task.customMaxIterationsLimit(token.address)).to.be.equal(maxIterations)
+      })
+
+      it('emits an event', async function () {
+        const tx = await task.setCustomMaxIterationsLimit(token.address, maxIterations)
+
+        await assertEvent(tx, 'CustomMaxIterationsLimitSet', { token, maxIterationsLimit: maxIterations })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(task.setCustomMaxIterationsLimit(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
+      })
+    })
   })
 
   describe('call', () => {
@@ -85,8 +153,16 @@ describe('MorphoAaveV3Joiner', () => {
         context('when the amount is not zero', () => {
           const amount = fp(10)
 
-          context('when the maximum iterations is not zero', () => {
+          context('when the max iterations is below the limit', () => {
             const maxIterations = 4
+
+            beforeEach('set max iterations limit', async () => {
+              const setDefaultMaxIterationsLimitRole = task.interface.getSighash('setDefaultMaxIterationsLimit')
+              await authorizer
+                .connect(owner)
+                .authorize(owner.address, task.address, setDefaultMaxIterationsLimitRole, [])
+              await task.connect(owner).setDefaultMaxIterationsLimit(maxIterations)
+            })
 
             beforeEach('fund smart vault', async () => {
               await token.mint(smartVault.address, amount)
@@ -189,11 +265,13 @@ describe('MorphoAaveV3Joiner', () => {
             })
           })
 
-          context('when the maximum iterations is zero', () => {
-            const maxIterations = 0
+          context('when the max iterations is above the limit', () => {
+            const maxIterations = 5
 
             it('reverts', async () => {
-              await expect(task.call(token.address, amount, maxIterations)).to.be.revertedWith('TaskMaxIterationsZero')
+              await expect(task.call(token.address, amount, maxIterations)).to.be.revertedWith(
+                'TaskMaxIterationsLimitAboveMax'
+              )
             })
           })
         })

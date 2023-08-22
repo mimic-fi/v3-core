@@ -15,14 +15,23 @@
 pragma solidity ^0.8.0;
 
 contract MorphoAaveV3ConnectorMock {
-    event LogClaim(uint256 amount);
+    event LogClaim(address token, uint256 amount);
 
     event LogJoin(address token, uint256 amount);
 
     event LogExit(address token, uint256 amount);
 
-    function claim(uint256 amount, bytes32[] calldata) external {
-        emit LogClaim(amount);
+    address private constant MORPHO_TOKEN = 0x9994E35Db50125E0DF82e4c2dde62496CE330999;
+
+    function claim(uint256 amount, bytes32[] calldata)
+        external
+        returns (address[] memory tokens, uint256[] memory amounts)
+    {
+        emit LogClaim(MORPHO_TOKEN, amount);
+        amounts = new uint256[](1);
+        amounts[0] = amount;
+        tokens = new address[](1);
+        tokens[0] = MORPHO_TOKEN;
     }
 
     function join(address token, uint256 amount, uint256) external returns (uint256) {
@@ -33,5 +42,9 @@ contract MorphoAaveV3ConnectorMock {
     function exit(address token, uint256 amount, uint256) external returns (uint256) {
         emit LogExit(token, amount);
         return amount;
+    }
+
+    function morphoToken() external pure returns (address) {
+        return MORPHO_TOKEN;
     }
 }
