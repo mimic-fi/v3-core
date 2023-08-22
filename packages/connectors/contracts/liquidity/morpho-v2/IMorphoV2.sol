@@ -18,4 +18,6 @@ interface IMorphoV2 {
     function supply(address poolToken, uint256 amount) external;
 
     function withdraw(address poolToken, uint256 amount) external;
+
+    function addressesProvider() external view returns (address);
 }

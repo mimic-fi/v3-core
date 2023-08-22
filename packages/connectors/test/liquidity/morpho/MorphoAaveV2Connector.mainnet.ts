@@ -16,7 +16,6 @@ import { Contract } from 'ethers'
 
 const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
 const AUSDC = '0xBcca60bB61934080951369a648Fb03DF4F96263C'
-// const MORPHO_TOKEN = '0x9994E35Db50125E0DF82e4c2dde62496CE330999'
 
 const MORPHO = '0x777777c9898D384F785Ee44Acfe945efDFf5f3E0'
 const REWARDS_DISTRIBUTOR = '0x3B14E5C73e0A56D607A8688098326fD4b4292135'
@@ -35,7 +34,7 @@ describe('MorphoAaveV2Connector', function () {
   })
 
   before('deploy connector', async () => {
-    connector = await deploy('MorphoAaveV2Connector', [MORPHO, REWARDS_DISTRIBUTOR])
+    connector = await deploy('MorphoAaveV2Connector', [MORPHO, LENS, REWARDS_DISTRIBUTOR])
     lens = await instanceAt('ILens', LENS)
     usdc = await instanceAt('IERC20', USDC)
   })
@@ -55,7 +54,7 @@ describe('MorphoAaveV2Connector', function () {
     const previousUsdcBalance = await usdc.balanceOf(connector.address)
     const previousSupplyBalance = await supplyBalance()
 
-    await connector.connect(whale).join(AUSDC, USDC, SUPPLY_AMOUNT)
+    await connector.connect(whale).join(USDC, SUPPLY_AMOUNT)
 
     const currentUsdcBalance = await usdc.balanceOf(connector.address)
     expect(currentUsdcBalance).to.be.equal(previousUsdcBalance.sub(SUPPLY_AMOUNT))
@@ -75,7 +74,7 @@ describe('MorphoAaveV2Connector', function () {
     const earnings = currentSupplyBalance.sub(previousSupplyBalance)
     expect(earnings).to.be.gt(0)
 
-    await connector.exit(AUSDC, earnings)
+    await connector.exit(USDC, earnings)
 
     const currentUsdcBalance = await usdc.balanceOf(connector.address)
     expect(currentUsdcBalance).to.be.equal(previousUsdcBalance.add(earnings))
@@ -86,16 +85,12 @@ describe('MorphoAaveV2Connector', function () {
     const previousSupplyBalance = await supplyBalance()
 
     const toWithdraw = previousSupplyBalance.div(2)
-    await connector.exit(AUSDC, toWithdraw)
+    await connector.exit(USDC, toWithdraw)
 
     const currentUsdcBalance = await usdc.balanceOf(connector.address)
     expect(currentUsdcBalance).to.be.equal(previousUsdcBalance.add(toWithdraw))
 
     const currentSupplyBalance = await supplyBalance()
     assertAlmostEqual(currentSupplyBalance, previousSupplyBalance.sub(toWithdraw), 0.0005)
-  })
-
-  it('claims morpho rewards', async () => {
-    // TODO: test claim rewards
   })
 })

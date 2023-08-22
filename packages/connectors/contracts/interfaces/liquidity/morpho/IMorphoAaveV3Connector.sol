@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
 /**
  * @title MorphoAaveV3 connector interface
@@ -59,5 +59,5 @@ interface IMorphoAaveV3Connector {
      * @param amount Amount of Morpho tokens to claim
      * @param proof Merkle proof
      */
-    function claim(uint256 amount, bytes32[] calldata proof) external;
+    function claim(uint256 amount, bytes32[] calldata proof) external returns (address[] memory, uint256[] memory);
 }
