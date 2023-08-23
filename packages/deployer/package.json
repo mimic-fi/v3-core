@@ -23,7 +23,7 @@
     "@mimic-fi/v3-price-oracle": "0.1.0",
     "@mimic-fi/v3-registry": "0.1.0",
     "@mimic-fi/v3-smart-vault": "0.1.0",
-    "@openzeppelin/contracts": "4.7.0",
+    "@openzeppelin/contracts": "4.9.3",
     "solmate": "^6.7.0"
   },
   "devDependencies": {

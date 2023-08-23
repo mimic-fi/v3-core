@@ -21,7 +21,7 @@
     "@mimic-fi/v3-helpers": "0.1.0",
     "@mimic-fi/v3-tasks": "0.1.0",
     "@mimic-fi/v3-smart-vault": "0.1.0",
-    "@openzeppelin/contracts": "4.7.0"
+    "@openzeppelin/contracts": "4.9.3"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.3",
