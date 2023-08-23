@@ -97,8 +97,8 @@ describe('UniswapV3Swapper', () => {
 
           context('when the token in is allowed', () => {
             context('when there is a token out set', () => {
-              let tokenOut: Contract,
-                extraCallData = ''
+              let tokenOut: Contract
+              let extraCallData = ''
 
               beforeEach('set default token out', async () => {
                 tokenOut = await deployTokenMock('TKN')
@@ -185,6 +185,7 @@ describe('UniswapV3Swapper', () => {
                         .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
                       await task.connect(owner).setDefaultMaxSlippage(slippage)
                     })
+
                     const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
                       it('executes the expected connector', async () => {
                         const tx = await executeTask(requestedAmount, slippage, fee, hopTokens, hopFees)
@@ -394,13 +395,10 @@ describe('UniswapV3Swapper', () => {
 
                     context('when the slippage is above the limit', () => {
                       const slippage = fp(0.01)
-                      const hopTokens = []
-                      const hopFees = []
-                      const fee = 1
 
                       it('reverts', async () => {
                         await expect(
-                          task.call(tokenIn.address, amountIn, slippage, fee, hopTokens, hopFees)
+                          task.call(tokenIn.address, amountIn, slippage, 0, [], [])
                         ).to.be.revertedWith('TaskSlippageAboveMax')
                       })
                     })
@@ -408,16 +406,13 @@ describe('UniswapV3Swapper', () => {
 
                   context('when the smart vault balance does not pass the threshold', () => {
                     const amountIn = thresholdAmountInTokenIn.div(2)
-                    const hopTokens = []
-                    const hopFees = []
-                    const fee = 1
 
                     beforeEach('fund smart vault', async () => {
                       await tokenIn.mint(smartVault.address, amountIn)
                     })
 
                     it('reverts', async () => {
-                      await expect(task.call(tokenIn.address, amountIn, 0, fee, hopTokens, hopFees)).to.be.revertedWith(
+                      await expect(task.call(tokenIn.address, amountIn, 0, 0, [], [])).to.be.revertedWith(
                         'TaskTokenThresholdNotMet'
                       )
                     })
@@ -425,23 +420,17 @@ describe('UniswapV3Swapper', () => {
                 })
 
                 context('when no on-chain oracle is given', () => {
-                  const fee = 1
-                  const hopTokens = []
-                  const hopFees = []
                   it('reverts', async () => {
                     // TODO: Hardhat does not decode price oracle error properly
-                    await expect(task.call(tokenIn.address, amountIn, 0, 1, fee, hopFees, hopTokens)).to.be.reverted
+                    await expect(task.call(tokenIn.address, amountIn, 0, 1, 0, [], [])).to.be.reverted
                   })
                 })
               })
             })
 
             context('when the token out is not set', () => {
-              const fee = 1
-              const hopTokens = []
-              const hopFees = []
               it('reverts', async () => {
-                await expect(task.call(tokenIn.address, amountIn, 0, fee, hopTokens, hopFees)).to.be.revertedWith(
+                await expect(task.call(tokenIn.address, amountIn, 0, 0, [], [])).to.be.revertedWith(
                   'TaskTokenOutNotSet'
                 )
               })

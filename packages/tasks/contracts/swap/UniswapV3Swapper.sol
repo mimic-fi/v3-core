@@ -29,15 +29,15 @@ contract UniswapV3Swapper is IUniswapV3Swapper, BaseSwapTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('UNISWAP_V3_SWAPPER');
 
     /**
-     * @dev Uniswap v3 swapper task config. Only used in the initializer.
+     * @dev Uniswap v3 swap config. Only used in the initializer.
      */
     struct UniswapV3SwapperConfig {
         BaseSwapConfig baseSwapConfig;
     }
 
     /**
-     * @dev Initializes the Uniswap v3 swapper action.
-     * @param config Uniswap v3 swap config.
+     * @dev Initializes the Uniswap v3 swapper
+     * @param config Uniswap v3 swap config
      */
     function initialize(UniswapV3SwapperConfig memory config) external initializer {
         __UniswapV3Swapper_init(config);
@@ -45,7 +45,7 @@ contract UniswapV3Swapper is IUniswapV3Swapper, BaseSwapTask {
 
     /**
      * @dev Initializes the Uniswap V3 swapper. It does call upper contracts.
-     * @param config Uniswap v3 swap config.
+     * @param config Uniswap v3 swap config
      */
     function __UniswapV3Swapper_init(UniswapV3SwapperConfig memory config) internal onlyInitializing {
         __BaseSwapTask_init(config.baseSwapConfig);
@@ -53,7 +53,7 @@ contract UniswapV3Swapper is IUniswapV3Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev Initilizes the uniswap V3 swapper. It does not call upper contracts.
+     * @dev Initializes the Uniswap V3 swapper. It does not call upper contracts.
      * @param config Uniswap v3 swap config.
      */
     function __UniswapV3Swapper_init_unchained(UniswapV3SwapperConfig memory config) internal onlyInitializing {
