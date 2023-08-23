@@ -19,7 +19,7 @@ import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-connectors/contracts/swap/uniswap-v2/UniswapV2Connector.sol';
 
 import './BaseSwapTask.sol';
-import '../interfaces/swap/IUniSwapV2Swapper.sol';
+import '../interfaces/swap/IUniswapV2Swapper.sol';
 
 contract UniswapV2Swapper is IUniswapV2Swapper, BaseSwapTask {
     using FixedPoint for uint256;
@@ -29,34 +29,34 @@ contract UniswapV2Swapper is IUniswapV2Swapper, BaseSwapTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('UNISWAP_V2_SWAPPER');
 
     /**
-     * @dev Uniswap v2 swapper task config. Only used in the initializer.
+     * @dev Uniswap v2 swapper task config. Only used in the initializer
      */
-    struct UniswapV2SwapperConfig {
+    struct UniswapV2SwapConfig {
         BaseSwapConfig baseSwapConfig;
     }
 
     /**
-     * @dev Initializes the Uniswap v2 swapper action.
-     * @param config Uniswap v2 swap config.
+     * @dev Initializes the Uniswap v2 swapper action
+     * @param config Uniswap v2 swap config
      */
-    function initialize(UniswapV2SwapperConfig memory config) external initializer {
+    function initialize(UniswapV2SwapConfig memory config) external initializer {
         __UniswapV2Swapper_init(config);
     }
 
     /**
      * @dev Initializes the Uniswap V2 swapper. It does call upper contracts.
-     * @param config Uniswap v2 swap config.
+     * @param config Uniswap v2 swap config
      */
-    function __UniswapV2Swapper_init(UniswapV2SwapperConfig memory config) internal onlyInitializing {
+    function __UniswapV2Swapper_init(UniswapV2SwapConfig memory config) internal onlyInitializing {
         __BaseSwapTask_init(config.baseSwapConfig);
         __UniswapV2Swapper_init_unchained(config);
     }
 
     /**
-     * @dev Initilizes the uniswap V2 swapper. It does not call upper contracts.
-     * @param config Uniswap v2 swap config.
+     * @dev Initializes the Uniswap V2 swapper. It does not call upper contracts.
+     * @param config Uniswap v2 swap config
      */
-    function __UniswapV2Swapper_init_unchained(UniswapV2SwapperConfig memory config) internal onlyInitializing {
+    function __UniswapV2Swapper_init_unchained(UniswapV2SwapConfig memory config) internal onlyInitializing {
         // solhint-disable-previous-line no-empty-blocks
     }
 
@@ -66,7 +66,7 @@ contract UniswapV2Swapper is IUniswapV2Swapper, BaseSwapTask {
     function call(address tokenIn, uint256 amountIn, uint256 slippage, address[] memory hopTokens)
         external
         override
-        authP(authParams(tokenIn, amountIn, slippage, hopTokens))
+        authP(authParams(tokenIn, amountIn, slippage))
     {
         if (amountIn == 0) amountIn = getTaskAmount(tokenIn);
         _beforeUniswapV2Swapper(tokenIn, amountIn, slippage);
@@ -76,7 +76,7 @@ contract UniswapV2Swapper is IUniswapV2Swapper, BaseSwapTask {
         uint256 minAmountOut = amountIn.mulUp(price).mulUp(FixedPoint.ONE - slippage);
 
         bytes memory connectorData = abi.encodeWithSelector(
-            UniswapV2Connector.execute.selector,
+            IUniswapV2Connector.execute.selector,
             tokenIn,
             tokenOut,
             amountIn,
@@ -89,14 +89,14 @@ contract UniswapV2Swapper is IUniswapV2Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev Before Uniswap v2 Swapper Task
+     * @dev Before Uniswap v2 swapper Task
      */
     function _beforeUniswapV2Swapper(address token, uint256 amount, uint256 slippage) internal virtual {
         _beforeBaseSwapTask(token, amount, slippage);
     }
 
     /**
-     * @dev After Uniswap V2 swapper hook
+     * @dev After Uniswap v2 swapper hook
      */
     function _afterUniswapV2Swapper(
         address tokenIn,

@@ -17,7 +17,7 @@ pragma solidity >=0.8.0;
 import './IBaseSwapTask.sol';
 
 /**
- * @dev UniSwap v2 swapper action interface
+ * @dev Uniswap v2 swapper task interface
  */
 interface IUniswapV2Swapper is IBaseSwapTask {
     /**
