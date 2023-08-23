@@ -166,6 +166,14 @@ describe('UniswapV3Swapper', () => {
                 }
 
                 context('when the smart vault balance passes the threshold', () => {
+                  let hopToken1: Contract
+                  let hopToken2: Contract
+
+                  beforeEach('deploy hop tokens', async () => {
+                    hopToken1 = await deployTokenMock('HOP_TKN_1')
+                    hopToken2 = await deployTokenMock('HOP_TKN_2')
+                  })
+
                   beforeEach('fund smart vault', async () => {
                     await tokenIn.mint(smartVault.address, amountIn)
                   })
@@ -188,6 +196,8 @@ describe('UniswapV3Swapper', () => {
 
                     const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
                       it('executes the expected connector', async () => {
+                        const hopTokens = [hopToken1.address, hopToken2.address]
+                        const hopFees = [1, 1]
                         const tx = await executeTask(requestedAmount, slippage, fee, hopTokens, hopFees)
                         const connectorData = connector.interface.encodeFunctionData('execute', [
                           tokenIn.address,
@@ -287,12 +297,9 @@ describe('UniswapV3Swapper', () => {
 
                   context('when the slippage is above the limit', () => {
                     const slippage = fp(0.01)
-                    const hopTokens = []
-                    const hopFees = []
-                    const fee = 1
 
                     it('reverts', async () => {
-                      await expect(executeTask(amountIn, slippage, fee, hopTokens, hopFees)).to.be.revertedWith(
+                      await expect(executeTask(amountIn, slippage, 1, [], [])).to.be.revertedWith(
                         'TaskSlippageAboveMax'
                       )
                     })
@@ -301,18 +308,13 @@ describe('UniswapV3Swapper', () => {
 
                 context('when the smart vault balance does not pass the threshold', () => {
                   const amountIn = thresholdAmountInTokenIn.div(2)
-                  const hopTokens = []
-                  const hopFees = []
-                  const fee = 1
 
                   beforeEach('fund smart vault', async () => {
                     await tokenIn.mint(smartVault.address, amountIn)
                   })
 
                   it('reverts', async () => {
-                    await expect(executeTask(amountIn, 0, fee, hopTokens, hopFees)).to.be.revertedWith(
-                      'TaskTokenThresholdNotMet'
-                    )
+                    await expect(executeTask(amountIn, 0, 1, [], [])).to.be.revertedWith('TaskTokenThresholdNotMet')
                   })
                 })
               })
@@ -397,9 +399,9 @@ describe('UniswapV3Swapper', () => {
                       const slippage = fp(0.01)
 
                       it('reverts', async () => {
-                        await expect(
-                          task.call(tokenIn.address, amountIn, slippage, 0, [], [])
-                        ).to.be.revertedWith('TaskSlippageAboveMax')
+                        await expect(task.call(tokenIn.address, amountIn, slippage, 0, [], [])).to.be.revertedWith(
+                          'TaskSlippageAboveMax'
+                        )
                       })
                     })
                   })
@@ -438,10 +440,6 @@ describe('UniswapV3Swapper', () => {
           })
 
           context('when the token in is denied', () => {
-            const fee = 1
-            const hopTokens = []
-            const hopFees = []
-
             beforeEach('deny token in', async () => {
               const setTokensAcceptanceListRole = task.interface.getSighash('setTokensAcceptanceList')
               await authorizer.connect(owner).authorize(owner.address, task.address, setTokensAcceptanceListRole, [])
@@ -449,46 +447,32 @@ describe('UniswapV3Swapper', () => {
             })
 
             it('reverts', async () => {
-              await expect(task.call(tokenIn.address, 0, 0, fee, hopTokens, hopFees)).to.be.revertedWith(
-                'TaskTokenNotAllowed'
-              )
+              await expect(task.call(tokenIn.address, 0, 0, 1, [], [])).to.be.revertedWith('TaskTokenNotAllowed')
             })
           })
         })
 
         context('when the amount in is zero', () => {
           const amountIn = 0
-          const fee = 1
-          const hopTokens = []
-          const hopFees = []
 
           it('reverts', async () => {
-            await expect(task.call(tokenIn.address, amountIn, 0, fee, hopTokens, hopFees)).to.be.revertedWith(
-              'TaskAmountZero'
-            )
+            await expect(task.call(tokenIn.address, amountIn, 0, 1, [], [])).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
 
       context('when the token in is the zero address', () => {
         const tokenIn = ZERO_ADDRESS
-        const fee = 1
-        const hopTokens = []
-        const hopFees = []
 
         it('reverts', async () => {
-          await expect(task.call(tokenIn, 0, 0, fee, hopTokens, hopFees)).to.be.revertedWith('TaskTokenZero')
+          await expect(task.call(tokenIn, 0, 0, 1, [], [])).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
-      const fee = 1
-      const hopTokens = []
-      const hopFees = []
-
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 0, fee, hopTokens, hopFees)).to.be.revertedWith('AuthSenderNotAllowed')
+        await expect(task.call(ZERO_ADDRESS, 0, 0, 1, [], [])).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

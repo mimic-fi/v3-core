@@ -120,22 +120,4 @@ contract AuthorizedHelpers {
         r[3] = p4;
         r[4] = p5;
     }
-
-    function authParams(address p1, uint256 p2, uint256 p3, uint24 p4, address[] memory p5, uint24[] memory p6)
-        internal
-        pure
-        returns (uint256[] memory r)
-    {
-        r = new uint256[](4 + p5.length + p6.length);
-        r[0] = uint256(uint160(p1));
-        r[1] = p2;
-        r[2] = p3;
-        r[3] = p4;
-        for (uint256 i = 0; i < p5.length; i++) {
-            r[i + 4] = uint256(uint160(p5[i]));
-        }
-        for (uint256 i = 0; i < p6.length; i++) {
-            r[i + 4 + p5.length] = p6[i];
-        }
-    }
 }

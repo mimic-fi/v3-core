@@ -31,7 +31,7 @@ contract UniswapV3Swapper is IUniswapV3Swapper, BaseSwapTask {
     /**
      * @dev Uniswap v3 swap config. Only used in the initializer.
      */
-    struct UniswapV3SwapperConfig {
+    struct UniswapV3SwapConfig {
         BaseSwapConfig baseSwapConfig;
     }
 
@@ -39,7 +39,7 @@ contract UniswapV3Swapper is IUniswapV3Swapper, BaseSwapTask {
      * @dev Initializes the Uniswap v3 swapper
      * @param config Uniswap v3 swap config
      */
-    function initialize(UniswapV3SwapperConfig memory config) external initializer {
+    function initialize(UniswapV3SwapConfig memory config) external initializer {
         __UniswapV3Swapper_init(config);
     }
 
@@ -47,16 +47,16 @@ contract UniswapV3Swapper is IUniswapV3Swapper, BaseSwapTask {
      * @dev Initializes the Uniswap V3 swapper. It does call upper contracts.
      * @param config Uniswap v3 swap config
      */
-    function __UniswapV3Swapper_init(UniswapV3SwapperConfig memory config) internal onlyInitializing {
+    function __UniswapV3Swapper_init(UniswapV3SwapConfig memory config) internal onlyInitializing {
         __BaseSwapTask_init(config.baseSwapConfig);
         __UniswapV3Swapper_init_unchained(config);
     }
 
     /**
      * @dev Initializes the Uniswap V3 swapper. It does not call upper contracts.
-     * @param config Uniswap v3 swap config.
+     * @param config Uniswap v3 swap config
      */
-    function __UniswapV3Swapper_init_unchained(UniswapV3SwapperConfig memory config) internal onlyInitializing {
+    function __UniswapV3Swapper_init_unchained(UniswapV3SwapConfig memory config) internal onlyInitializing {
         // solhint-disable-previous-line no-empty-blocks
     }
 
@@ -70,7 +70,7 @@ contract UniswapV3Swapper is IUniswapV3Swapper, BaseSwapTask {
         uint24 fee,
         address[] memory hopTokens,
         uint24[] memory hopFees
-    ) external override authP(authParams(tokenIn, amountIn, slippage, fee, hopTokens, hopFees)) {
+    ) external override authP(authParams(tokenIn, amountIn, slippage, fee)) {
         if (amountIn == 0) amountIn = getTaskAmount(tokenIn);
         _beforeUniswapV3Swapper(tokenIn, amountIn, slippage);
 
@@ -79,7 +79,7 @@ contract UniswapV3Swapper is IUniswapV3Swapper, BaseSwapTask {
         uint256 minAmountOut = amountIn.mulUp(price).mulUp(FixedPoint.ONE - slippage);
 
         bytes memory connectorData = abi.encodeWithSelector(
-            UniswapV3Connector.execute.selector,
+            IUniswapV3Connector.execute.selector,
             tokenIn,
             tokenOut,
             amountIn,
@@ -94,7 +94,7 @@ contract UniswapV3Swapper is IUniswapV3Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev Before Uniswap v3Swapper Task
+     * @dev Before Uniswap v3 swapper task
      */
     function _beforeUniswapV3Swapper(address token, uint256 amount, uint256 slippage) internal virtual {
         _beforeBaseSwapTask(token, amount, slippage);
