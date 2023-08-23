@@ -89,7 +89,7 @@ contract UniswapV2Swapper is IUniswapV2Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev Before Uniswap v2 swapper Task
+     * @dev Before Uniswap v2 swapper hook
      */
     function _beforeUniswapV2Swapper(address token, uint256 amount, uint256 slippage) internal virtual {
         _beforeBaseSwapTask(token, amount, slippage);
