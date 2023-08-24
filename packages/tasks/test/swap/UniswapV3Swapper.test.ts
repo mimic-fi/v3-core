@@ -179,9 +179,6 @@ describe('UniswapV3Swapper', () => {
                   })
 
                   context('when the slippage is below the limit', () => {
-                    const hopTokens = []
-                    const hopFees = []
-                    const fee = 1
                     const slippage = fp(0.01)
                     const expectedAmountOut = amountIn.mul(tokenRate)
                     const minAmountOut = expectedAmountOut.mul(fp(1).sub(slippage)).div(fp(1))
@@ -344,11 +341,12 @@ describe('UniswapV3Swapper', () => {
                     })
 
                     context('when the slippage is below the limit', () => {
-                      const hopTokens = []
-                      const hopFees = []
                       const slippage = fp(0.01)
                       const expectedAmountOut = amountIn.mul(tokenRate)
                       const minAmountOut = expectedAmountOut.mul(fp(1).sub(slippage)).div(fp(1))
+
+                      const hopTokens = []
+                      const hopFees = []
                       const fee = 1
 
                       beforeEach('set max slippage', async () => {

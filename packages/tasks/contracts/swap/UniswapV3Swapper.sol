@@ -16,11 +16,15 @@ pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/swap/uniswap-v3/UniswapV3Connector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IUniswapV3Connector.sol';
 
 import './BaseSwapTask.sol';
 import '../interfaces/swap/IUniswapV3Swapper.sol';
 
+/**
+ * @title Uniswap v3 swapper task
+ * @dev Task that extends the swapper task to use Uniswap v3
+ */
 contract UniswapV3Swapper is IUniswapV3Swapper, BaseSwapTask {
     using FixedPoint for uint256;
     using BytesHelpers for bytes;
@@ -101,7 +105,7 @@ contract UniswapV3Swapper is IUniswapV3Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev After Uniswap V3 swapper hook
+     * @dev After Uniswap v3 swapper hook
      */
     function _afterUniswapV3Swapper(
         address tokenIn,
