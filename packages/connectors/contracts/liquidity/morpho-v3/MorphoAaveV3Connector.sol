@@ -14,7 +14,6 @@
 
 pragma solidity ^0.8.0;
 
-import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import './IMorphoV3.sol';
@@ -23,10 +22,9 @@ import '../../interfaces/liquidity/morpho/IMorphoAaveV3Connector.sol';
 
 /**
  * @title MorphoAaveV3Connector
+ * @dev Interfaces with Morpho Aave v3 to lend tokens
  */
 contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
-    using FixedPoint for uint256;
-
     // Reference to MorphoAaveV3
     address public immutable override morpho;
 
@@ -51,7 +49,7 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
         if (amount == 0) return 0;
         ERC20Helpers.approve(token, morpho, amount);
         supplied = IMorphoV3(morpho).supply(token, amount, address(this), maxIterations);
-        if (supplied < amount) revert MorphoAaveV3InvalidSupply();
+        if (supplied < amount) revert MorphoAaveV3InvalidSupply(supplied, amount);
     }
 
     /**
@@ -64,7 +62,7 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
     function exit(address token, uint256 amount, uint256 maxIterations) external override returns (uint256 withdrawn) {
         if (amount == 0) return 0;
         withdrawn = IMorphoV3(morpho).withdraw(token, amount, address(this), address(this), maxIterations);
-        if (withdrawn < amount) revert MorphoAaveV3InvalidWithdraw();
+        if (withdrawn < amount) revert MorphoAaveV3InvalidWithdraw(withdrawn, amount);
     }
 
     /**
@@ -79,12 +77,10 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
     {
         IRewardsDistributor distributor = IRewardsDistributor(rewardsDistributor);
         IERC20 morphoToken = distributor.MORPHO();
-
-        amounts = new uint256[](1);
-
         tokens = new address[](1);
         tokens[0] = address(morphoToken);
 
+        amounts = new uint256[](1);
         if (amount == 0) return (tokens, amounts);
 
         uint256 initialMorphoBalance = morphoToken.balanceOf(address(this));

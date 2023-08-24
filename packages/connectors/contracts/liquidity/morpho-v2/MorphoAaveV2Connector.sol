@@ -14,11 +14,9 @@
 
 pragma solidity ^0.8.0;
 
-import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 import './ILendingPool.sol';
-import './ILendingPoolAddressesProvider.sol';
 import './ILens.sol';
 import './IMorphoV2.sol';
 import './IRewardsDistributor.sol';
@@ -26,10 +24,9 @@ import '../../interfaces/liquidity/morpho/IMorphoAaveV2Connector.sol';
 
 /**
  * @title MorphoAaveV2Connector
+ * @dev Interfaces with Morpho Aave v2 to lend tokens
  */
 contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
-    using FixedPoint for uint256;
-
     // Reference to MorphoAaveV2
     address public immutable override morpho;
 
@@ -42,8 +39,8 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
     /**
      * @dev Creates a new MorphoAaveV2 connector
      */
-    constructor(address _morpho, address _lens, address _rewardsDistributor) {
-        morpho = _morpho;
+    constructor(address _lens, address _rewardsDistributor) {
+        morpho = ILens(_lens).morpho();
         lens = _lens;
         rewardsDistributor = _rewardsDistributor;
     }
@@ -53,16 +50,17 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
      * @param token Address of the token to supply
      * @param amount Amount of tokens to supply
      */
-    function join(address token, uint256 amount) external override returns (uint256) {
+    function join(address token, uint256 amount) external override returns (uint256 supplied) {
         if (amount == 0) return 0;
-        address aToken = _aToken(token);
+        address aToken = getAToken(token);
 
-        (, , uint256 initialSupplyBalance) = ILens(lens).getCurrentSupplyBalanceInOf(aToken, address(this));
+        uint256 initialSupplyBalance = getSupplyBalance(aToken);
         ERC20Helpers.approve(token, morpho, amount);
-        IMorphoV2(morpho).supply(_aToken(token), amount);
+        IMorphoV2(morpho).supply(getAToken(token), amount);
 
-        (, , uint256 finalSupplyBalance) = ILens(lens).getCurrentSupplyBalanceInOf(aToken, address(this));
-        return finalSupplyBalance - initialSupplyBalance;
+        uint256 finalSupplyBalance = getSupplyBalance(aToken);
+        supplied = finalSupplyBalance - initialSupplyBalance;
+        if (supplied < amount) revert MorphoAaveV2InvalidSupply(supplied, amount);
     }
 
     /**
@@ -70,14 +68,15 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
      * @param token Address of the token to withdraw
      * @param amount Amount of tokens to withdraw
      */
-    function exit(address token, uint256 amount) external override returns (uint256) {
+    function exit(address token, uint256 amount) external override returns (uint256 withdrawn) {
         if (amount == 0) return 0;
 
         uint256 initialTokenBalance = IERC20(token).balanceOf(address(this));
-        IMorphoV2(morpho).withdraw(_aToken(token), amount);
+        IMorphoV2(morpho).withdraw(getAToken(token), amount);
 
         uint256 finalTokenBalance = IERC20(token).balanceOf(address(this));
-        return finalTokenBalance - initialTokenBalance;
+        withdrawn = finalTokenBalance - initialTokenBalance;
+        if (withdrawn < amount) revert MorphoAaveV2InvalidWithdraw(withdrawn, amount);
     }
 
     /**
@@ -92,12 +91,10 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
     {
         IRewardsDistributor distributor = IRewardsDistributor(rewardsDistributor);
         IERC20 morphoToken = distributor.MORPHO();
-
-        amounts = new uint256[](1);
-
         tokens = new address[](1);
         tokens[0] = address(morphoToken);
 
+        amounts = new uint256[](1);
         if (amount == 0) return (tokens, amounts);
 
         uint256 initialMorphoBalance = morphoToken.balanceOf(address(this));
@@ -110,10 +107,16 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
      * @dev Finds the aToken address associated to a token
      * @param token Address of the token
      */
-    function _aToken(address token) internal view returns (address) {
-        return
-            ILendingPool(ILendingPoolAddressesProvider(IMorphoV2(morpho).addressesProvider()).getLendingPool())
-                .getReserveData(token)
-                .aTokenAddress;
+    function getAToken(address token) public view override returns (address) {
+        address lendingPool = ILens(lens).pool();
+        return ILendingPool(lendingPool).getReserveData(token).aTokenAddress;
+    }
+
+    /**
+     * @dev Tells the supply balance of this address for the underlying token
+     * @param aToken Address of the aToken associated to the token
+     */
+    function getSupplyBalance(address aToken) public view override returns (uint256 supplyBalance) {
+        (, , supplyBalance) = ILens(lens).getCurrentSupplyBalanceInOf(aToken, address(this));
     }
 }

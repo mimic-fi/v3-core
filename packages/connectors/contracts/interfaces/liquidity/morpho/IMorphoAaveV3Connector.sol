@@ -15,18 +15,18 @@
 pragma solidity >=0.8.0;
 
 /**
- * @title MorphoAaveV3 connector interface
+ * @title Morpho Aave V3 connector interface
  */
 interface IMorphoAaveV3Connector {
     /**
      * @dev The amount supplied is lower than the expected amount
      */
-    error MorphoAaveV3InvalidSupply();
+    error MorphoAaveV3InvalidSupply(uint256 withdrawn, uint256 amount);
 
     /**
-     * @dev The withdraw amount differs with the expected amount
+     * @dev The withdraw amount is lower than the expected amount
      */
-    error MorphoAaveV3InvalidWithdraw();
+    error MorphoAaveV3InvalidWithdraw(uint256 withdrawn, uint256 amount);
 
     /**
      * @dev Tells the reference to the MorphoAaveV3 proxy
@@ -59,5 +59,7 @@ interface IMorphoAaveV3Connector {
      * @param amount Amount of Morpho tokens to claim
      * @param proof Merkle proof
      */
-    function claim(uint256 amount, bytes32[] calldata proof) external returns (address[] memory, uint256[] memory);
+    function claim(uint256 amount, bytes32[] calldata proof)
+        external
+        returns (address[] memory tokens, uint256[] memory amounts);
 }

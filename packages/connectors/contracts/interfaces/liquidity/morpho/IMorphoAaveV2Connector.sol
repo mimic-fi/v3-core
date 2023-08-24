@@ -15,9 +15,19 @@
 pragma solidity >=0.8.0;
 
 /**
- * @title MorphoAaveV2 connector interface
+ * @title Morpho Aave V2 connector interface
  */
 interface IMorphoAaveV2Connector {
+    /**
+     * @dev The amount supplied is lower than the expected amount
+     */
+    error MorphoAaveV2InvalidSupply(uint256 supplied, uint256 amount);
+
+    /**
+     * @dev The withdraw amount is lower than the expected amount
+     */
+    error MorphoAaveV2InvalidWithdraw(uint256 withdrawn, uint256 amount);
+
     /**
      * @dev Tells the reference to the MorphoAaveV2 proxy
      */
@@ -52,5 +62,19 @@ interface IMorphoAaveV2Connector {
      * @param amount Amount of Morpho tokens to claim
      * @param proof Merkle proof of the rewards
      */
-    function claim(uint256 amount, bytes32[] calldata proof) external returns (address[] memory, uint256[] memory);
+    function claim(uint256 amount, bytes32[] calldata proof)
+        external
+        returns (address[] memory tokens, uint256[] memory amounts);
+
+    /**
+     * @dev Finds the aToken address associated to a token
+     * @param token Address of the token
+     */
+    function getAToken(address token) external view returns (address);
+
+    /**
+     * @dev Tells the supply balance of this address for the underlying token
+     * @param aToken Address of the aToken associated to the token
+     */
+    function getSupplyBalance(address aToken) external view returns (uint256);
 }
