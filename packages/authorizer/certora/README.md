@@ -1,6 +1,6 @@
 # Authorizer verification  
 
-Using CVL2 see https://docs.certora.com/en/cvl_rewrite-main/docs/cvl/cvl2/changes.html
+Using CVL2 see https://docs.certora.com/en/latest/docs/cvl/index.html#cvl-version-2
 
 ### Run
 
