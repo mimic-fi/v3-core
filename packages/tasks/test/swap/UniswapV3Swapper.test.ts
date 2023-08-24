@@ -166,14 +166,6 @@ describe('UniswapV3Swapper', () => {
                 }
 
                 context('when the smart vault balance passes the threshold', () => {
-                  let hopToken1: Contract
-                  let hopToken2: Contract
-
-                  beforeEach('deploy hop tokens', async () => {
-                    hopToken1 = await deployTokenMock('HOP_TKN_1')
-                    hopToken2 = await deployTokenMock('HOP_TKN_2')
-                  })
-
                   beforeEach('fund smart vault', async () => {
                     await tokenIn.mint(smartVault.address, amountIn)
                   })
@@ -192,18 +184,23 @@ describe('UniswapV3Swapper', () => {
                     })
 
                     const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
+                      let hopTokens: string[]
+
+                      beforeEach('deploy hop tokens', async () => {
+                        const hopToken1 = await deployTokenMock('HOP_TKN_1')
+                        const hopToken2 = await deployTokenMock('HOP_TKN_2')
+                        hopTokens = [hopToken1.address, hopToken2.address]
+                      })
                       it('executes the expected connector', async () => {
-                        const hopTokens = [hopToken1.address, hopToken2.address]
-                        const hopFees = [1, 1]
-                        const tx = await executeTask(requestedAmount, slippage, fee, hopTokens, hopFees)
+                        const tx = await executeTask(requestedAmount, slippage, 1, hopTokens, [1, 1])
                         const connectorData = connector.interface.encodeFunctionData('execute', [
                           tokenIn.address,
                           tokenOut.address,
                           amountIn,
                           minAmountOut,
-                          fee,
+                          1,
                           hopTokens,
-                          hopFees,
+                          [1, 1],
                         ])
 
                         await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
@@ -216,13 +213,14 @@ describe('UniswapV3Swapper', () => {
                           tokenOut,
                           amountIn,
                           minAmountOut,
+                          fee: 1,
                           hopTokens,
-                          hopFees,
+                          hopFees: [1, 1],
                         })
                       })
 
                       it('emits an Executed event', async () => {
-                        const tx = await executeTask(requestedAmount, slippage, fee, hopTokens, hopFees)
+                        const tx = await executeTask(requestedAmount, slippage, 1, hopTokens, [])
 
                         await assertIndirectEvent(tx, task.interface, 'Executed')
                       })
@@ -234,7 +232,7 @@ describe('UniswapV3Swapper', () => {
                       itExecutesTheTaskProperly(requestedAmount)
 
                       it('does not update any balance connectors', async () => {
-                        const tx = await executeTask(requestedAmount, slippage, fee, hopTokens, hopFees)
+                        const tx = await executeTask(requestedAmount, slippage, 1, [], [])
 
                         await assertNoEvent(tx, 'BalanceConnectorUpdated')
                       })
@@ -273,7 +271,7 @@ describe('UniswapV3Swapper', () => {
                       itExecutesTheTaskProperly(requestedAmount)
 
                       it('updates the balance connectors properly', async () => {
-                        const tx = await executeTask(requestedAmount, slippage, fee, hopTokens, hopFees)
+                        const tx = await executeTask(requestedAmount, slippage, 1, [], [])
 
                         await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
                           id: prevConnectorId,
@@ -345,10 +343,6 @@ describe('UniswapV3Swapper', () => {
                       const expectedAmountOut = amountIn.mul(tokenRate)
                       const minAmountOut = expectedAmountOut.mul(fp(1).sub(slippage)).div(fp(1))
 
-                      const hopTokens = []
-                      const hopFees = []
-                      const fee = 1
-
                       beforeEach('set max slippage', async () => {
                         const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
                         await authorizer
@@ -357,17 +351,25 @@ describe('UniswapV3Swapper', () => {
                         await task.connect(owner).setDefaultMaxSlippage(slippage)
                       })
 
+                      let hopTokens: string[]
+
+                      beforeEach('deploy hop tokens', async () => {
+                        const hopToken1 = await deployTokenMock('HOP_TKN_1')
+                        const hopToken2 = await deployTokenMock('HOP_TKN_2')
+                        hopTokens = [hopToken1.address, hopToken2.address]
+                      })
+
                       it('executes the expected connector', async () => {
-                        const tx = await task.call(tokenIn.address, amountIn, slippage, fee, hopTokens, hopFees)
+                        const tx = await task.call(tokenIn.address, amountIn, slippage, 1, hopTokens, [1, 1])
 
                         const connectorData = connector.interface.encodeFunctionData('execute', [
                           tokenIn.address,
                           tokenOut.address,
                           amountIn,
                           minAmountOut,
-                          fee,
+                          1,
                           hopTokens,
-                          hopFees,
+                          [1, 1],
                         ])
 
                         await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
@@ -380,14 +382,14 @@ describe('UniswapV3Swapper', () => {
                           tokenOut,
                           amountIn,
                           minAmountOut,
-                          fee,
+                          fee: 1,
                           hopTokens,
-                          hopFees,
+                          hopFees: [1, 1],
                         })
                       })
 
                       it('emits an Executed event', async () => {
-                        const tx = await task.call(tokenIn.address, amountIn, slippage, fee, hopTokens, hopFees)
+                        const tx = await task.call(tokenIn.address, amountIn, slippage, 0, hopTokens, [])
 
                         await assertIndirectEvent(tx, task.interface, 'Executed')
                       })
