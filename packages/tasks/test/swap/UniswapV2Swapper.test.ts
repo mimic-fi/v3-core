@@ -153,14 +153,6 @@ describe('UniswapV2Swapper', () => {
                 }
 
                 context('when the smart vault balance passes the threshold', () => {
-                  let hopToken1: Contract
-                  let hopToken2: Contract
-
-                  beforeEach('deploy hop tokens', async () => {
-                    hopToken1 = await deployTokenMock('HOP_TKN_1')
-                    hopToken2 = await deployTokenMock('HOP_TKN_2')
-                  })
-
                   beforeEach('fund smart vault', async () => {
                     await tokenIn.mint(smartVault.address, amountIn)
                   })
@@ -180,13 +172,13 @@ describe('UniswapV2Swapper', () => {
 
                     const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
                       let hopTokens: string[]
-                      
+
                       beforeEach('deploy hop tokens', async () => {
                         const hopToken1 = await deployTokenMock('HOP_TKN_1')
                         const hopToken2 = await deployTokenMock('HOP_TKN_2')
                         hopTokens = [hopToken1.address, hopToken2.address]
                       })
-                      
+
                       it('executes the expected connector', async () => {
                         const tx = await executeTask(requestedAmount, slippage, hopTokens)
 
@@ -225,7 +217,7 @@ describe('UniswapV2Swapper', () => {
                       itExecutesTheTaskProperly(requestedAmount)
 
                       it('does not update any balance connectors', async () => {
-                        const tx = await executeTask(requestedAmount, slippage, hopTokens)
+                        const tx = await executeTask(requestedAmount, slippage, [])
 
                         await assertNoEvent(tx, 'BalanceConnectorUpdated')
                       })
@@ -264,7 +256,7 @@ describe('UniswapV2Swapper', () => {
                       itExecutesTheTaskProperly(requestedAmount)
 
                       it('updates the balance connectors properly', async () => {
-                        const tx = await executeTask(requestedAmount, slippage, hopTokens)
+                        const tx = await executeTask(requestedAmount, slippage, [])
 
                         await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
                           id: prevConnectorId,
@@ -285,26 +277,22 @@ describe('UniswapV2Swapper', () => {
 
                   context('when the slippage is above the limit', () => {
                     const slippage = fp(0.01)
-                    const hopTokens = []
 
                     it('reverts', async () => {
-                      await expect(executeTask(amountIn, slippage, hopTokens)).to.be.revertedWith(
-                        'TaskSlippageAboveMax'
-                      )
+                      await expect(executeTask(amountIn, slippage, [])).to.be.revertedWith('TaskSlippageAboveMax')
                     })
                   })
                 })
 
                 context('when the smart vault balance does not pass the threshold', () => {
                   const amountIn = thresholdAmountInTokenIn.div(2)
-                  const hopTokens = []
 
                   beforeEach('fund smart vault', async () => {
                     await tokenIn.mint(smartVault.address, amountIn)
                   })
 
                   it('reverts', async () => {
-                    await expect(executeTask(amountIn, 0, hopTokens)).to.be.revertedWith('TaskTokenThresholdNotMet')
+                    await expect(executeTask(amountIn, 0, [])).to.be.revertedWith('TaskTokenThresholdNotMet')
                   })
                 })
               })
@@ -329,20 +317,11 @@ describe('UniswapV2Swapper', () => {
                   })
 
                   context('when the smart vault balance passes the threshold', () => {
-                    let hopToken1: Contract
-                    let hopToken2: Contract
-
-                    beforeEach('deploy hop tokens', async () => {
-                      hopToken1 = await deployTokenMock('HOP_TKN_1')
-                      hopToken2 = await deployTokenMock('HOP_TKN_2')
-                    })
-
                     beforeEach('fund smart vault', async () => {
                       await tokenIn.mint(smartVault.address, amountIn)
                     })
 
                     context('when the slippage is below the limit', () => {
-                      const hopTokens = []
                       const slippage = fp(0.01)
                       const expectedAmountOut = amountIn.mul(tokenRate)
                       const minAmountOut = expectedAmountOut.mul(fp(1).sub(slippage)).div(fp(1))
@@ -354,9 +333,15 @@ describe('UniswapV2Swapper', () => {
                           .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
                         await task.connect(owner).setDefaultMaxSlippage(slippage)
                       })
+                      let hopTokens: string[]
+
+                      beforeEach('deploy hop tokens', async () => {
+                        const hopToken1 = await deployTokenMock('HOP_TKN_1')
+                        const hopToken2 = await deployTokenMock('HOP_TKN_2')
+                        hopTokens = [hopToken1.address, hopToken2.address]
+                      })
 
                       it('executes the expected connector', async () => {
-                        const hopTokens = [hopToken1.address, hopToken2.address]
                         const tx = await task.call(tokenIn.address, amountIn, slippage, hopTokens)
 
                         const connectorData = connector.interface.encodeFunctionData('execute', [
