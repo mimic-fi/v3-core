@@ -16,11 +16,15 @@ pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/swap/uniswap-v2/UniswapV2Connector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IUniswapV2Connector.sol';
 
 import './BaseSwapTask.sol';
 import '../interfaces/swap/IUniswapV2Swapper.sol';
 
+/**
+ * @title Uniswap v2 swapper
+ * @dev Task that extends the base swap task to use Uniswap v2
+ */
 contract UniswapV2Swapper is IUniswapV2Swapper, BaseSwapTask {
     using FixedPoint for uint256;
     using BytesHelpers for bytes;
@@ -29,14 +33,14 @@ contract UniswapV2Swapper is IUniswapV2Swapper, BaseSwapTask {
     bytes32 public constant override EXECUTION_TYPE = keccak256('UNISWAP_V2_SWAPPER');
 
     /**
-     * @dev Uniswap v2 swapper task config. Only used in the initializer
+     * @dev Uniswap v2 swap config. Only used in the initializer.
      */
     struct UniswapV2SwapConfig {
         BaseSwapConfig baseSwapConfig;
     }
 
     /**
-     * @dev Initializes the Uniswap v2 swapper action
+     * @dev Initializes the Uniswap v2 swapper
      * @param config Uniswap v2 swap config
      */
     function initialize(UniswapV2SwapConfig memory config) external initializer {
@@ -44,7 +48,7 @@ contract UniswapV2Swapper is IUniswapV2Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev Initializes the Uniswap V2 swapper. It does call upper contracts.
+     * @dev Initializes the Uniswap v2 swapper. It does call upper contracts.
      * @param config Uniswap v2 swap config
      */
     function __UniswapV2Swapper_init(UniswapV2SwapConfig memory config) internal onlyInitializing {
@@ -53,7 +57,7 @@ contract UniswapV2Swapper is IUniswapV2Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev Initializes the Uniswap V2 swapper. It does not call upper contracts.
+     * @dev Initializes the Uniswap v2 swapper. It does not call upper contracts.
      * @param config Uniswap v2 swap config
      */
     function __UniswapV2Swapper_init_unchained(UniswapV2SwapConfig memory config) internal onlyInitializing {

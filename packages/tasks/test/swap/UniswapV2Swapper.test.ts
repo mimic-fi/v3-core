@@ -166,7 +166,6 @@ describe('UniswapV2Swapper', () => {
                   })
 
                   context('when the slippage is below the limit', () => {
-                    const hopTokens = []
                     const slippage = fp(0.01)
                     const expectedAmountOut = amountIn.mul(tokenRate)
                     const minAmountOut = expectedAmountOut.mul(fp(1).sub(slippage)).div(fp(1))
@@ -180,8 +179,15 @@ describe('UniswapV2Swapper', () => {
                     })
 
                     const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
+                      let hopTokens: string[]
+                      
+                      beforeEach('deploy hop tokens', async () => {
+                        const hopToken1 = await deployTokenMock('HOP_TKN_1')
+                        const hopToken2 = await deployTokenMock('HOP_TKN_2')
+                        hopTokens = [hopToken1.address, hopToken2.address]
+                      })
+                      
                       it('executes the expected connector', async () => {
-                        const hopTokens = [hopToken1.address, hopToken2.address]
                         const tx = await executeTask(requestedAmount, slippage, hopTokens)
 
                         const connectorData = connector.interface.encodeFunctionData('execute', [
