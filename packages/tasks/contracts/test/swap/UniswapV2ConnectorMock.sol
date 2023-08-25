@@ -14,8 +14,17 @@
 
 pragma solidity ^0.8.0;
 
-interface IMorphoV2 {
-    function supply(address poolToken, uint256 amount) external;
+contract UniswapV2ConnectorMock {
+    event LogExecute(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, address[] hopTokens);
 
-    function withdraw(address poolToken, uint256 amount) external;
+    function execute(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address[] memory hopTokens
+    ) external returns (uint256) {
+        emit LogExecute(tokenIn, tokenOut, amountIn, minAmountOut, hopTokens);
+        return minAmountOut;
+    }
 }

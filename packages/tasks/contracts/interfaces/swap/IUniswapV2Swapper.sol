@@ -12,10 +12,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.0;
 
-interface IMorphoV2 {
-    function supply(address poolToken, uint256 amount) external;
+import './IBaseSwapTask.sol';
 
-    function withdraw(address poolToken, uint256 amount) external;
+/**
+ * @dev Uniswap v2 swapper task interface
+ */
+interface IUniswapV2Swapper is IBaseSwapTask {
+    /**
+     * @dev Execution function
+     */
+    function call(address tokenIn, uint256 amountIn, uint256 minAmountOut, address[] memory hopTokens) external;
 }

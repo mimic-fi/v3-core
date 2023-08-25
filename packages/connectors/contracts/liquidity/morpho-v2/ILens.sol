@@ -19,4 +19,8 @@ interface ILens {
         external
         view
         returns (uint256 balanceInP2P, uint256 balanceOnPool, uint256 totalBalance);
+
+    function morpho() external view returns (address);
+
+    function pool() external view returns (address);
 }

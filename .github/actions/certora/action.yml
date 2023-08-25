@@ -1,0 +1,62 @@
+name: Certora Prover
+description: Run Certora Prover
+
+inputs:
+  workspace:
+    description: Yarn workspace to run prove script
+    required: true
+  certora-key:
+    description: Certora key
+    required: true
+  github-token:
+    description: Github token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up environment
+      uses: ./.github/actions/setup
+    - name: Install python
+      uses: actions/setup-python@v4
+      with: { python-version: 3.9 }
+    - name: Install java
+      uses: actions/setup-java@v1
+      with: { java-version: '11', java-package: jre }
+    - name: Install certora cli
+      shell: bash
+      run: pip install certora-cli-beta
+    - name: Install solc
+      shell: bash
+      run: |
+        wget https://github.com/ethereum/solidity/releases/download/v0.8.17/solc-static-linux
+        chmod +x solc-static-linux
+        sudo mv solc-static-linux /usr/local/bin/solc8.17
+    - name: Build
+      shell: bash
+      run: yarn build
+    - name: Run certora prover
+      id: 'certora'
+      shell: bash
+      run: |
+        if CERTORA_OUTPUT=$(yarn --silent workspace ${{ inputs.workspace }} run --silent prove:ci); then
+          echo "$CERTORA_OUTPUT"
+          echo "CERTORA_JOB=$(echo "$CERTORA_OUTPUT" | tail -n 1)" >> $GITHUB_OUTPUT
+        else
+          echo "$CERTORA_OUTPUT"
+          exit 1
+        fi
+      env:
+        CERTORAKEY: ${{ inputs.certora-key }}
+    - name: Link certora build
+      if: ${{ steps.certora.outputs.CERTORA_JOB != '' }}
+      uses: actions/github-script@v5
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: "${{ steps.certora.outputs.CERTORA_JOB }}"
+          })
