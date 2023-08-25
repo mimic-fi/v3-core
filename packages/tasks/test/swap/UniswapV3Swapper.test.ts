@@ -21,18 +21,18 @@ import { ethers } from 'hardhat'
 import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
 import { itBehavesLikeBaseSwapTask } from './BaseSwapTask.behavior'
 
-describe('OneInchV5Swapper', () => {
+describe('UniswapV3Swapper', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, priceOracle: Contract, connector: Contract, owner: SignerWithAddress
 
   before('setup', async () => {
     // eslint-disable-next-line prettier/prettier
-    ([, owner] = await getSigners())
+    [, owner] = await getSigners()
     ;({ authorizer, smartVault, priceOracle } = await deployEnvironment(owner))
   })
 
   before('deploy connector', async () => {
-    connector = await deploy('OneInchV5ConnectorMock')
+    connector = await deploy('UniswapV3ConnectorMock')
     const overrideConnectorCheckRole = smartVault.interface.getSighash('overrideConnectorCheck')
     await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideConnectorCheckRole, [])
     await smartVault.connect(owner).overrideConnectorCheck(connector.address, true)
@@ -40,7 +40,7 @@ describe('OneInchV5Swapper', () => {
 
   beforeEach('deploy task', async () => {
     task = await deployProxy(
-      'OneInchV5Swapper',
+      'UniswapV3Swapper',
       [],
       [
         {
@@ -64,7 +64,7 @@ describe('OneInchV5Swapper', () => {
       this.authorizer = authorizer
     })
 
-    itBehavesLikeBaseSwapTask('1INCH_V5_SWAPPER')
+    itBehavesLikeBaseSwapTask('UNISWAP_V3_SWAPPER')
   })
 
   describe('call', () => {
@@ -91,6 +91,7 @@ describe('OneInchV5Swapper', () => {
         context('when the amount in is not zero', () => {
           const tokenRate = 2 // 1 token in = 2 token out
           const thresholdAmount = fp(0.1) // in token out
+          const maxThresholdAmount = fp(0.0)
           const thresholdAmountInTokenIn = thresholdAmount.div(tokenRate) // threshold expressed in token in
           const amountIn = thresholdAmountInTokenIn
 
@@ -145,8 +146,21 @@ describe('OneInchV5Swapper', () => {
                   await task.connect(owner).setDefaultTokenThreshold(tokenOut.address, thresholdAmount, 0)
                 })
 
-                const executeTask = async (amountIn, slippage, data): Promise<ContractTransaction> => {
-                  const callTx = await task.populateTransaction.call(tokenIn.address, amountIn, slippage, data)
+                const executeTask = async (
+                  amountIn,
+                  slippage,
+                  fee,
+                  hopTokens,
+                  hopFees
+                ): Promise<ContractTransaction> => {
+                  const callTx = await task.populateTransaction.call(
+                    tokenIn.address,
+                    amountIn,
+                    slippage,
+                    fee,
+                    hopTokens,
+                    hopFees
+                  )
                   const callData = `${callTx.data}${extraCallData}`
                   return owner.sendTransaction({ to: task.address, data: callData })
                 }
@@ -157,7 +171,6 @@ describe('OneInchV5Swapper', () => {
                   })
 
                   context('when the slippage is below the limit', () => {
-                    const data = '0xaabb'
                     const slippage = fp(0.01)
                     const expectedAmountOut = amountIn.mul(tokenRate)
                     const minAmountOut = expectedAmountOut.mul(fp(1).sub(slippage)).div(fp(1))
@@ -171,15 +184,23 @@ describe('OneInchV5Swapper', () => {
                     })
 
                     const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
-                      it('executes the expected connector', async () => {
-                        const tx = await executeTask(requestedAmount, slippage, data)
+                      let hopTokens: string[]
 
+                      beforeEach('deploy hop tokens', async () => {
+                        const hopToken1 = await deployTokenMock('HOP_TKN_1')
+                        const hopToken2 = await deployTokenMock('HOP_TKN_2')
+                        hopTokens = [hopToken1.address, hopToken2.address]
+                      })
+                      it('executes the expected connector', async () => {
+                        const tx = await executeTask(requestedAmount, slippage, 1, hopTokens, [1, 1])
                         const connectorData = connector.interface.encodeFunctionData('execute', [
                           tokenIn.address,
                           tokenOut.address,
                           amountIn,
                           minAmountOut,
-                          data,
+                          1,
+                          hopTokens,
+                          [1, 1],
                         ])
 
                         await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
@@ -192,12 +213,14 @@ describe('OneInchV5Swapper', () => {
                           tokenOut,
                           amountIn,
                           minAmountOut,
-                          data,
+                          fee: 1,
+                          hopTokens,
+                          hopFees: [1, 1],
                         })
                       })
 
                       it('emits an Executed event', async () => {
-                        const tx = await executeTask(requestedAmount, slippage, data)
+                        const tx = await executeTask(requestedAmount, slippage, 1, hopTokens, [])
 
                         await assertIndirectEvent(tx, task.interface, 'Executed')
                       })
@@ -209,7 +232,7 @@ describe('OneInchV5Swapper', () => {
                       itExecutesTheTaskProperly(requestedAmount)
 
                       it('does not update any balance connectors', async () => {
-                        const tx = await executeTask(requestedAmount, slippage, data)
+                        const tx = await executeTask(requestedAmount, slippage, 1, [], [])
 
                         await assertNoEvent(tx, 'BalanceConnectorUpdated')
                       })
@@ -248,7 +271,7 @@ describe('OneInchV5Swapper', () => {
                       itExecutesTheTaskProperly(requestedAmount)
 
                       it('updates the balance connectors properly', async () => {
-                        const tx = await executeTask(requestedAmount, slippage, data)
+                        const tx = await executeTask(requestedAmount, slippage, 1, [], [])
 
                         await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
                           id: prevConnectorId,
@@ -271,7 +294,9 @@ describe('OneInchV5Swapper', () => {
                     const slippage = fp(0.01)
 
                     it('reverts', async () => {
-                      await expect(executeTask(amountIn, slippage, '0x')).to.be.revertedWith('TaskSlippageAboveMax')
+                      await expect(executeTask(amountIn, slippage, 1, [], [])).to.be.revertedWith(
+                        'TaskSlippageAboveMax'
+                      )
                     })
                   })
                 })
@@ -284,7 +309,7 @@ describe('OneInchV5Swapper', () => {
                   })
 
                   it('reverts', async () => {
-                    await expect(executeTask(amountIn, 0, '0x')).to.be.revertedWith('TaskTokenThresholdNotMet')
+                    await expect(executeTask(amountIn, 0, 1, [], [])).to.be.revertedWith('TaskTokenThresholdNotMet')
                   })
                 })
               })
@@ -303,7 +328,9 @@ describe('OneInchV5Swapper', () => {
                     await authorizer
                       .connect(owner)
                       .authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-                    await task.connect(owner).setDefaultTokenThreshold(tokenOut.address, thresholdAmount, 0)
+                    await task
+                      .connect(owner)
+                      .setDefaultTokenThreshold(tokenOut.address, thresholdAmount, maxThresholdAmount)
                   })
 
                   context('when the smart vault balance passes the threshold', () => {
@@ -312,7 +339,6 @@ describe('OneInchV5Swapper', () => {
                     })
 
                     context('when the slippage is below the limit', () => {
-                      const data = '0xaabb'
                       const slippage = fp(0.01)
                       const expectedAmountOut = amountIn.mul(tokenRate)
                       const minAmountOut = expectedAmountOut.mul(fp(1).sub(slippage)).div(fp(1))
@@ -325,15 +351,25 @@ describe('OneInchV5Swapper', () => {
                         await task.connect(owner).setDefaultMaxSlippage(slippage)
                       })
 
+                      let hopTokens: string[]
+
+                      beforeEach('deploy hop tokens', async () => {
+                        const hopToken1 = await deployTokenMock('HOP_TKN_1')
+                        const hopToken2 = await deployTokenMock('HOP_TKN_2')
+                        hopTokens = [hopToken1.address, hopToken2.address]
+                      })
+
                       it('executes the expected connector', async () => {
-                        const tx = await task.call(tokenIn.address, amountIn, slippage, data)
+                        const tx = await task.call(tokenIn.address, amountIn, slippage, 1, hopTokens, [1, 1])
 
                         const connectorData = connector.interface.encodeFunctionData('execute', [
                           tokenIn.address,
                           tokenOut.address,
                           amountIn,
                           minAmountOut,
-                          data,
+                          1,
+                          hopTokens,
+                          [1, 1],
                         ])
 
                         await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
@@ -346,12 +382,14 @@ describe('OneInchV5Swapper', () => {
                           tokenOut,
                           amountIn,
                           minAmountOut,
-                          data,
+                          fee: 1,
+                          hopTokens,
+                          hopFees: [1, 1],
                         })
                       })
 
                       it('emits an Executed event', async () => {
-                        const tx = await task.call(tokenIn.address, amountIn, slippage, data)
+                        const tx = await task.call(tokenIn.address, amountIn, slippage, 0, hopTokens, [])
 
                         await assertIndirectEvent(tx, task.interface, 'Executed')
                       })
@@ -361,7 +399,7 @@ describe('OneInchV5Swapper', () => {
                       const slippage = fp(0.01)
 
                       it('reverts', async () => {
-                        await expect(task.call(tokenIn.address, amountIn, slippage, '0x')).to.be.revertedWith(
+                        await expect(task.call(tokenIn.address, amountIn, slippage, 0, [], [])).to.be.revertedWith(
                           'TaskSlippageAboveMax'
                         )
                       })
@@ -376,7 +414,7 @@ describe('OneInchV5Swapper', () => {
                     })
 
                     it('reverts', async () => {
-                      await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith(
+                      await expect(task.call(tokenIn.address, amountIn, 0, 0, [], [])).to.be.revertedWith(
                         'TaskTokenThresholdNotMet'
                       )
                     })
@@ -386,7 +424,7 @@ describe('OneInchV5Swapper', () => {
                 context('when no on-chain oracle is given', () => {
                   it('reverts', async () => {
                     // TODO: Hardhat does not decode price oracle error properly
-                    await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.reverted
+                    await expect(task.call(tokenIn.address, amountIn, 0, 1, 0, [], [])).to.be.reverted
                   })
                 })
               })
@@ -394,7 +432,9 @@ describe('OneInchV5Swapper', () => {
 
             context('when the token out is not set', () => {
               it('reverts', async () => {
-                await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskTokenOutNotSet')
+                await expect(task.call(tokenIn.address, amountIn, 0, 0, [], [])).to.be.revertedWith(
+                  'TaskTokenOutNotSet'
+                )
               })
             })
           })
@@ -407,7 +447,7 @@ describe('OneInchV5Swapper', () => {
             })
 
             it('reverts', async () => {
-              await expect(task.call(tokenIn.address, 0, 0, '0x')).to.be.revertedWith('TaskTokenNotAllowed')
+              await expect(task.call(tokenIn.address, 0, 0, 1, [], [])).to.be.revertedWith('TaskTokenNotAllowed')
             })
           })
         })
@@ -416,7 +456,7 @@ describe('OneInchV5Swapper', () => {
           const amountIn = 0
 
           it('reverts', async () => {
-            await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskAmountZero')
+            await expect(task.call(tokenIn.address, amountIn, 0, 1, [], [])).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -425,14 +465,14 @@ describe('OneInchV5Swapper', () => {
         const tokenIn = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(tokenIn, 0, 0, '0x')).to.be.revertedWith('TaskTokenZero')
+          await expect(task.call(tokenIn, 0, 0, 1, [], [])).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 0, '0x')).to.be.revertedWith('AuthSenderNotAllowed')
+        await expect(task.call(ZERO_ADDRESS, 0, 0, 1, [], [])).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
