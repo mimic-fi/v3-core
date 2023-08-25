@@ -4,10 +4,6 @@ env:
   CI: true
 
 on:
-  push:
-    branches: "*"
-    paths:
-      - packages/authorizer/**
   pull_request:
     branches: "*"
     paths:
