@@ -27,7 +27,7 @@ import '../../interfaces/liquidity/morpho/IMorphoAaveV2Connector.sol';
  * @dev Interfaces with Morpho Aave v2 to lend tokens
  */
 contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
-    // Reference to MorphoAaveV2
+    // Reference to MorphoAaveV2 proxy
     address public immutable override morpho;
 
     // Reference to Morpho's lens
@@ -46,7 +46,24 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
     }
 
     /**
-     * @dev Supplies tokens to the Aave protocol using Morpho. Eligible for the peer-to-peer matching
+     * @dev Finds the aToken address associated to a token
+     * @param token Address of the token querying the aToken of
+     */
+    function getAToken(address token) public view override returns (address) {
+        address lendingPool = ILens(lens).pool();
+        return ILendingPool(lendingPool).getReserveData(token).aTokenAddress;
+    }
+
+    /**
+     * @dev Tells the supply balance for an aToken
+     * @param aToken Address of the aToken querying the supply balance of
+     */
+    function getSupplyBalance(address aToken) public view override returns (uint256 supplyBalance) {
+        (, , supplyBalance) = ILens(lens).getCurrentSupplyBalanceInOf(aToken, address(this));
+    }
+
+    /**
+     * @dev Supplies tokens to the Aave protocol using Morpho
      * @param token Address of the token to supply
      * @param amount Amount of tokens to supply
      */
@@ -101,22 +118,5 @@ contract MorphoAaveV2Connector is IMorphoAaveV2Connector {
         distributor.claim(address(this), amount, proof);
         uint256 finalMorphoBalance = morphoToken.balanceOf(address(this));
         amounts[0] = finalMorphoBalance - initialMorphoBalance;
-    }
-
-    /**
-     * @dev Finds the aToken address associated to a token
-     * @param token Address of the token
-     */
-    function getAToken(address token) public view override returns (address) {
-        address lendingPool = ILens(lens).pool();
-        return ILendingPool(lendingPool).getReserveData(token).aTokenAddress;
-    }
-
-    /**
-     * @dev Tells the supply balance of this address for the underlying token
-     * @param aToken Address of the aToken associated to the token
-     */
-    function getSupplyBalance(address aToken) public view override returns (uint256 supplyBalance) {
-        (, , supplyBalance) = ILens(lens).getCurrentSupplyBalanceInOf(aToken, address(this));
     }
 }

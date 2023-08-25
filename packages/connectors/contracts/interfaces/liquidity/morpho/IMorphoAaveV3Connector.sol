@@ -21,12 +21,12 @@ interface IMorphoAaveV3Connector {
     /**
      * @dev The amount supplied is lower than the expected amount
      */
-    error MorphoAaveV3InvalidSupply(uint256 withdrawn, uint256 amount);
+    error MorphoAaveV3InvalidSupply(uint256 actual, uint256 expected);
 
     /**
      * @dev The withdraw amount is lower than the expected amount
      */
-    error MorphoAaveV3InvalidWithdraw(uint256 withdrawn, uint256 amount);
+    error MorphoAaveV3InvalidWithdraw(uint256 actual, uint256 expected);
 
     /**
      * @dev Tells the reference to the MorphoAaveV3 proxy
@@ -39,10 +39,10 @@ interface IMorphoAaveV3Connector {
     function rewardsDistributor() external view returns (address);
 
     /**
-     * @dev Supplies tokens to the Aave protocol using Morpho. Eligible for the peer-to-peer matching
+     * @dev Supplies tokens to the Aave protocol using Morpho
      * @param token Address of the token to supply
      * @param amount Amount of tokens to supply
-     * @param maxIterations Maximum number of iterations allowed during the matching process. Using 4 is recommended by Morpho
+     * @param maxIterations Maximum number of iterations allowed during the matching process. Using 4 is recommended by Morpho.
      */
     function join(address token, uint256 amount, uint256 maxIterations) external returns (uint256);
 
@@ -50,7 +50,7 @@ interface IMorphoAaveV3Connector {
      * @dev Withdraws tokens from Morpho's supply balance
      * @param token Address of the token to withdraw
      * @param amount Amount of tokens to withdraw
-     * @param maxIterations Maximum number of iterations allowed during the matching process. If it is less than the default, the latter will be used. Pass 0 to fallback to the default
+     * @param maxIterations Maximum number of iterations allowed during the matching process. If it is less than the default, the latter will be used. Pass 0 to fallback to the default.
      */
     function exit(address token, uint256 amount, uint256 maxIterations) external returns (uint256);
 

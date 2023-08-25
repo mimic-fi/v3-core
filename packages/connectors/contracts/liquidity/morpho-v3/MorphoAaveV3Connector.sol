@@ -25,7 +25,7 @@ import '../../interfaces/liquidity/morpho/IMorphoAaveV3Connector.sol';
  * @dev Interfaces with Morpho Aave v3 to lend tokens
  */
 contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
-    // Reference to MorphoAaveV3
+    // Reference to MorphoAaveV3 proxy
     address public immutable override morpho;
 
     // Reference to Morpho's rewards distributor
@@ -40,7 +40,7 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
     }
 
     /**
-     * @dev Supplies tokens to the Aave protocol using Morpho. Eligible for the peer-to-peer matching
+     * @dev Supplies tokens to the Aave protocol using Morpho
      * @param token Address of the token to supply
      * @param amount Amount of tokens to supply
      * @param maxIterations Maximum number of iterations allowed during the matching process. Using 4 is recommended by Morpho.
