@@ -39,6 +39,11 @@ interface IMorphoAaveV3Connector {
     function rewardsDistributor() external view returns (address);
 
     /**
+     * @dev Returns the Morpho token address
+     */
+    function getMorphoToken() external returns (address);
+
+    /**
      * @dev Supplies tokens to the Aave protocol using Morpho
      * @param token Address of the token to supply
      * @param amount Amount of tokens to supply
@@ -62,9 +67,4 @@ interface IMorphoAaveV3Connector {
     function claim(uint256 amount, bytes32[] calldata proof)
         external
         returns (address[] memory tokens, uint256[] memory amounts);
-
-    /**
-     * @dev Returns the Morpho token address
-     */
-    function morphoToken() external returns (address);
 }

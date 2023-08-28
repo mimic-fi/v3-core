@@ -74,8 +74,10 @@ contract MorphoAaveV3Claimer is IMorphoAaveV3Claimer, BaseMorphoAaveV3Task {
     {
         if (amount == 0) amount = getTaskAmount(token);
         _beforeMorphoAaveV3Claimer(token, amount, proof);
+
         bytes memory connectorData = abi.encodeWithSelector(IMorphoAaveV3Connector.claim.selector, amount, proof);
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
+
         (address[] memory tokens, uint256[] memory amounts) = abi.decode(result, (address[], uint256[]));
         _afterMorphoAaveV3Claimer(token, amount, tokens, amounts);
     }
@@ -85,9 +87,8 @@ contract MorphoAaveV3Claimer is IMorphoAaveV3Claimer, BaseMorphoAaveV3Task {
      */
     function _beforeMorphoAaveV3Claimer(address token, uint256 amount, bytes32[] calldata proof) internal virtual {
         _beforeBaseMorphoAaveV3Task(token, amount);
-        bytes memory connectorData = abi.encodeWithSelector(IMorphoAaveV3Connector.morphoToken.selector);
-        bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
-        if (token != abi.decode(result, (address))) revert TaskTokenNotMorpho();
+        address morphoToken = IMorphoAaveV3Connector(connector).getMorphoToken();
+        if (token != morphoToken) revert TaskTokenNotMorpho();
         if (proof.length == 0) revert TaskProofEmpty();
     }
 

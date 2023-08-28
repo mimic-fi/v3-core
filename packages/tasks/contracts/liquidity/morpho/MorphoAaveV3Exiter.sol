@@ -132,14 +132,16 @@ contract MorphoAaveV3Exiter is IMorphoAaveV3Exiter, BaseMorphoAaveV3Task {
     {
         if (amount == 0) amount = getTaskAmount(token);
         _beforeMorphoAaveV3Exiter(token, amount, maxIterations);
+
         bytes memory connectorData = abi.encodeWithSelector(
             IMorphoAaveV3Connector.exit.selector,
             token,
             amount,
             maxIterations
         );
-        ISmartVault(smartVault).execute(connector, connectorData);
-        _afterMorphoAaveV3Exiter(token, amount);
+        bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
+
+        _afterMorphoAaveV3Exiter(token, amount, result.toUint256());
     }
 
     /**
@@ -155,9 +157,9 @@ contract MorphoAaveV3Exiter is IMorphoAaveV3Exiter, BaseMorphoAaveV3Task {
     /**
      * @dev After Morpho-Aave V3 exiter hook
      */
-    function _afterMorphoAaveV3Exiter(address token, uint256 amount) internal virtual {
-        _increaseBalanceConnector(token, amount);
-        _afterBaseMorphoAaveV3Task(token, amount);
+    function _afterMorphoAaveV3Exiter(address token, uint256 amountIn, uint256 amountOut) internal virtual {
+        _increaseBalanceConnector(token, amountOut);
+        _afterBaseMorphoAaveV3Task(token, amountIn);
     }
 
     /**

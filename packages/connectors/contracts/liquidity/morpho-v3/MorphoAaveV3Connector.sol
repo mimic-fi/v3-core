@@ -40,6 +40,13 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
     }
 
     /**
+     * @dev Returns the Morpho token address
+     */
+    function getMorphoToken() public returns (address) {
+        return address(IRewardsDistributor(rewardsDistributor).MORPHO());
+    }
+
+    /**
      * @dev Supplies tokens to the Aave protocol using Morpho
      * @param token Address of the token to supply
      * @param amount Amount of tokens to supply
@@ -75,7 +82,7 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
         override
         returns (address[] memory tokens, uint256[] memory amounts)
     {
-        IERC20 token = IERC20(morphoToken());
+        IERC20 token = IERC20(getMorphoToken());
         tokens = new address[](1);
         tokens[0] = address(token);
 
@@ -86,12 +93,5 @@ contract MorphoAaveV3Connector is IMorphoAaveV3Connector {
         IRewardsDistributor(rewardsDistributor).claim(address(this), amount, proof);
         uint256 finalMorphoBalance = token.balanceOf(address(this));
         amounts[0] = finalMorphoBalance - initialMorphoBalance;
-    }
-
-    /**
-     * @dev Returns the Morpho token address
-     */
-    function morphoToken() public returns (address) {
-        return address(IRewardsDistributor(rewardsDistributor).MORPHO());
     }
 }

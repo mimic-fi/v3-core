@@ -130,6 +130,7 @@ contract MorphoAaveV3Joiner is IMorphoAaveV3Joiner, BaseMorphoAaveV3Task {
         authP(authParams(token, amount, maxIterations))
     {
         if (amount == 0) amount = getTaskAmount(token);
+
         _beforeMorphoAaveV3Joiner(token, amount, maxIterations);
         bytes memory connectorData = abi.encodeWithSelector(
             IMorphoAaveV3Connector.join.selector,
@@ -138,6 +139,7 @@ contract MorphoAaveV3Joiner is IMorphoAaveV3Joiner, BaseMorphoAaveV3Task {
             maxIterations
         );
         ISmartVault(smartVault).execute(connector, connectorData);
+
         _afterMorphoAaveV3Joiner(token, amount);
     }
 
@@ -155,6 +157,7 @@ contract MorphoAaveV3Joiner is IMorphoAaveV3Joiner, BaseMorphoAaveV3Task {
      * @dev After Morpho-Aave V3 joiner hook
      */
     function _afterMorphoAaveV3Joiner(address token, uint256 amount) internal virtual {
+        // Note that Morpho doesn't return any tokens
         _afterBaseMorphoAaveV3Task(token, amount);
     }
 

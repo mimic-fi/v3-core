@@ -44,7 +44,7 @@ contract MorphoAaveV3ConnectorMock {
         return amount;
     }
 
-    function morphoToken() external pure returns (address) {
+    function getMorphoToken() external pure returns (address) {
         return MORPHO_TOKEN;
     }
 }
