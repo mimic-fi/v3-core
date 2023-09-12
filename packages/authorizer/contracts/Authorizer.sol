@@ -123,6 +123,16 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
     }
 
     /**
+     * @dev Tells whether `who` has permission to call `what` on `where`
+     * @param who Address asking permission for
+     * @param where Target address asking permission for
+     * @param what Function selector asking permission for
+     */
+    function hasPermission(address who, address where, bytes4 what) external view override returns (bool) {
+        return _permissionsLists[who][where].permissions[what].authorized;
+    }
+
+    /**
      * @dev Tells the params set for a given permission
      * @param who Address asking permission params of
      * @param where Target address asking permission params of

@@ -105,6 +105,14 @@ interface IAuthorizer {
     function isAuthorized(address who, address where, bytes4 what, uint256[] memory how) external view returns (bool);
 
     /**
+     * @dev Tells whether `who` has permission to call `what` on `where`
+     * @param who Address asking permission for
+     * @param where Target address asking permission for
+     * @param what Function selector asking permission for
+     */
+    function hasPermission(address who, address where, bytes4 what) external view returns (bool);
+
+    /**
      * @dev Tells the params set for a given permission
      * @param who Address asking permission params of
      * @param where Target address asking permission params of
