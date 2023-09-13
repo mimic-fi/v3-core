@@ -274,7 +274,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
             it('emits an event', async function () {
               const tx = await this.task.setCustomDestinationChain(token.address, chainId)
 
-              await assertEvent(tx, 'CustomDestinationChainSet', { token, defaultDestinationChain: chainId })
+              await assertEvent(tx, 'CustomDestinationChainSet', { token, destinationChain: chainId })
             })
           }
 
@@ -318,7 +318,7 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
           it('emits an event', async function () {
             const tx = await this.task.setCustomDestinationChain(token.address, 0)
 
-            await assertEvent(tx, 'CustomDestinationChainSet', { token, defaultDestinationChain: 0 })
+            await assertEvent(tx, 'CustomDestinationChainSet', { token, destinationChain: 0 })
           })
         }
 
