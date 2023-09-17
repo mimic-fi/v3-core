@@ -13,6 +13,7 @@ methods {
     function isAuthorized(address,address,bytes4,uint256[]) external returns (bool) envfree;
     function hasPermission(address who, address where, bytes4 what) external returns (bool) envfree;
     function getPermissionParams(address,address,bytes4) external returns (IAuthorizer.Param[]) envfree;
+    function getPermissionsLength(address,address) external returns (uint256) envfree;
 }
 
 definition INITIALIZE() returns uint8 = 0;
@@ -32,18 +33,99 @@ definition getSelector(uint8 f) returns uint32 = (
     )))
 );
 
-function isValidPermissionsState(address who, address where, bytes4 what) returns bool {
-    bool hasPermission = hasPermission(who, where, what);
-    IAuthorizer.Param[] params = getPermissionParams(who, where, what);
+function buildPermissionChange(
+    address where,
+    bool withGrant,
+    address grantWho,
+    bytes4 grantWhat,
+    bool withRevoke,
+    address revokeWho, 
+    bytes4 revokeWhat
+    ) returns IAuthorizer.PermissionChange
+{
+    IAuthorizer.PermissionChange change;
+    require change.where == where;
 
-    bool ifNoPermissionsThenNotAuthorized = !hasPermissions(who, where) => !hasPermission;
-    bool ifNotAuthorizedThenNoParams = !hasPermission => params.length == 0;
+    if (withGrant) {
+        require change.grants.length == 1;
+        IAuthorizer.GrantPermission grant = change.grants[0];
+        require grant.who == grantWho && grant.what == grantWhat && grant.params.length == 0;
+    } else {
+        require change.grants.length == 0;
+    }
 
-    return ifNoPermissionsThenNotAuthorized && ifNotAuthorizedThenNoParams;
+    if (withRevoke) {
+        require change.revokes.length == 1;
+        IAuthorizer.RevokePermission revoke = change.revokes[0];
+        require revoke.who == revokeWho && revoke.what == revokeWhat;
+    } else {
+        require change.revokes.length == 0;
+    }
+
+    return change;
 }
 
+function getPermissionParamsLength(address who, address where, bytes4 what) returns uint256 {
+    IAuthorizer.Param[] permissionParams = getPermissionParams(who, where, what);
+    return permissionParams.length;
+}
+
+function requireNonGenericPermissions(address who, address where, bytes4 what, uint256[] how) {
+    require !isAuthorized(ANYONE(), where, what, how);
+    require !isAuthorized(who, ANYWHERE(), what, how);
+}
+
+ghost mapping(address => mapping(address => mapping(bytes4 => uint256))) ghostParamsLength {
+    init_state axiom forall address who . forall address where . forall bytes4 what . ghostParamsLength[who][where][what] == 0;
+}
+
+ghost mapping(address => mapping(address => mapping(bytes4 => bool))) ghostAuthorized {
+    init_state axiom forall address who . forall address where . forall bytes4 what . !ghostAuthorized[who][where][what];
+}
+
+ghost mapping(address => mapping(address => uint256)) ghostCount {
+    init_state axiom forall address who . forall address where . ghostCount[who][where] == 0;
+}
+
+hook Sload uint256 length currentContract._permissionsLists[KEY address who][KEY address where].(offset 32)[KEY bytes4 what].(offset 32) STORAGE {
+    require ghostParamsLength[who][where][what] == length;
+}
+
+hook Sload bool authorized currentContract._permissionsLists[KEY address who][KEY address where].permissions[KEY bytes4 what].authorized STORAGE {
+    require ghostAuthorized[who][where][what] == authorized;
+}
+
+hook Sload uint256 count currentContract._permissionsLists[KEY address who][KEY address where].count STORAGE {
+    require ghostCount[who][where] == count;
+}
+
+hook Sstore currentContract._permissionsLists[KEY address who][KEY address where].(offset 32)[KEY bytes4 what].(offset 32) uint256 newLength STORAGE {
+    ghostParamsLength[who][where][what] = newLength;
+}
+
+hook Sstore currentContract._permissionsLists[KEY address who][KEY address where].permissions[KEY bytes4 what].authorized bool newAuthorized STORAGE {
+    ghostAuthorized[who][where][what] = newAuthorized;
+}
+
+hook Sstore currentContract._permissionsLists[KEY address who][KEY address where].count uint256 newCount STORAGE {
+    ghostCount[who][where] = newCount;
+}
+
+invariant checkLength(address who, address where, bytes4 what)
+    ghostParamsLength[who][where][what] == getPermissionParamsLength(who, where, what);
+
+invariant checkAuthorized(address who, address where, bytes4 what)
+    ghostAuthorized[who][where][what] == hasPermission(who, where, what);
+
+invariant checkCount(address who, address where)
+    ghostCount[who][where] == getPermissionsLength(who, where);
+
 invariant validPermissionsState(address who, address where)
-    forall bytes4 what . !hasPermissions(who, where) => !hasPermission(who, where, what);
+    forall bytes4 what . (ghostCount[who][where] == 0 => !ghostAuthorized[who][where][what])
+        && (!ghostAuthorized[who][where][what] => ghostParamsLength[who][where][what] == 0)
+        && (ghostAuthorized[who][where][what] => ghostCount[who][where] > 0);
+
+// TODO: (exists bytes4 what . ghostCount[who][where] > 0 => ghostAuthorized[who][where][what])
 
 use rule sanity;
 
@@ -106,8 +188,7 @@ rule unauthorizeAfterAuthorizeShouldNotChangeStorage
 
     uint256[] how = helpers.authParams(who, where, what);
     require !isAuthorized(who, where, what, how);
-    IAuthorizer.Param[] permissionParams = getPermissionParams(who, where, what);
-    require permissionParams.length == 0; // TODO: write an invariant for this
+    require getPermissionParamsLength(who, where, what) == 0; // TODO: write an invariant for this
 
     storage initStorage = lastStorage;
 
@@ -139,8 +220,7 @@ rule authorizeWorksProperly(env e, address who, address where, bytes4 what, IAut
 rule unauthorizeWorksProperly(env e, address who, address where, bytes4 what, uint256[] anyhow)
     good_description "If a user has permissions to do `what` on `where` with `params`, if we call unauthorize, then isAuthorized must return false for any `how`"
 {
-    require !isAuthorized(ANYONE(), where, what, anyhow);
-    require !isAuthorized(who, ANYWHERE(), what, anyhow);
+    requireNonGenericPermissions(who, where, what, anyhow);
 
     // TODO: "whith params"?
     uint256[] how = helpers.authParams(who, where, what);
@@ -154,9 +234,153 @@ rule unauthorizeWorksProperly(env e, address who, address where, bytes4 what, ui
 rule unauthorizedUserCannotDoAnything(address who, address where, bytes4 what, uint256[] anyhow)
     good_description "If a user does not have permissions to do `what` on `where`, then isAuthorized must return false for any `how`"
 {
-    require !isAuthorized(ANYONE(), where, what, anyhow);
-    require !isAuthorized(who, ANYWHERE(), what, anyhow);
+    requireNonGenericPermissions(who, where, what, anyhow);
     require !hasPermission(who, where, what);
 
     assert !isAuthorized(who, where, what, anyhow);
+}
+
+rule grantingPermissionsIsLikeAuthorizing
+    (env e, address who, address where, bytes4 what, IAuthorizer.Param[] params)
+    good_description "Calling changePermissions with 1 grant should be equivalent to calling authorize"
+{
+    require params.length == 0 && ghostReentrancyStatus == 1;
+
+    // uint256[] how = helpers.authParams(who, where, what);
+    // require !isAuthorized(who, where, what, how);
+    require !hasPermission(who, where, what);
+    require getPermissionParamsLength(who, where, what) == 0; // TODO: write an invariant for this
+
+    storage initStorage = lastStorage;
+
+    IAuthorizer.PermissionChange change = buildPermissionChange(where, true, who, what, false, 0, to_bytes4(0));
+    changePermissions(e, [change]);
+    storage afterChangePermissions = lastStorage;
+
+    authorize(e, who, where, what, params) at initStorage;
+    storage afterAuthorize = lastStorage;
+
+    assert afterChangePermissions[currentContract] == afterAuthorize[currentContract];
+}
+
+rule revokingPermissionsIsLikeUnauthorizing(env e, address who, address where, bytes4 what)
+    good_description "Calling changePermissions with 1 revoke should be equivalent to calling unauthorize"
+{
+    require ghostReentrancyStatus == 1;
+
+    storage initStorage = lastStorage;
+
+    IAuthorizer.PermissionChange change = buildPermissionChange(where, false, 0, to_bytes4(0), true, who, what);
+    changePermissions(e, [change]);
+    storage afterChangePermissions = lastStorage;
+
+    unauthorize(e, who, where, what) at initStorage;
+    storage afterUnauthorize = lastStorage;
+
+    assert afterChangePermissions[currentContract] == afterUnauthorize[currentContract];
+}
+
+rule changePermissionsInBetweenShouldNotChangeStorage
+    (env e, address who, address where, bytes4 what, IAuthorizer.Param[] params, address who2, bytes4 what2)
+    good_description "Doing authorize, change permissions, and then unauthorize shouldn't change the storage"
+{
+    require params.length == 0 && who != who2 && what != what2;
+
+    // uint256[] how = helpers.authParams(who, where, what);
+    // require !isAuthorized(who, where, what, how);
+    require !hasPermission(who, where, what);
+    require getPermissionParamsLength(who, where, what) == 0; // TODO: write an invariant for this
+
+    require !hasPermission(who2, where, what);
+    require getPermissionParamsLength(who2, where, what2) == 0; // TODO: write an invariant for this
+
+    storage initStorage = lastStorage;
+
+    authorize(e, who, where, what, params);
+
+    IAuthorizer.PermissionChange change = buildPermissionChange(where, true, who2, what2, true, who, what);
+    changePermissions(e, [change]);
+
+    unauthorize(e, who2, where, what2);
+
+    storage currentStorage = lastStorage;
+    assert initStorage[currentContract] == currentStorage[currentContract];
+}
+
+rule changePermissionsOrderMatters(env e, address who, address where, bytes4 what)
+    good_description "Calling changePermissions with a grant and its corresponding revoke should leave the user unauthorized"
+{
+    // uint256[] how = helpers.authParams(who, where, what);
+    // require !isAuthorized(who, where, what, how);
+    require !hasPermission(who, where, what);
+    require getPermissionParamsLength(who, where, what) == 0; // TODO: write an invariant for this
+
+    storage initStorage = lastStorage;
+
+    IAuthorizer.PermissionChange change = buildPermissionChange(where, true, who, what, true, who, what);
+    changePermissions(e, [change]);
+
+    storage currentStorage = lastStorage;
+
+    assert !hasPermission(who, where, what); // TODO: or !isAuthorized?
+    assert initStorage[currentContract] == currentStorage[currentContract];
+}
+
+rule hasPermissionIsEquivalentToIsAuthorizedWithEmptyParams
+    (address who, address where, bytes4 what)
+    good_description "For a permission without params, hasPermission should be equivalent to isAuthorized"
+{
+    require getPermissionParamsLength(who, where, what) == 0;
+
+    uint256[] how = helpers.authParams(who, where, what);
+    requireNonGenericPermissions(who, where, what, how);
+
+    assert isAuthorized(who, where, what, how) == hasPermission(who, where, what);
+}
+
+rule someoneCanPerfomTheOperation(env e, address who, address where, bytes4 what, uint256[] how, IAuthorizer.Param[] params)
+    good_description "If we call authorize then someone can perform the operation"
+{
+    require how.length == 3 && params.length == 3;
+    require !isAuthorized(who, where, what, how);
+
+    authorize(e, who, where, what, params);
+
+    satisfy isAuthorized(who, where, what, how);
+}
+
+rule anyoneIsAuthorized(env e, address who, address where, bytes4 what, IAuthorizer.Param[] params, address somewhere, bytes4 somewhat)
+    good_description "Anyone is authorized to do `what` on `where`"
+{
+    require params.length == 0;
+    require who != ANYONE() && where != ANYWHERE() && where != somewhere && what != somewhat;
+
+    uint256[] how = [];
+    require !isAuthorized(who, where, what, how);
+    require !isAuthorized(who, somewhere, what, how);
+    require !isAuthorized(who, where, somewhat, how);
+
+    authorize(e, ANYONE(), where, what, params);
+
+    assert isAuthorized(who, where, what, how);
+    assert !isAuthorized(who, somewhere, what, how);
+    assert !isAuthorized(who, where, somewhat, how);
+}
+
+rule isAuthorizedAnywhere(env e, address who, address where, bytes4 what, IAuthorizer.Param[] params, address someone, bytes4 somewhat)
+    good_description "A user is authorized to do `what` anywhere"
+{
+    require params.length == 0;
+    require who != ANYONE() && who != someone && where != ANYWHERE() && what != somewhat;
+
+    uint256[] how = [];
+    require !isAuthorized(who, where, what, how);
+    require !isAuthorized(someone, where, what, how);
+    require !isAuthorized(who, where, somewhat, how);
+
+    authorize(e, who, ANYWHERE(), what, params);
+
+    assert isAuthorized(who, where, what, how);
+    assert !isAuthorized(someone, where, what, how);
+    assert !isAuthorized(who, where, somewhat, how);
 }
