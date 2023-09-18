@@ -291,7 +291,7 @@ rule changePermissionsInBetweenShouldNotChangeStorage
     require !hasPermission(who, where, what);
     require getPermissionParamsLength(who, where, what) == 0; // TODO: write an invariant for this
 
-    require !hasPermission(who2, where, what);
+    require !hasPermission(who2, where, what2);
     require getPermissionParamsLength(who2, where, what2) == 0; // TODO: write an invariant for this
 
     storage initStorage = lastStorage;
