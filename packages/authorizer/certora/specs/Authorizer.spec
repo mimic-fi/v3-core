@@ -7,6 +7,9 @@ methods {
     // Helpers
     function helpers.authParams(address,address,bytes4) external returns (uint256[]) envfree;
 
+    // AuthorizerHarness
+    function changePermissions(address,bool,address,bytes4,bool,address bytes4,IAuthorizer.Param[]) external;
+
     // Authorizer
     function ANYONE() external returns (address) envfree => ALWAYS(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF);
     function ANYWHERE() external returns (address) envfree => ALWAYS(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF);
@@ -30,7 +33,7 @@ function buildPermissionChange(
     address grantWho,
     bytes4 grantWhat,
     bool withRevoke,
-    address revokeWho, 
+    address revokeWho,
     bytes4 revokeWhat
 )
     returns IAuthorizer.PermissionChange
@@ -66,6 +69,11 @@ function requireNonGenericPermissions(address who, address where, bytes4 what) {
     require !hasPermission(ANYONE(), where, what);
     require !hasPermission(who, ANYWHERE(), what);
     require !hasPermission(ANYONE(), ANYWHERE(), what);
+}
+
+function cleanStorage(env e, address who, address where, bytes4 what) {
+    require getPermissionParamsLength(who, where, what) == 1;
+    unauthorize(e, who, where, what);
 }
 
 // GHOSTS AND HOOKS
@@ -120,8 +128,10 @@ invariant checkCount(address who, address where)
 // INVARIANTS
 invariant validPermissionsState(address who, address where)
     forall bytes4 what . (ghostCount[who][where] == 0 => !ghostAuthorized[who][where][what])
-        && (!ghostAuthorized[who][where][what] => ghostParamsLength[who][where][what] == 0)
         && (ghostAuthorized[who][where][what] => ghostCount[who][where] > 0);
+
+invariant validParamsLength(address who, address where, bytes4 what)
+    !ghostAuthorized[who][where][what] => ghostParamsLength[who][where][what] == 0;
 
 // RULES
 use rule sanity;
@@ -207,6 +217,17 @@ rule authorizeWorksProperly(env e, address who, address where, bytes4 what, IAut
     assert !hasPermission(who, where2, what2);
 }
 
+rule someoneCanPerfomTheOperation(env e, address who, address where, bytes4 what, uint256[] how, IAuthorizer.Param[] params)
+    good_description "If we call authorize then someone can perform the operation"
+{
+    require how.length == 3 && params.length <= 3;
+    require !hasPermission(who, where, what);
+
+    authorize(e, who, where, what, params);
+
+    satisfy isAuthorized(who, where, what, how);
+}
+
 rule unauthorizeWorksProperly(env e, address who, address where, bytes4 what)
     good_description "If a user has permissions to do `what` on `where` and we call `unauthorize`, then the user must be unauthorized"
 {
@@ -235,8 +256,7 @@ rule grantingPermissionsIsLikeAuthorizing(env e, address who, address where, byt
 
     storage initStorage = lastStorage;
 
-    IAuthorizer.PermissionChange change = buildPermissionChange(where, true, who, what, false, 0, to_bytes4(0));
-    changePermissions(e, [change]);
+    changePermissions(e, where, true, who, what, false, 0, to_bytes4(0));
     storage afterChangePermissions = lastStorage;
 
     authorize(e, who, where, what, params) at initStorage;
@@ -266,11 +286,8 @@ rule changePermissionsInBetweenShouldNotChangeStorage
 {
     require params.length == 0 && who != who2 && what != what2;
 
-    require !hasPermission(who, where, what);
-    require getPermissionParamsLength(who, where, what) == 0; // TODO: delete this line once the invarian works
-
-    require !hasPermission(who2, where, what2);
-    require getPermissionParamsLength(who2, where, what2) == 0; // TODO: delete this line once the invarian works
+    cleanStorage(e, who, where, what);
+    cleanStorage(e, who2, where, what2);
 
     storage initStorage = lastStorage;
 
@@ -288,8 +305,7 @@ rule changePermissionsInBetweenShouldNotChangeStorage
 rule changePermissionsOrderMatters(env e, address who, address where, bytes4 what)
     good_description "Calling changePermissions with a grant and its corresponding revoke should leave the user unauthorized"
 {
-    require !hasPermission(who, where, what);
-    require getPermissionParamsLength(who, where, what) == 0; // TODO: delete this line once the invarian works
+    cleanStorage(e, who, where, what);
 
     storage initStorage = lastStorage;
 
@@ -302,25 +318,13 @@ rule changePermissionsOrderMatters(env e, address who, address where, bytes4 wha
     assert initStorage[currentContract] == currentStorage[currentContract];
 }
 
-rule hasPermissionIsEquivalentToIsAuthorizedWithEmptyParams(address who, address where, bytes4 what)
+rule hasPermissionIsEquivalentToIsAuthorizedWithEmptyParams(address who, address where, bytes4 what, uint256[] how)
     good_description "For a permission without params, hasPermission should be equivalent to isAuthorized"
 {
     require getPermissionParamsLength(who, where, what) == 0;
     requireNonGenericPermissions(who, where, what);
 
-    uint256[] how = helpers.authParams(who, where, what);
     assert isAuthorized(who, where, what, how) == hasPermission(who, where, what);
-}
-
-rule someoneCanPerfomTheOperation(env e, address who, address where, bytes4 what, uint256[] how, IAuthorizer.Param[] params)
-    good_description "If we call authorize then someone can perform the operation"
-{
-    require how.length == 3 && params.length <= 3;
-    require !hasPermission(who, where, what);
-
-    authorize(e, who, where, what, params);
-
-    satisfy isAuthorized(who, where, what, how);
 }
 
 rule anyoneIsAuthorized(env e, address who, address where, bytes4 what, IAuthorizer.Param[] params, address somewhere, bytes4 somewhat)
@@ -329,14 +333,17 @@ rule anyoneIsAuthorized(env e, address who, address where, bytes4 what, IAuthori
     require params.length == 0;
     require who != ANYONE() && where != ANYWHERE() && where != somewhere && what != somewhat;
 
-    uint256[] how = [];
-    require !isAuthorized(who, where, what, how);
-    require !isAuthorized(who, somewhere, what, how);
-    require !isAuthorized(who, where, somewhat, how);
+    require !hasPermission(who, where, what);
+    require !hasPermission(who, somewhere, what);
+    require !hasPermission(who, where, somewhat);
+    requireNonGenericPermissions(who, where, what);
+    requireNonGenericPermissions(who, somewhere, what);
+    requireNonGenericPermissions(who, where, somewhat);
 
     authorize(e, ANYONE(), where, what, params);
 
-    assert isAuthorized(who, where, what, how);
+    uint256[] how = [];
+    assert isAuthorized(who, where, what, how) && !hasPermission(who, where, what);
     assert !isAuthorized(who, somewhere, what, how);
     assert !isAuthorized(who, where, somewhat, how);
 }
@@ -347,14 +354,17 @@ rule isAuthorizedAnywhere(env e, address who, address where, bytes4 what, IAutho
     require params.length == 0;
     require who != ANYONE() && who != someone && where != ANYWHERE() && what != somewhat;
 
-    uint256[] how = [];
-    require !isAuthorized(who, where, what, how);
-    require !isAuthorized(someone, where, what, how);
-    require !isAuthorized(who, where, somewhat, how);
+    require !hasPermission(who, where, what);
+    require !hasPermission(someone, where, what);
+    require !hasPermission(who, where, somewhat);
+    requireNonGenericPermissions(who, where, what);
+    requireNonGenericPermissions(someone, where, what);
+    requireNonGenericPermissions(who, where, somewhat);
 
     authorize(e, who, ANYWHERE(), what, params);
 
-    assert isAuthorized(who, where, what, how);
+    uint256[] how = [];
+    assert isAuthorized(who, where, what, how) && !hasPermission(who, where, what);
     assert !isAuthorized(someone, where, what, how);
     assert !isAuthorized(who, where, somewhat, how);
 }
