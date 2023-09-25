@@ -3,23 +3,33 @@ import "./General.spec";
 using Helpers as helpers;
 using WrappedNativeTokenMock as WrappedNativeTokenMock;
 using Authorizer as Authorizer;
+using FeeController as FeeController;
 
 // METHODS
 methods {
     // Helpers
-    function helpers.nativeBalanceOf(address) external returns (uint256) envfree;
+    function helpers.NATIVE_TOKEN() external returns (address) envfree => ALWAYS(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+    function helpers.balanceOf(address,address) external returns (uint256) envfree;
+    function helpers.authParams(address,address,uint256) external returns (uint256[]) envfree;
 
     // Wrapped native token mock
     function WrappedNativeTokenMock.deposit() external;
     function WrappedNativeTokenMock.withdraw(uint256) external;
     function WrappedNativeTokenMock.balanceOf(address) external returns (uint256) envfree;
+    function _.balanceOf(address) external => DISPATCHER(true);
+    function _.transfer(address,uint256) external => DISPATCHER(true);
+    function _.transferFrom(address,address,uint256) external => DISPATCHER(true);
 
     // Authorizer
     function Authorizer.isAuthorized(address,address,bytes4,uint256[]) external returns (bool) envfree;
 
+    // Fee controller
+    function FeeController.getFee(address) external returns (uint256,uint256,address) envfree;
+
     // Smart vault
     function isPaused() external returns (bool) envfree;
     function priceOracle() external returns (address) envfree;
+    function feeController() external returns (address) envfree;
     function wrappedNativeToken() external returns (address) envfree;
     function isConnectorCheckIgnored(address) external returns (bool) envfree;
     function getBalanceConnector(bytes32,address) external returns (uint256) envfree;
@@ -31,6 +41,10 @@ methods {
 }
 
 // DEFINITIONS
+// Constants
+definition FIXED_POINT_ONE() returns uint256 = 10^18;
+
+// Signatures
 definition INITIALIZE() returns uint32 = sig:initialize(address, address).selector;
 definition PAUSE() returns uint32 = sig:pause().selector;
 definition UNPAUSE() returns uint32 = sig:unpause().selector;
@@ -40,6 +54,19 @@ definition OVERRIDE_CONNECTOR_CHECK() returns uint32 = sig:overrideConnectorChec
 definition UPDATE_BALANCE_CONNECTOR() returns uint32 = sig:updateBalanceConnector(bytes32, address, uint256, bool).selector;
 definition WRAP() returns uint32 = sig:wrap(uint256).selector;
 definition UNWRAP() returns uint32 = sig:unwrap(uint256).selector;
+definition COLLECT() returns uint32 = sig:collect(address, address, uint256).selector;
+definition WITHDRAW() returns uint32 = sig:withdraw(address, address, uint256).selector;
+
+// FUNCTIONS
+function requireValidFeeCollector() {
+    uint256 maxPct;
+    uint256 pct;
+    address collector;
+    maxPct, pct, collector = FeeController.getFee(currentContract);
+    require maxPct <= FIXED_POINT_ONE()
+        && pct <= maxPct
+        && collector != currentContract; // TODO: these might be invariants
+}
 
 // RULES
 use rule sanity;
@@ -171,12 +198,12 @@ rule unwrapWrapIntegrity(env e, uint256 amount)
 rule wrapProperBalances(env e, uint256 amount)
     good_description "After wrapping an `amount` of native tokens, the smart vault balance in wrapped and native token should respectively increase and decrease by that `amount`"
 {
-    uint256 initNativeBalance = helpers.nativeBalanceOf(currentContract);
+    uint256 initNativeBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
     uint256 initWrappedBalance = WrappedNativeTokenMock.balanceOf(currentContract);
 
     wrap(e, amount);
 
-    uint256 currentNativeBalance = helpers.nativeBalanceOf(currentContract);
+    uint256 currentNativeBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
     uint256 currentWrappedBalance = WrappedNativeTokenMock.balanceOf(currentContract);
     
     assert to_mathint(currentNativeBalance) == initNativeBalance - amount;
@@ -186,19 +213,21 @@ rule wrapProperBalances(env e, uint256 amount)
 rule unwrapProperBalances(env e, uint256 amount)
     good_description "After unwrapping an `amount` of wrapped native tokens, the smart vault balance in wrapped and native token should respectively decrease and increase by that `amount`"
 {
-    uint256 initNativeBalance = helpers.nativeBalanceOf(currentContract);
+    uint256 initNativeBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
     uint256 initWrappedBalance = WrappedNativeTokenMock.balanceOf(currentContract);
 
     unwrap(e, amount);
 
-    uint256 currentNativeBalance = helpers.nativeBalanceOf(currentContract);
+    uint256 currentNativeBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
     uint256 currentWrappedBalance = WrappedNativeTokenMock.balanceOf(currentContract);
     
     assert to_mathint(currentNativeBalance) == initNativeBalance + amount;
     assert to_mathint(currentWrappedBalance) == initWrappedBalance - amount;
 }
 
-rule unwrapCannotRevertAfterWrap(env e, uint256 amount, uint256 amountToUnwrap) {
+rule unwrapCannotRevertAfterWrap(env e, uint256 amount, uint256 amountToUnwrap)
+    good_description "If the call to `wrap` was successful, then `unwrap` should not revert"
+{
     require amountToUnwrap > 0;
 
     uint256[] how = [amountToUnwrap];
@@ -216,7 +245,9 @@ rule unwrapCannotRevertAfterWrap(env e, uint256 amount, uint256 amountToUnwrap) 
     assert to_mathint(amountToUnwrap) <= wrappedAmount => !lastReverted;
 }
 
-rule wrapCannotRevertAfterUnwrap(env e, uint256 amount, uint256 amountToWrap) {
+rule wrapCannotRevertAfterUnwrap(env e, uint256 amount, uint256 amountToWrap)
+    good_description "If the call to `unwrap` was successful, then `wrap` should not revert"
+{
     require amountToWrap > 0;
 
     uint256[] how = [amountToWrap];
@@ -232,4 +263,87 @@ rule wrapCannotRevertAfterUnwrap(env e, uint256 amount, uint256 amountToWrap) {
     wrap@withrevert(e, amountToWrap);
     
     assert to_mathint(amountToWrap) <= unwrappedAmount => !lastReverted;
+}
+
+rule collectWithdrawIntegrity(env e, address token, address user, uint256 amount)
+    good_description "Calling `collect` and then `withdraw` should not change the smart vault balance"
+{
+    require token != helpers.NATIVE_TOKEN();
+    require user != currentContract;
+    requireValidFeeCollector();
+
+    uint256 initBalance = helpers.balanceOf(token, currentContract);
+
+    collect(e, token, user, amount);
+    withdraw(e, token, user, amount);
+
+    uint256 currentBalance = helpers.balanceOf(token, currentContract);
+    assert initBalance == currentBalance;
+}
+
+rule withdrawCollectIntegrity(env e, address token, address user, uint256 amount)
+    good_description "Calling `withdraw` and then `collect` should not change the smart vault balance"
+{
+    require token != helpers.NATIVE_TOKEN();
+    require user != currentContract;
+    requireValidFeeCollector();
+
+    uint256 initBalance = helpers.balanceOf(token, currentContract);
+
+    withdraw(e, token, user, amount);
+    collect(e, token, user, amount);
+
+    uint256 currentBalance = helpers.balanceOf(token, currentContract);
+    assert initBalance == currentBalance;
+}
+
+rule collectProperBalances(env e, address token, address from, uint256 amount)
+    good_description "After collecting an `amount` of tokens, the smart vault balance should increase by that `amount`"
+{
+    require token != helpers.NATIVE_TOKEN();
+    require from != currentContract;
+
+    uint256 initBalance = helpers.balanceOf(token, currentContract);
+
+    collect(e, token, from, amount);
+
+    uint256 currentBalance = helpers.balanceOf(token, currentContract);
+    assert to_mathint(currentBalance) == initBalance + amount;
+}
+
+rule withdrawProperBalances(env e, address token, address recipient, uint256 amount)
+    good_description "After withdrawing an `amount` of tokens, the smart vault balance should decrease by that `amount`"
+{
+    require recipient != currentContract;
+    requireValidFeeCollector();
+
+    uint256 initBalance = helpers.balanceOf(token, currentContract);
+
+    withdraw(e, token, recipient, amount);
+
+    uint256 currentBalance = helpers.balanceOf(token, currentContract);
+    assert to_mathint(currentBalance) == initBalance - amount;
+}
+
+rule collectCannotRevertAfterWithdraw(env e, address token, address user, uint256 amount, uint256 amountToCollect)
+    good_description "If the call to `withdraw` was successful, then `collect` should not revert"
+{
+    require token != helpers.NATIVE_TOKEN();
+    require user != currentContract && user != 0;
+    require amountToCollect > 0;
+    requireValidFeeCollector();
+
+    uint256[] how = [amountToCollect]; // TODO: why is this enough?
+    require Authorizer.isAuthorized(e.msg.sender, currentContract, to_bytes4(COLLECT()), how);
+
+    uint256 balanceBefore = helpers.balanceOf(token, currentContract);
+
+    withdraw(e, token, user, amount);
+
+    uint256 balanceAfter = helpers.balanceOf(token, currentContract);
+    mathint withdrawnAmount = balanceAfter - balanceBefore;
+
+    collect@withrevert(e, token, user, amountToCollect);
+    
+    assert to_mathint(amountToCollect) <= withdrawnAmount => !lastReverted;
 }
