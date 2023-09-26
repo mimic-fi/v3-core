@@ -18,4 +18,9 @@ contract Helpers {
         r[1] = uint256(uint160(p2));
         r[2] = p3;
     }
+
+    function authParams(address p1) external pure returns (uint256[] memory r) {
+        r = new uint256[](1);
+        r[0] = uint256(uint160(p1));
+    }
 }

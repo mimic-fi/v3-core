@@ -4,12 +4,14 @@ using Helpers as helpers;
 using WrappedNativeTokenMock as WrappedNativeTokenMock;
 using Authorizer as Authorizer;
 using FeeController as FeeController;
+using Registry as Registry;
 
 // METHODS
 methods {
     // Helpers
     function helpers.NATIVE_TOKEN() external returns (address) envfree => ALWAYS(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     function helpers.balanceOf(address,address) external returns (uint256) envfree;
+    function helpers.authParams(address) external returns (uint256[]) envfree;
     function helpers.authParams(address,address,uint256) external returns (uint256[]) envfree;
 
     // Wrapped native token mock
@@ -25,6 +27,11 @@ methods {
 
     // Fee controller
     function FeeController.getFee(address) external returns (uint256,uint256,address) envfree;
+
+    // Registry
+    function Registry.isRegistered(address) external returns (bool) envfree;
+    function Registry.isStateless(address) external returns (bool) envfree;
+    function Registry.isDeprecated(address) external returns (bool) envfree;
 
     // Smart vault
     function isPaused() external returns (bool) envfree;
@@ -43,15 +50,17 @@ methods {
 // DEFINITIONS
 // Constants
 definition FIXED_POINT_ONE() returns uint256 = 10^18;
+definition MAX_UINT256() returns mathint = 2^256 - 1;
 
 // Signatures
 definition INITIALIZE() returns uint32 = sig:initialize(address, address).selector;
 definition PAUSE() returns uint32 = sig:pause().selector;
 definition UNPAUSE() returns uint32 = sig:unpause().selector;
-definition EXECUTE() returns uint32 = sig:execute(address, bytes).selector;
 definition SET_PRICE_ORACLE() returns uint32 = sig:setPriceOracle(address).selector;
 definition OVERRIDE_CONNECTOR_CHECK() returns uint32 = sig:overrideConnectorCheck(address, bool).selector;
 definition UPDATE_BALANCE_CONNECTOR() returns uint32 = sig:updateBalanceConnector(bytes32, address, uint256, bool).selector;
+definition EXECUTE() returns uint32 = sig:execute(address, bytes).selector;
+definition CALL_SIG() returns uint32 = sig:call(address, bytes, uint256).selector;
 definition WRAP() returns uint32 = sig:wrap(uint256).selector;
 definition UNWRAP() returns uint32 = sig:unwrap(uint256).selector;
 definition COLLECT() returns uint32 = sig:collect(address, address, uint256).selector;
@@ -66,6 +75,26 @@ function requireValidFeeCollector() {
     require maxPct <= FIXED_POINT_ONE()
         && pct <= maxPct
         && collector != currentContract; // TODO: these might be invariants
+}
+
+function requireValidFeeCollector2(uint256 amount, address token) {
+    uint256 maxPct;
+    uint256 pct;
+    address collector;
+    maxPct, pct, collector = FeeController.getFee(currentContract);
+    require maxPct <= FIXED_POINT_ONE()
+        && pct <= maxPct
+        && amount * pct <= MAX_UINT256()
+        && collector != currentContract;
+    
+    uint256 collectorBalance = helpers.balanceOf(token, collector);
+    require collectorBalance + amount <= MAX_UINT256();
+}
+
+function isValidConnector(address connector) returns bool {
+    return Registry.isRegistered(connector)
+        && Registry.isStateless(connector)
+        && !Registry.isDeprecated(connector);
 }
 
 // RULES
@@ -325,6 +354,29 @@ rule withdrawProperBalances(env e, address token, address recipient, uint256 amo
     assert to_mathint(currentBalance) == initBalance - amount;
 }
 
+rule withdrawCannotRevertAfterCollect(env e, address token, address user, uint256 amount, uint256 amountToWithdraw)
+    good_description "If the call to `collect` was successful, then `withdraw` should not revert"
+{
+    require token != helpers.NATIVE_TOKEN();
+    require user != currentContract && user != 0;
+    require amountToWithdraw > 0;
+    requireValidFeeCollector2(amountToWithdraw, token);
+
+    uint256[] how = helpers.authParams(token, user, amountToWithdraw);
+    require Authorizer.isAuthorized(e.msg.sender, currentContract, to_bytes4(WITHDRAW()), how);
+
+    uint256 balanceBefore = helpers.balanceOf(token, currentContract);
+
+    collect(e, token, user, amount);
+
+    uint256 balanceAfter = helpers.balanceOf(token, currentContract);
+    mathint collectedAmount = balanceAfter - balanceBefore;
+
+    withdraw@withrevert(e, token, user, amountToWithdraw);
+    
+    assert to_mathint(amountToWithdraw) <= collectedAmount => !lastReverted;
+}
+
 rule collectCannotRevertAfterWithdraw(env e, address token, address user, uint256 amount, uint256 amountToCollect)
     good_description "If the call to `withdraw` was successful, then `collect` should not revert"
 {
@@ -346,4 +398,36 @@ rule collectCannotRevertAfterWithdraw(env e, address token, address user, uint25
     collect@withrevert(e, token, user, amountToCollect);
     
     assert to_mathint(amountToCollect) <= withdrawnAmount => !lastReverted;
+}
+
+rule executeValidConnector(env e, address connector, bytes data)
+    good_description "If the call to `execute` does not revert, then the connector is valid or overridden"
+{
+    bool isOverridden = isConnectorCheckIgnored(connector);
+
+    execute(e, connector, data);
+
+    assert isOverridden || isValidConnector(connector);
+}
+
+rule executeSenderMustBeAuthorized(env e, address connector, bytes data)
+    good_description "If the call to `execute` does not revert, then the sender must be authorized"
+{
+    uint256[] how = helpers.authParams(connector);
+    bool isAuthorized = Authorizer.isAuthorized(e.msg.sender, currentContract, to_bytes4(EXECUTE()), how);
+
+    execute(e, connector, data);
+
+    assert isAuthorized;
+}
+
+rule callSenderMustBeAuthorized(env e, address target, bytes data, uint256 value)
+    good_description "If the call to `call` does not revert, then the sender must be authorized"
+{
+    uint256[] how = helpers.authParams(target);
+    bool isAuthorized = Authorizer.isAuthorized(e.msg.sender, currentContract, to_bytes4(CALL_SIG()), how);
+
+    call(e, target, data, value);
+
+    assert isAuthorized;
 }
