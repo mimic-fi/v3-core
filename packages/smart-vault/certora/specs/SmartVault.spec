@@ -13,6 +13,7 @@ methods {
     function helpers.balanceOf(address,address) external returns (uint256) envfree;
     function helpers.authParams(address) external returns (uint256[]) envfree;
     function helpers.authParams(address,address,uint256) external returns (uint256[]) envfree;
+    function helpers.getPermissionParamsLength(address,address,address,bytes4) external returns (uint256) envfree;
 
     // Wrapped native token mock
     function WrappedNativeTokenMock.deposit() external;
@@ -23,7 +24,11 @@ methods {
     function _.transferFrom(address,address,uint256) external => DISPATCHER(true);
 
     // Authorizer
+    function Authorizer.ANYONE() external returns (address) envfree => ALWAYS(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF);
+    function Authorizer.ANYWHERE() external returns (address) envfree => ALWAYS(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF);
     function Authorizer.isAuthorized(address,address,bytes4,uint256[]) external returns (bool) envfree;
+    function Authorizer.hasPermission(address,address,bytes4) external returns (bool) envfree;
+    function _.getPermissionParams(address,address,bytes4) external => DISPATCHER(true);
 
     // Fee controller
     function FeeController.getFee(address) external returns (uint256,uint256,address) envfree;
@@ -34,17 +39,16 @@ methods {
     function Registry.isDeprecated(address) external returns (bool) envfree;
 
     // Smart vault
+    function authorizer() external returns (address) envfree;
     function isPaused() external returns (bool) envfree;
     function priceOracle() external returns (address) envfree;
     function feeController() external returns (address) envfree;
     function wrappedNativeToken() external returns (address) envfree;
     function isConnectorCheckIgnored(address) external returns (bool) envfree;
     function getBalanceConnector(bytes32,address) external returns (uint256) envfree;
-    function pause() external envfree;
-    function unpause() external envfree;
-    function setPriceOracle(address) external envfree;
-    function overrideConnectorCheck(address,bool) external envfree;
-    function updateBalanceConnector(bytes32,address,uint256,bool) external envfree;
+
+    // Call
+    function _.delegatecall(bytes) external => NONDET DELETE(false);
 }
 
 // DEFINITIONS
@@ -97,6 +101,16 @@ function isValidConnector(address connector) returns bool {
         && !Registry.isDeprecated(connector);
 }
 
+function requireEmptyParams(address who, address where, bytes4 what) {
+    require helpers.getPermissionParamsLength(authorizer(), who, where, what) == 0;
+}
+
+function requireNonGenericPermissions(address who, address where, bytes4 what) {
+    require !Authorizer.hasPermission(Authorizer.ANYONE(), where, what);
+    require !Authorizer.hasPermission(who, Authorizer.ANYWHERE(), what);
+    require !Authorizer.hasPermission(Authorizer.ANYONE(), Authorizer.ANYWHERE(), what);
+}
+
 // RULES
 use rule sanity;
 
@@ -125,17 +139,17 @@ rule canOnlyCallUnpause(env e, method f, calldataarg args)
     assert lastReverted || f.selector == UNPAUSE();
 }
 
-rule stillUnpaused() good_description "Calling pause and then unpause should leave the smart vault unpaused" {
+rule stillUnpaused(env e) good_description "Calling pause and then unpause should leave the smart vault unpaused" {
     require !isPaused();
-    pause();
-    unpause();
+    pause(e);
+    unpause(e);
     assert !isPaused();
 }
 
-rule stillPaused() good_description "Calling unpause and then pause should leave the smart vault paused" {
+rule stillPaused(env e) good_description "Calling unpause and then pause should leave the smart vault paused" {
     require isPaused();
-    unpause();
-    pause();
+    unpause(e);
+    pause(e);
     assert isPaused();
 }
 
@@ -188,13 +202,13 @@ rule updateBalanceConnectorOnly(env e, method f, calldataarg args, bytes32 id, a
    assert getBalanceConnector(id, token) == initBalanceConnector;
 }
 
-rule increaseAndDecreaseShouldNotChangeBalanceConnector(bytes32 id, address token, uint256 amount)
+rule increaseAndDecreaseShouldNotChangeBalanceConnector(env e, bytes32 id, address token, uint256 amount)
     good_description "Calling `updateBalanceConnector` twice with opposite `amount` values should not change the connector balance"
 {
     uint256 initBalanceConnector = getBalanceConnector(id, token);
 
-    updateBalanceConnector(id, token, amount, true);
-    updateBalanceConnector(id, token, amount, false);
+    updateBalanceConnector(e, id, token, amount, true);
+    updateBalanceConnector(e, id, token, amount, false);
 
     uint256 currentBalanceConnector = getBalanceConnector(id, token);
     assert initBalanceConnector == currentBalanceConnector;
@@ -430,4 +444,31 @@ rule callSenderMustBeAuthorized(env e, address target, bytes data, uint256 value
     call(e, target, data, value);
 
     assert isAuthorized;
+}
+
+rule senderMustBeAuthorized(env e, method f, calldataarg args)
+    filtered {
+        f -> 
+            !f.isView
+            && !f.isFallback
+            && f.selector != INITIALIZE()
+    }
+    good_description "If the call does not revert, then the sender must be authorized"
+{
+    address who = e.msg.sender;
+    address where = currentContract;
+    bytes4 what = to_bytes4(f.selector);
+
+    requireEmptyParams(who, where, what);
+    requireEmptyParams(Authorizer.ANYONE(), where, what);
+    requireEmptyParams(who, Authorizer.ANYWHERE(), what);
+    requireEmptyParams(Authorizer.ANYONE(), Authorizer.ANYWHERE(), what);
+
+    requireNonGenericPermissions(who, where, what);
+    
+    bool hasPermission = Authorizer.hasPermission(who, where, what);
+
+    f(e, args);
+
+    assert hasPermission;
 }
