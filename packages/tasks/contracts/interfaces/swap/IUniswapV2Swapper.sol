@@ -23,5 +23,5 @@ interface IUniswapV2Swapper is IBaseSwapTask {
     /**
      * @dev Execution function
      */
-    function call(address tokenIn, uint256 amountIn, uint256 minAmountOut, address[] memory hopTokens) external;
+    function call(address tokenIn, uint256 amountIn, uint256 slippage, address[] memory hopTokens) external;
 }

@@ -26,7 +26,7 @@ interface IUniswapV3Swapper is IBaseSwapTask {
     function call(
         address tokenIn,
         uint256 amountIn,
-        uint256 minAmountOut,
+        uint256 slippage,
         uint24 fee,
         address[] memory hopTokens,
         uint24[] memory hopFees

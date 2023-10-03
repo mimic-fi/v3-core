@@ -23,5 +23,5 @@ interface IOneInchV5Swapper is IBaseSwapTask {
     /**
      * @dev Execution function
      */
-    function call(address tokenIn, uint256 amountIn, uint256 minAmountOut, bytes memory data) external;
+    function call(address tokenIn, uint256 amountIn, uint256 slippage, bytes memory data) external;
 }

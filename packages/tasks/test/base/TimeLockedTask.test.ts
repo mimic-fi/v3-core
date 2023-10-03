@@ -1,22 +1,30 @@
 import {
   advanceTime,
   assertEvent,
-  assertNoEvent,
+  BigNumberish,
   currentTimestamp,
   DAY,
   deployProxy,
   getSigners,
-  MONTH,
+  HOUR,
+  MINUTE,
   setNextBlockTimestamp,
   ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
-import { BigNumber, Contract } from 'ethers'
+import { Contract } from 'ethers'
 
 import { deployEnvironment } from '../../src/setup'
 
 /* eslint-disable no-secrets/no-secrets */
+
+const MODE = {
+  SECONDS: 0,
+  ON_DAY: 1,
+  ON_LAST_DAY: 2,
+  EVERY_X_MONTH: 3,
+}
 
 describe('TimeLockedTask', () => {
   let task: Contract
@@ -40,441 +48,565 @@ describe('TimeLockedTask', () => {
             nextBalanceConnectorId: ZERO_BYTES32,
           },
           timeLockConfig: {
-            delay: 0,
-            nextExecutionTimestamp: 0,
-            executionPeriod: 0,
+            mode: 0,
+            frequency: 0,
+            allowedAt: 0,
+            window: 0,
           },
         },
       ]
     )
   })
 
-  describe('setTimeLockDelay', () => {
-    const delay = MONTH
-
-    context('when the sender is authorized', () => {
+  describe('setTimeLock', () => {
+    context('when the sender is allowed', () => {
       beforeEach('authorize sender', async () => {
-        const setTimeLockDelayRole = task.interface.getSighash('setTimeLockDelay')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockDelayRole, [])
+        const setTimeLockRole = task.interface.getSighash('setTimeLock')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockRole, [])
         task = task.connect(owner)
       })
 
-      context('when the delay is larger than the execution period', () => {
-        const period = 0
+      function itSetsTheTimeLockProperly(mode: number, frequency: number, allowedAt: number, window: number) {
+        it('sets the time lock', async () => {
+          await task.setTimeLock(mode, frequency, allowedAt, window)
 
-        beforeEach('set execution period', async () => {
-          const setTimeLockExecutionPeriodRole = task.interface.getSighash('setTimeLockExecutionPeriod')
-          await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockExecutionPeriodRole, [])
-          await task.setTimeLockExecutionPeriod(period)
-        })
-
-        it('sets the time lock delay', async () => {
-          const previousExpiration = await task.timeLockExpiration()
-          const previousTimeLockExecutionPeriod = await task.timeLockExecutionPeriod()
-
-          await task.setTimeLockDelay(delay)
-
-          expect(await task.timeLockDelay()).to.be.equal(delay)
-          expect(await task.timeLockExpiration()).to.be.equal(previousExpiration)
-          expect(await task.timeLockExecutionPeriod()).to.be.equal(previousTimeLockExecutionPeriod)
+          const timeLock = await task.getTimeLock()
+          expect(timeLock.mode).to.be.equal(mode)
+          expect(timeLock.frequency).to.be.equal(frequency)
+          expect(timeLock.allowedAt).to.be.equal(allowedAt)
+          expect(timeLock.window).to.be.equal(window)
         })
 
         it('emits an event', async () => {
-          const tx = await task.setTimeLockDelay(delay)
+          const tx = await task.setTimeLock(mode, frequency, allowedAt, window)
 
-          await assertEvent(tx, 'TimeLockDelaySet', { delay })
+          await assertEvent(tx, 'TimeLockSet', { mode, frequency, allowedAt, window })
+        })
+      }
+
+      function itReverts(mode: number, frequency: number, allowedAt: number, window: number, error: string) {
+        it('reverts', async () => {
+          await expect(task.setTimeLock(mode, frequency, allowedAt, window)).to.be.revertedWith(error)
+        })
+      }
+
+      context('seconds mode', () => {
+        const mode = MODE.SECONDS
+
+        context('when a frequency is given', () => {
+          const frequency = 100
+
+          context('when a window is given', () => {
+            context('when the window is shorter than the frequency', () => {
+              const window = frequency - 1
+
+              context('when an allowed date is given', () => {
+                const allowedAt = 1000
+
+                itSetsTheTimeLockProperly(mode, frequency, allowedAt, window)
+              })
+
+              context('when no allowed date is given', () => {
+                const allowedAt = 0
+
+                itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
+              })
+            })
+
+            context('when the window is larger than the frequency', () => {
+              const window = frequency + 1
+
+              itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
+            })
+          })
+
+          context('when no window is given', () => {
+            const window = 0
+
+            context('when an allowed date is given', () => {
+              const allowedAt = 1000
+
+              itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedWindow')
+            })
+
+            context('when no allowed date is given', () => {
+              const allowedAt = 0
+
+              itSetsTheTimeLockProperly(mode, frequency, allowedAt, window)
+            })
+          })
+        })
+
+        context('when no frequency is given', () => {
+          const frequency = 0
+
+          context('when a window is given', () => {
+            const window = 10
+
+            context('when an allowed date is given', () => {
+              const allowedAt = 1000
+
+              itReverts(mode, frequency, allowedAt, window, 'TaskInvalidFrequency')
+            })
+
+            context('when no allowed date is given', () => {
+              const allowedAt = 0
+
+              itReverts(mode, frequency, allowedAt, window, 'TaskInvalidFrequency')
+            })
+          })
+
+          context('when no window is given', () => {
+            const window = 0
+
+            context('when an allowed date is given', () => {
+              const allowedAt = 1000
+
+              itReverts(mode, frequency, allowedAt, window, 'TaskInvalidFrequency')
+            })
+
+            context('when no allowed date is given', () => {
+              const allowedAt = 0
+
+              itSetsTheTimeLockProperly(mode, frequency, allowedAt, window)
+            })
+          })
         })
       })
 
-      context('when the delay is shorter than the execution period', () => {
-        const period = delay * 2
+      context('on-day mode', () => {
+        const mode = MODE.ON_DAY
 
-        beforeEach('set execution period', async () => {
-          await task.setTimeLockDelay(period)
-          const setTimeLockExecutionPeriodRole = task.interface.getSighash('setTimeLockExecutionPeriod')
-          await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockExecutionPeriodRole, [])
-          await task.setTimeLockExecutionPeriod(period)
+        context('when a frequency is given', () => {
+          context('when the frequency is lower than or equal to 28', () => {
+            const frequency = 28
+
+            context('when a window is given', () => {
+              context('when the window is shorter than the frequency', () => {
+                const window = frequency * DAY - 1
+
+                context('when an allowed date is given', () => {
+                  context('when the allowed day matches the frequency', () => {
+                    const allowedAt = new Date(`2023-10-${frequency}`).getTime() / 1000
+
+                    itSetsTheTimeLockProperly(mode, frequency, allowedAt, window)
+                  })
+
+                  context('when the allowed day does not match the frequency', () => {
+                    const allowedAt = new Date(`2023-10-${frequency + 1}`).getTime() / 1000
+
+                    itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
+                  })
+                })
+
+                context('when no allowed date is given', () => {
+                  const allowedAt = 0
+
+                  itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
+                })
+              })
+
+              context('when the window is larger than the frequency', () => {
+                const window = frequency * DAY + 1
+
+                itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
+              })
+            })
+
+            context('when no window is given', () => {
+              const window = 0
+
+              itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
+            })
+          })
+
+          context('when the frequency is greater than 28', () => {
+            const frequency = 29
+
+            itReverts(mode, frequency, 0, 0, 'TaskInvalidFrequency')
+          })
         })
+
+        context('when no frequency is given', () => {
+          const frequency = 0
+
+          itReverts(mode, frequency, 0, 0, 'TaskInvalidFrequency')
+        })
+      })
+
+      context('on-last-day mode', () => {
+        const mode = MODE.ON_LAST_DAY
+
+        context('when a frequency is given', () => {
+          const frequency = 1
+
+          itReverts(mode, frequency, 0, 0, 'TaskInvalidFrequency')
+        })
+
+        context('when no frequency is given', () => {
+          const frequency = 0
+
+          context('when a window is given', () => {
+            context('when the window is shorter than 28 days', () => {
+              const window = 28 * DAY - 1
+
+              context('when an allowed date is given', () => {
+                context('when the allowed date is a last day of a month', () => {
+                  const allowedDates = ['2022-06-30', '2023-10-31', '2021-12-31', '2020-02-29', '2021-02-28']
+
+                  allowedDates.forEach((date) => {
+                    context(`for ${date}`, () => {
+                      const allowedAt = new Date(date).getTime() / 1000
+
+                      itSetsTheTimeLockProperly(mode, frequency, allowedAt, window)
+                    })
+                  })
+                })
+
+                context('when the allowed date is not the last day of a month', () => {
+                  const notAllowedDates = ['2022-08-30', '2020-02-28']
+
+                  notAllowedDates.forEach((date) => {
+                    context(`for ${date}`, () => {
+                      const allowedAt = new Date(date).getTime() / 1000
+
+                      itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
+                    })
+                  })
+                })
+              })
+
+              context('when no allowed date is given', () => {
+                const allowedAt = 0
+
+                itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
+              })
+            })
+
+            context('when the window is larger than 28 days', () => {
+              const window = 28 * DAY + 1
+
+              itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
+            })
+          })
+
+          context('when no window is given', () => {
+            const window = 0
+
+            itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
+          })
+        })
+      })
+
+      context('every-month mode', () => {
+        const mode = MODE.EVERY_X_MONTH
+
+        context('when a frequency is given', () => {
+          const frequency = 3
+
+          context('when a window is given', () => {
+            context('when the window is shorter than months of 28 days', () => {
+              const window = 28 * DAY * frequency - 1
+
+              context('when an allowed date is given', () => {
+                context('when the allowed day is lower than or equal to 28', () => {
+                  const allowedDates = ['2022-06-10', '2023-10-01', '2021-02-28']
+
+                  allowedDates.forEach((date) => {
+                    context(`for ${date}`, () => {
+                      const allowedAt = new Date(date).getTime() / 1000
+
+                      itSetsTheTimeLockProperly(mode, frequency, allowedAt, window)
+                    })
+                  })
+                })
+
+                context('when the allowed day is greater than 28', () => {
+                  const notAllowedDates = ['2022-08-30', '2020-02-29', '2023-10-31', '2023-06-30']
+
+                  notAllowedDates.forEach((date) => {
+                    context(`for ${date}`, () => {
+                      const allowedAt = new Date(date).getTime() / 1000
+
+                      itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
+                    })
+                  })
+                })
+              })
+
+              context('when no allowed date is given', () => {
+                const allowedAt = 0
+
+                itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
+              })
+            })
+
+            context('when the window is larger than months of 28 days', () => {
+              const window = 28 * DAY * frequency + 1
+
+              itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
+            })
+          })
+
+          context('when no window is given', () => {
+            const window = 0
+
+            itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
+          })
+        })
+
+        context('when no frequency is given', () => {
+          const frequency = 0
+
+          itReverts(mode, frequency, 0, 0, 'TaskInvalidFrequency')
+        })
+      })
+
+      context('on another mode', () => {
+        const mode = 888999
 
         it('reverts', async () => {
-          await expect(task.setTimeLockDelay(delay)).to.be.revertedWith('TaskExecutionPeriodGtDelay')
+          await expect(task.setTimeLock(mode, 0, 0, 0)).to.be.reverted
         })
       })
     })
 
-    context('when the sender is not authorized', () => {
+    context('when the sender is not allowed', () => {
       it('reverts', async () => {
-        await expect(task.setTimeLockDelay(delay)).to.be.revertedWith('AuthSenderNotAllowed')
-      })
-    })
-  })
-
-  describe('setTimeLockExpiration', () => {
-    const expiration = '123719273'
-
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async () => {
-        const setTimeLockExpirationRole = task.interface.getSighash('setTimeLockExpiration')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockExpirationRole, [])
-        task = task.connect(owner)
-      })
-
-      it('sets the time lock expiration', async () => {
-        const previousTimeLockDelay = await task.timeLockDelay()
-        const previousTimeLockExecutionPeriod = await task.timeLockExecutionPeriod()
-
-        await task.setTimeLockExpiration(expiration)
-
-        expect(await task.timeLockDelay()).to.be.equal(previousTimeLockDelay)
-        expect(await task.timeLockExpiration()).to.be.equal(expiration)
-        expect(await task.timeLockExecutionPeriod()).to.be.equal(previousTimeLockExecutionPeriod)
-      })
-
-      it('emits an event', async () => {
-        const tx = await task.setTimeLockExpiration(expiration)
-
-        await assertEvent(tx, 'TimeLockExpirationSet', { expiration })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(task.setTimeLockExpiration(0)).to.be.revertedWith('AuthSenderNotAllowed')
-      })
-    })
-  })
-
-  describe('setTimeLockExecutionPeriod', () => {
-    const period = MONTH
-
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async () => {
-        const setTimeLockExecutionPeriodRole = task.interface.getSighash('setTimeLockExecutionPeriod')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockExecutionPeriodRole, [])
-        task = task.connect(owner)
-      })
-
-      context('when the period is shorter than the delay', () => {
-        const delay = period * 2
-
-        beforeEach('set delay', async () => {
-          const setTimeLockDelayRole = task.interface.getSighash('setTimeLockDelay')
-          await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockDelayRole, [])
-          await task.connect(owner).setTimeLockDelay(delay)
-        })
-
-        it('sets the time lock execution period', async () => {
-          const previousTimeLockDelay = await task.timeLockDelay()
-          const previousTimeLockExpiration = await task.timeLockExpiration()
-
-          await task.setTimeLockExecutionPeriod(period)
-
-          expect(await task.timeLockDelay()).to.be.equal(previousTimeLockDelay)
-          expect(await task.timeLockExpiration()).to.be.equal(previousTimeLockExpiration)
-          expect(await task.timeLockExecutionPeriod()).to.be.equal(period)
-        })
-
-        it('emits an event', async () => {
-          const tx = await task.setTimeLockExecutionPeriod(period)
-
-          await assertEvent(tx, 'TimeLockExecutionPeriodSet', { period })
-        })
-      })
-
-      context('when the period is larger than the delay', () => {
-        const delay = period / 2
-
-        beforeEach('set delay', async () => {
-          const setTimeLockDelayRole = task.interface.getSighash('setTimeLockDelay')
-          await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockDelayRole, [])
-          await task.connect(owner).setTimeLockDelay(delay)
-        })
-
-        it('reverts', async () => {
-          await expect(task.setTimeLockExecutionPeriod(period)).to.be.revertedWith('TaskExecutionPeriodGtDelay')
-        })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(task.setTimeLockExecutionPeriod(0)).to.be.revertedWith('AuthSenderNotAllowed')
+        await expect(task.setTimeLock(0, 0, 0, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
 
   describe('call', () => {
     beforeEach('authorize sender', async () => {
-      const setTimeLockDelayRole = task.interface.getSighash('setTimeLockDelay')
-      await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockDelayRole, [])
-      const setTimeLockExpirationRole = task.interface.getSighash('setTimeLockExpiration')
-      await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockExpirationRole, [])
-      const setTimeLockExecutionPeriodRole = task.interface.getSighash('setTimeLockExecutionPeriod')
-      await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockExecutionPeriodRole, [])
+      const setTimeLockRole = task.interface.getSighash('setTimeLock')
+      await authorizer.connect(owner).authorize(owner.address, task.address, setTimeLockRole, [])
+      task = task.connect(owner)
     })
 
-    context('when no initial expiration timestamp is set', () => {
-      const nextExecutionTimestamp = 0
+    async function assertItCannotBeExecuted() {
+      await expect(task.call()).to.be.revertedWith('TaskTimeLockActive')
+    }
 
-      beforeEach('set time-lock expiration', async () => {
-        await task.connect(owner).setTimeLockExpiration(nextExecutionTimestamp)
-      })
+    async function assertItCanBeExecuted(expectedNextAllowedDate: BigNumberish) {
+      const tx = await task.call()
+      await assertEvent(tx, 'TimeLockAllowedAtSet', { allowedAt: expectedNextAllowedDate })
 
-      context('without time-lock delay', () => {
-        const delay = 0
+      const { allowedAt } = await task.getTimeLock()
+      expect(allowedAt).to.be.equal(expectedNextAllowedDate)
+    }
 
-        beforeEach('set time-lock delay', async () => {
-          await task.connect(owner).setTimeLockDelay(delay)
+    async function moveToDate(timestamp: string, delta = 0): Promise<void> {
+      const date = new Date(`${timestamp}T00:00:00Z`).getTime() / 1000
+      const now = await currentTimestamp()
+      const diff = date - now.toNumber() + delta
+      await advanceTime(diff)
+    }
+
+    context('seconds mode', () => {
+      const mode = MODE.SECONDS
+      const frequency = HOUR * 2
+
+      async function getNextAllowedDate(delayed: number) {
+        const previousTimeLock = await task.getTimeLock()
+        const now = await currentTimestamp()
+        return (previousTimeLock.window.eq(0) ? now : previousTimeLock.allowedAt).add(delayed)
+      }
+
+      context('without execution window', () => {
+        const window = 0
+        const allowedAt = 0
+
+        beforeEach('set time lock', async () => {
+          await task.setTimeLock(mode, frequency, allowedAt, window)
         })
 
-        it('has no time-lock delay', async () => {
-          expect(await task.timeLockDelay()).to.be.equal(0)
-          expect(await task.timeLockExpiration()).to.be.equal(0)
-        })
+        it('locks the task properly', async () => {
+          // It can be executed immediately
+          await assertItCanBeExecuted(await getNextAllowedDate(frequency + 1))
 
-        it('has no initial delay', async () => {
-          await expect(task.call()).not.to.be.reverted
-        })
+          // It is locked for a period equal to the frequency set
+          await assertItCannotBeExecuted()
+          await advanceTime(frequency / 2)
+          await assertItCannotBeExecuted()
+          await advanceTime(frequency / 2)
+          await assertItCanBeExecuted(await getNextAllowedDate(frequency + 1))
 
-        it('does not update the expiration date', async () => {
-          const tx = await task.call()
-          await assertNoEvent(tx, 'TimeLockExpirationSet')
+          // It is locked for a period equal to the frequency set again
+          await assertItCannotBeExecuted()
+          await advanceTime(frequency - 10)
+          await assertItCannotBeExecuted()
 
-          expect(await task.timeLockDelay()).to.be.equal(0)
-          expect(await task.timeLockExpiration()).to.be.equal(0)
-          expect(await task.timeLockExecutionPeriod()).to.be.equal(0)
-        })
-
-        it('can be updated at any time in the future', async () => {
-          const newTimeLockDelay = DAY
-          await task.connect(owner).setTimeLockDelay(newTimeLockDelay)
-
-          expect(await task.timeLockDelay()).to.be.equal(newTimeLockDelay)
-          expect(await task.timeLockExpiration()).to.be.equal(0)
-          expect(await task.timeLockExecutionPeriod()).to.be.equal(0)
-
-          const tx = await task.call()
-          await assertEvent(tx, 'TimeLockExpirationSet')
-          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
-
-          const previousExpiration = await task.timeLockExpiration()
-          await advanceTime(newTimeLockDelay)
-          const tx2 = await task.call()
-          await assertEvent(tx2, 'TimeLockExpirationSet')
-
-          expect(await task.timeLockDelay()).to.be.equal(newTimeLockDelay)
-          expect(await task.timeLockExpiration()).to.be.equal(previousExpiration.add(newTimeLockDelay))
-          expect(await task.timeLockExecutionPeriod()).to.be.equal(0)
-        })
-      })
-
-      context('with an initial delay', () => {
-        const delay = MONTH
-
-        beforeEach('set time-lock delay', async () => {
-          await task.connect(owner).setTimeLockDelay(delay)
-        })
-
-        it('has a time-lock delay', async () => {
-          expect(await task.timeLockDelay()).to.be.equal(delay)
-          expect(await task.timeLockExpiration()).to.be.equal(0)
-        })
-
-        it('has no initial delay', async () => {
-          await expect(task.call()).not.to.be.reverted
-        })
-
-        it('must wait to be valid again after the first execution', async () => {
-          await task.call()
-          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
-
-          const previousExpiration = await task.timeLockExpiration()
-          await advanceTime(delay)
-          const tx = await task.call()
-          await assertEvent(tx, 'TimeLockExpirationSet')
-
-          expect(await task.timeLockDelay()).to.be.equal(delay)
-          expect(await task.timeLockExpiration()).to.be.equal(previousExpiration.add(delay))
-        })
-
-        it('can be changed at any time in the future without affecting the previous expiration date', async () => {
-          await task.call()
-          const initialExpiration = await task.timeLockExpiration()
-
-          const newTimeLockDelay = DAY
-          await task.connect(owner).setTimeLockDelay(newTimeLockDelay)
-
-          expect(await task.timeLockDelay()).to.be.equal(newTimeLockDelay)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpiration)
-
-          const secondExpiration = await task.timeLockExpiration()
-          await setNextBlockTimestamp(secondExpiration)
-          const tx = await task.call()
-          await assertEvent(tx, 'TimeLockExpirationSet')
-
-          expect(await task.timeLockDelay()).to.be.equal(newTimeLockDelay)
-          expect(await task.timeLockExpiration()).to.be.equal(secondExpiration.add(newTimeLockDelay))
-        })
-
-        it('can be unset at any time in the future without affecting the previous expiration date', async () => {
-          await task.call()
-          const initialExpiration = await task.timeLockExpiration()
-
-          await task.connect(owner).setTimeLockDelay(0)
-
-          expect(await task.timeLockDelay()).to.be.equal(0)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpiration)
-
-          const secondExpiration = await task.timeLockExpiration()
-          await setNextBlockTimestamp(initialExpiration)
-          const tx = await task.call()
-          await assertNoEvent(tx, 'TimeLockExpirationSet')
-
-          expect(await task.timeLockDelay()).to.be.equal(0)
-          expect(await task.timeLockExpiration()).to.be.equal(secondExpiration)
+          // It can be executed at any point in time in the future
+          await advanceTime(frequency * 1000)
+          await assertItCanBeExecuted(await getNextAllowedDate(frequency + 1))
         })
       })
-    })
 
-    context('when an initial expiration timestamp is set', () => {
-      let initialExpirationTimestamp: BigNumber
-      const initialDelay = 2 * MONTH
+      context('with execution window', () => {
+        const window = MINUTE * 30
+        const allowedAt = new Date('2023-10-05').getTime() / 1000
 
-      beforeEach('set time-lock expiration', async () => {
-        initialExpirationTimestamp = (await currentTimestamp()).add(initialDelay)
-        await task.connect(owner).setTimeLockExpiration(initialExpirationTimestamp)
-      })
-
-      context('without time-lock delay', () => {
-        const delay = 0
-
-        beforeEach('set time-lock delay', async () => {
-          await task.connect(owner).setTimeLockDelay(delay)
+        beforeEach('set time lock', async () => {
+          await task.setTimeLock(mode, frequency, allowedAt, window)
         })
 
-        it('has an initial expiration timestamp', async () => {
-          expect(await task.timeLockDelay()).to.be.equal(0)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp)
-        })
-
-        it('can be validated any number of times right after the initial delay', async () => {
-          const initialDelay = await task.timeLockDelay()
-          const initialExpiration = await task.timeLockExpiration()
-
-          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
-
-          await advanceTime(initialExpirationTimestamp)
-          const tx = await task.call()
-          await assertNoEvent(tx, 'TimeLockExpirationSet')
-
-          expect(await task.timeLockDelay()).to.be.equal(initialDelay)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpiration)
-        })
-
-        it('can be changed at any time in the future without affecting the previous expiration date', async () => {
-          const initialExpiration = await task.timeLockExpiration()
-
-          const newTimeLockDelay = DAY
-          await task.connect(owner).setTimeLockDelay(newTimeLockDelay)
-
-          expect(await task.timeLockDelay()).to.be.equal(newTimeLockDelay)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpiration)
-
-          await setNextBlockTimestamp(initialExpiration)
-          const tx = await task.call()
-          await assertEvent(tx, 'TimeLockExpirationSet')
-
+        it('locks the task properly', async () => {
+          // Move to an executable window
           const now = await currentTimestamp()
-          expect(await task.timeLockDelay()).to.be.equal(newTimeLockDelay)
-          expect(await task.timeLockExpiration()).to.be.equal(now.add(newTimeLockDelay))
+          const periods = now.sub(allowedAt).div(frequency).toNumber()
+          const nextAllowedDate = allowedAt + (periods + 1) * frequency
+          await setNextBlockTimestamp(nextAllowedDate)
+
+          // It can be executed immediately
+          await assertItCanBeExecuted(await getNextAllowedDate(frequency * (periods + 2)))
+
+          // It is locked for a period equal to the frequency set
+          await assertItCannotBeExecuted()
+          await advanceTime(frequency / 2)
+          await assertItCannotBeExecuted()
+          await advanceTime(frequency / 2)
+          await assertItCanBeExecuted(await getNextAllowedDate(frequency))
+
+          // It is locked for a period equal to the frequency set again
+          await assertItCannotBeExecuted()
+          await advanceTime(frequency - 10)
+          await assertItCannotBeExecuted()
+
+          // It cannot be executed after the execution window
+          const timeLock = await task.getTimeLock()
+          await setNextBlockTimestamp(timeLock.allowedAt.add(window).add(1))
+          await assertItCannotBeExecuted()
+
+          // It can be executed one period after
+          await setNextBlockTimestamp(timeLock.allowedAt.add(frequency))
+          await assertItCanBeExecuted(await getNextAllowedDate(frequency * 2))
         })
       })
+    })
 
-      context('with a time-lock delay', () => {
-        const delay = MONTH
-        const executionPeriod = DAY
+    context('on-day mode', () => {
+      const mode = MODE.ON_DAY
+      const frequency = 5
+      const allowedAt = new Date('2028-10-05T00:00:00Z').getTime() / 1000
+      const window = 1 * DAY
 
-        beforeEach('set time-lock delay and execution period', async () => {
-          await task.connect(owner).setTimeLockDelay(delay)
-          await task.connect(owner).setTimeLockExecutionPeriod(executionPeriod)
-        })
+      beforeEach('set time lock', async () => {
+        await task.setTimeLock(mode, frequency, allowedAt, window)
+      })
 
-        it('has a time-lock with an initial delay', async () => {
-          expect(await task.timeLockDelay()).to.be.equal(delay)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp)
-          expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
-        })
+      async function getNextAllowedDate(): Promise<number> {
+        const now = new Date((await currentTimestamp()).toNumber() * 1000)
+        const month = now.getMonth()
+        const nextMonth = (month + 1) % 12
+        const nextYear = nextMonth > month ? now.getFullYear() : now.getFullYear() + 1
+        return new Date(`${nextYear}-${(nextMonth + 1).toString().padStart(2, '0')}-05T00:00:00Z`).getTime() / 1000
+      }
 
-        it('can be validated once right after the initial delay', async () => {
-          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
+      it('locks the task properly', async () => {
+        // Move to an executable window
+        await moveToDate('2028-10-05')
 
-          await setNextBlockTimestamp(initialExpirationTimestamp)
-          const tx = await task.call()
-          await assertEvent(tx, 'TimeLockExpirationSet')
+        // It can be executed immediately
+        await assertItCanBeExecuted(await getNextAllowedDate())
 
-          expect(await task.timeLockDelay()).to.be.equal(delay)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp.add(delay))
-          expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
+        // It is locked for at least a month
+        await assertItCannotBeExecuted()
+        await moveToDate('2028-10-20')
+        await assertItCannotBeExecuted()
 
-          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
+        // It cannot be executed after the execution window
+        await moveToDate('2028-11-05', window + 1)
+        await assertItCannotBeExecuted()
 
-          await setNextBlockTimestamp(initialExpirationTimestamp.add(delay * 2).add(executionPeriod))
-          const tx2 = await task.call()
-          await assertEvent(tx2, 'TimeLockExpirationSet')
+        // It can be executed one period after
+        await moveToDate('2028-12-05', window - 10)
+        await assertItCanBeExecuted(await getNextAllowedDate())
+      })
+    })
 
-          expect(await task.timeLockDelay()).to.be.equal(delay)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp.add(delay * 3))
-          expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
-        })
+    context('on-last-day mode', () => {
+      const mode = MODE.ON_LAST_DAY
+      const frequency = 0
+      const allowedAt = new Date('2030-10-31T00:00:00Z').getTime() / 1000
+      const window = 1 * DAY
 
-        it('cannot be validated after the execution period', async () => {
-          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
+      beforeEach('set time lock', async () => {
+        await task.setTimeLock(mode, frequency, allowedAt, window)
+      })
 
-          await setNextBlockTimestamp(initialExpirationTimestamp.add(executionPeriod).add(1))
-          await expect(task.call()).to.be.revertedWith('TaskTimeLockWaitNextPeriod')
+      async function getNextAllowedDate(): Promise<number> {
+        const now = new Date((await currentTimestamp()).toNumber() * 1000)
+        const month = now.getMonth()
+        const nextMonth = (month + 1) % 12
+        const nextYear = nextMonth > month ? now.getFullYear() : now.getFullYear() + 1
+        const lastDayOfMonth = new Date(nextYear, nextMonth + 1, 0).getDate()
+        const date = `${nextYear}-${(nextMonth + 1).toString().padStart(2, '0')}-${lastDayOfMonth}T00:00:00Z`
+        return new Date(date).getTime() / 1000
+      }
 
-          await setNextBlockTimestamp(initialExpirationTimestamp.add(delay))
-          const tx = await task.call()
-          await assertEvent(tx, 'TimeLockExpirationSet')
+      it('locks the task properly', async () => {
+        // Move to an executable window
+        await moveToDate('2030-10-31')
 
-          expect(await task.timeLockDelay()).to.be.equal(delay)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp.add(delay * 2))
-          expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
+        // It can be executed immediately
+        await assertItCanBeExecuted(await getNextAllowedDate())
 
-          await expect(task.call()).to.be.revertedWith('TaskTimeLockNotExpired')
-        })
+        // It is locked for at least a month
+        await assertItCannotBeExecuted()
+        await moveToDate('2030-11-20')
+        await assertItCannotBeExecuted()
 
-        it('can be changed at any time in the future without affecting the previous expiration date', async () => {
-          const newTimeLockDelay = DAY
-          await task.connect(owner).setTimeLockDelay(newTimeLockDelay)
+        // It cannot be executed after the execution window
+        await moveToDate('2030-12-31', window + 1)
+        await assertItCannotBeExecuted()
 
-          expect(await task.timeLockDelay()).to.be.equal(newTimeLockDelay)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp)
-          expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
+        // It can be executed one period after
+        await moveToDate('2031-01-31', window - 10)
+        await assertItCanBeExecuted(await getNextAllowedDate())
+      })
+    })
 
-          await setNextBlockTimestamp(initialExpirationTimestamp)
-          const tx = await task.call()
-          await assertEvent(tx, 'TimeLockExpirationSet')
+    context('every-month mode', () => {
+      const mode = MODE.EVERY_X_MONTH
+      const frequency = 3
+      const allowedAt = new Date('2032-10-06T00:00:00Z').getTime() / 1000
+      const window = 1 * DAY
 
-          expect(await task.timeLockDelay()).to.be.equal(newTimeLockDelay)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp.add(newTimeLockDelay))
-          expect(await task.timeLockExecutionPeriod()).to.be.equal(executionPeriod)
-        })
+      beforeEach('set time lock', async () => {
+        await task.setTimeLock(mode, frequency, allowedAt, window)
+      })
 
-        it('can be unset at any time in the future without affecting the previous expiration date', async () => {
-          await task.connect(owner).setTimeLockExecutionPeriod(0)
-          await task.connect(owner).setTimeLockDelay(0)
+      async function getNextAllowedDate(): Promise<number> {
+        const now = new Date((await currentTimestamp()).toNumber() * 1000)
+        const month = now.getMonth()
+        const nextMonth = (month + frequency) % 12
+        const nextYear = nextMonth > month ? now.getFullYear() : now.getFullYear() + 1
+        return new Date(`${nextYear}-${(nextMonth + 1).toString().padStart(2, '0')}-06T00:00:00Z`).getTime() / 1000
+      }
 
-          expect(await task.timeLockDelay()).to.be.equal(0)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp)
+      it('locks the task properly', async () => {
+        // Move to an executable window
+        await moveToDate('2032-10-06')
 
-          await setNextBlockTimestamp(initialExpirationTimestamp)
-          const tx = await task.call()
-          await assertNoEvent(tx, 'TimeLockExpirationSet')
+        // It can be executed immediately
+        await assertItCanBeExecuted(await getNextAllowedDate())
 
-          expect(await task.timeLockDelay()).to.be.equal(0)
-          expect(await task.timeLockExpiration()).to.be.equal(initialExpirationTimestamp)
-        })
+        // It is locked for at least the number of set months
+        await assertItCannotBeExecuted()
+        await moveToDate('2032-11-06')
+        await assertItCannotBeExecuted()
+        await moveToDate('2032-12-06')
+        await assertItCannotBeExecuted()
+
+        // It cannot be executed after the execution window
+        await moveToDate('2033-01-06', window + 1)
+        await assertItCannotBeExecuted()
+
+        // It can be executed one period after
+        await moveToDate('2033-04-06', window - 1)
+        await assertItCanBeExecuted(await getNextAllowedDate())
       })
     })
   })
