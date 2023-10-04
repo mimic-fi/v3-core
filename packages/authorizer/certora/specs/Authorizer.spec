@@ -163,7 +163,7 @@ hook Sstore currentContract._permissionsLists[KEY address who][KEY address where
 
 
 /************************************************************/
-/*****                   RULES                      *****/
+/*****                     RULES                        *****/
 /************************************************************/
 
 use rule sanity;
@@ -223,8 +223,9 @@ rule unauthorizeAfterAuthorizeShouldNotChangeStorage
     good_description "Doing authorize and then unauthorize shouldn't change the storage"
 {
     require params.length == 0;
+    // ⚠️ NOTE: Use the following two lines with `requireInvariant validParamsLength(who, where, what)` once it works properly
     require !hasPermission(who, where, what);
-    require getPermissionParamsLength(who, where, what) == 0; // TODO: delete this line once the invariant works
+    require getPermissionParamsLength(who, where, what) == 0;
 
     storage initStorage = lastStorage;
 
@@ -287,8 +288,9 @@ rule unauthorizedUserCannotDoAnything(address who, address where, bytes4 what, u
 //     good_description "Calling changePermissions with 1 grant should be equivalent to calling authorize"
 // {
 //     require params.length == 0;
+//     // ⚠️ NOTE: Use the following two lines with `requireInvariant validParamsLength(who, where, what)` once it works properly
 //     require !hasPermission(who, where, what);
-//     require getPermissionParamsLength(who, where, what) == 0; // TODO: delete this line once the invariant works
+//     require getPermissionParamsLength(who, where, what) == 0;
 //
 //     storage initStorage = lastStorage;
 //
@@ -317,51 +319,54 @@ rule revokingPermissionsIsLikeUnauthorizing(env e, address who, address where, b
     assert afterChangePermissions[currentContract] == afterUnauthorize[currentContract];
 }
 
-rule changePermissionsInBetweenShouldNotChangeStorage
-    (env e, address who, address where, bytes4 what, IAuthorizer.Param[] params, address who2, bytes4 what2)
-    good_description "Doing authorize, change permissions, and then unauthorize shouldn't change the storage"
-{
-    require params.length == 0 && who != who2 && what != what2;
-
-    // ⚠️ NOTE: Ideally we would require that the permissions params length is zero but this is not being followed by
-    // the prover. Therefore, we had to manage to make sure this pre-requisite is fulfilled by creating this
-    // cleanStorage function that basically empties the storage related to a permission. The Certora team is currently
-    // working on this issue.
-    cleanStorage(e, who, where, what);
-    cleanStorage(e, who2, where, what2);
-
-    storage initStorage = lastStorage;
-
-    authorize(e, who, where, what, params);
-
-    IAuthorizer.PermissionChange change = buildPermissionChange(where, true, who2, what2, true, who, what);
-    changePermissions(e, [change]);
-
-    unauthorize(e, who2, where, what2);
-
-    storage currentStorage = lastStorage;
-    assert initStorage[currentContract] == currentStorage[currentContract];
-}
-
-rule changePermissionsOrderMatters(env e, address who, address where, bytes4 what)
-    good_description "Calling changePermissions with a grant and its corresponding revoke should leave the user unauthorized"
-{
-    // ⚠️ NOTE: Ideally we would require that the permissions params length is zero but this is not being followed by
-    // the prover. Therefore, we had to manage to make sure this pre-requisite is fulfilled by creating this
-    // cleanStorage function that basically empties the storage related to a permission. The Certora team is currently
-    // working on this issue.
-    cleanStorage(e, who, where, what);
-
-    storage initStorage = lastStorage;
-
-    IAuthorizer.PermissionChange change = buildPermissionChange(where, true, who, what, true, who, what);
-    changePermissions(e, [change]);
-
-    storage currentStorage = lastStorage;
-
-    assert !hasPermission(who, where, what);
-    assert initStorage[currentContract] == currentStorage[currentContract];
-}
+// ⚠️ NOTE: These two rules were commented out since they are timing-out when running them with loop-iter 3, but they
+// do pass with loop-iter 2 actually. The Certora team is helping us trying to see how these can be optimized.
+//
+// rule changePermissionsInBetweenShouldNotChangeStorage
+//     (env e, address who, address where, bytes4 what, IAuthorizer.Param[] params, address who2, bytes4 what2)
+//     good_description "Doing authorize, change permissions, and then unauthorize shouldn't change the storage"
+// {
+//     require params.length == 0 && who != who2 && what != what2;
+//
+//     // ⚠️ NOTE: Ideally we would require that the permissions params length is zero but this is not being followed by
+//     // the prover. Therefore, we had to manage to make sure this pre-requisite is fulfilled by creating this
+//     // cleanStorage function that basically empties the storage related to a permission. The Certora team is currently
+//     // working on this issue.
+//     cleanStorage(e, who, where, what);
+//     cleanStorage(e, who2, where, what2);
+//
+//     storage initStorage = lastStorage;
+//
+//     authorize(e, who, where, what, params);
+//
+//     IAuthorizer.PermissionChange change = buildPermissionChange(where, true, who2, what2, true, who, what);
+//     changePermissions(e, [change]);
+//
+//     unauthorize(e, who2, where, what2);
+//
+//     storage currentStorage = lastStorage;
+//     assert initStorage[currentContract] == currentStorage[currentContract];
+// }
+//
+// rule changePermissionsOrderMatters(env e, address who, address where, bytes4 what)
+//     good_description "Calling changePermissions with a grant and its corresponding revoke should leave the user unauthorized"
+// {
+//     // ⚠️ NOTE: Ideally we would require that the permissions params length is zero but this is not being followed by
+//     // the prover. Therefore, we had to manage to make sure this pre-requisite is fulfilled by creating this
+//     // cleanStorage function that basically empties the storage related to a permission. The Certora team is currently
+//     // working on this issue.
+//     cleanStorage(e, who, where, what);
+//
+//     storage initStorage = lastStorage;
+//
+//     IAuthorizer.PermissionChange change = buildPermissionChange(where, true, who, what, true, who, what);
+//     changePermissions(e, [change]);
+//
+//     storage currentStorage = lastStorage;
+//
+//     assert !hasPermission(who, where, what);
+//     assert initStorage[currentContract] == currentStorage[currentContract];
+// }
 
 rule hasPermissionIsEquivalentToIsAuthorizedWithEmptyParams(address who, address where, bytes4 what, uint256[] how)
     good_description "For a permission without params, hasPermission should be equivalent to isAuthorized"
