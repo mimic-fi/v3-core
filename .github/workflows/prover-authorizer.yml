@@ -1,4 +1,4 @@
-name: Prover
+name: Prover Authorizer
 
 env:
   CI: true

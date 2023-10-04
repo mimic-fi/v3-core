@@ -1,4 +1,4 @@
-name: Prover
+name: Prover Smart Vault
 
 env:
   CI: true
