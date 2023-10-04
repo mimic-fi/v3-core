@@ -256,7 +256,8 @@ rule grantingPermissionsIsLikeAuthorizing(env e, address who, address where, byt
 
     storage initStorage = lastStorage;
 
-    changePermissions(e, where, true, who, what, false, 0, to_bytes4(0));
+    IAuthorizer.PermissionChange change = buildPermissionChange(where, true, who, what, false, 0, to_bytes4(0));
+    changePermissions(e, [change]);
     storage afterChangePermissions = lastStorage;
 
     authorize(e, who, where, what, params) at initStorage;
