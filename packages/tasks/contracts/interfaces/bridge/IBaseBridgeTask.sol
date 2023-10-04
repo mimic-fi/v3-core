@@ -93,7 +93,7 @@ interface IBaseBridgeTask is ITask {
     /**
      * @dev Emitted every time a custom destination chain is set for a token
      */
-    event CustomDestinationChainSet(address indexed token, uint256 indexed defaultDestinationChain);
+    event CustomDestinationChainSet(address indexed token, uint256 indexed destinationChain);
 
     /**
      * @dev Emitted every time a custom max slippage is set
