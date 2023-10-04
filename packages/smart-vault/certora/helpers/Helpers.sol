@@ -2,16 +2,17 @@
 
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-
 import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorizer.sol';
+import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
+import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 contract Helpers {
-    address public constant NATIVE_TOKEN = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    function NATIVE_TOKEN() external pure returns (address) {
+        return Denominations.NATIVE_TOKEN;
+    }
 
     function balanceOf(address token, address account) external view returns (uint256) {
-        if (token == NATIVE_TOKEN) return address(account).balance;
-        else return IERC20(token).balanceOf(address(account));
+        return ERC20Helpers.balanceOf(token, account);
     }
 
     function authParams(address p1, address p2, uint256 p3) external pure returns (uint256[] memory r) {
