@@ -152,7 +152,7 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
      * @dev Executes a list of permission changes. Sender must be authorized.
      * @param changes List of permission changes to be executed
      */
-    function changePermissions(PermissionChange[] memory changes) public override {
+    function changePermissions(PermissionChange[] memory changes) external override {
         for (uint256 i = 0; i < changes.length; i++) {
             PermissionChange memory change = changes[i];
             for (uint256 j = 0; j < change.grants.length; j++) {
