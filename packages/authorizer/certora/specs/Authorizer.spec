@@ -2,13 +2,13 @@ import "./General.spec";
 
 using Helpers as helpers;
 
-// METHODS
+/************************************************************/
+/*****                    METHODS                       *****/
+/************************************************************/
+
 methods {
     // Helpers
     function helpers.authParams(address,address,bytes4) external returns (uint256[]) envfree;
-
-    // AuthorizerHarness
-    function changePermissions(address,bool,address,bytes4,bool,address bytes4,IAuthorizer.Param[]) external;
 
     // Authorizer
     function ANYONE() external returns (address) envfree => ALWAYS(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF);
@@ -20,13 +20,21 @@ methods {
     function getPermissionsLength(address,address) external returns (uint256) envfree;
 }
 
-// DEFINITIONS
+
+/************************************************************/
+/*****                  DEFINITIONS                     *****/
+/************************************************************/
+
 definition INITIALIZE() returns uint32 = sig:initialize(address[]).selector;
 definition AUTHORIZE() returns uint32 = sig:authorize(address, address, bytes4, IAuthorizer.Param[]).selector;
 definition UNAUTHORIZE() returns uint32 = sig:unauthorize(address, address, bytes4).selector;
 definition CHANGE_PERMISSIONS() returns uint32 = sig:changePermissions(IAuthorizer.PermissionChange[]).selector;
 
-// FUNCTIONS
+
+/************************************************************/
+/*****                   FUNCTIONS                      *****/
+/************************************************************/
+
 function buildPermissionChange(
     address where,
     bool withGrant,
@@ -76,8 +84,13 @@ function cleanStorage(env e, address who, address where, bytes4 what) {
     unauthorize(e, who, where, what);
 }
 
-// GHOSTS AND HOOKS
-// Params length
+
+/************************************************************/
+/*****               GHOSTS AND HOOKS                   *****/
+/************************************************************/
+
+// PARAMS LENGTH
+
 ghost mapping(address => mapping(address => mapping(bytes4 => uint256))) ghostParamsLength {
     init_state axiom forall address who . forall address where . forall bytes4 what . ghostParamsLength[who][where][what] == 0;
 }
@@ -90,10 +103,13 @@ hook Sstore currentContract._permissionsLists[KEY address who][KEY address where
     ghostParamsLength[who][where][what] = newLength;
 }
 
-invariant checkLength(address who, address where, bytes4 what)
-    ghostParamsLength[who][where][what] == getPermissionParamsLength(who, where, what);
+// This invariant was written only for development purposes
+//
+// invariant checkLength(address who, address where, bytes4 what)
+//    ghostParamsLength[who][where][what] == getPermissionParamsLength(who, where, what);
 
-// Authorized
+// AUTHORIZED
+
 ghost mapping(address => mapping(address => mapping(bytes4 => bool))) ghostAuthorized {
     init_state axiom forall address who . forall address where . forall bytes4 what . ghostAuthorized[who][where][what] == false;
 }
@@ -106,10 +122,13 @@ hook Sstore currentContract._permissionsLists[KEY address who][KEY address where
     ghostAuthorized[who][where][what] = newAuthorized;
 }
 
-invariant checkAuthorized(address who, address where, bytes4 what)
-    ghostAuthorized[who][where][what] == hasPermission(who, where, what);
+// This invariant was written only for development purposes
+//
+// invariant checkAuthorized(address who, address where, bytes4 what)
+//    ghostAuthorized[who][where][what] == hasPermission(who, where, what);
 
-// Count
+// COUNT
+
 ghost mapping(address => mapping(address => uint256)) ghostCount {
     init_state axiom forall address who . forall address where . ghostCount[who][where] == 0;
 }
@@ -122,18 +141,31 @@ hook Sstore currentContract._permissionsLists[KEY address who][KEY address where
     ghostCount[who][where] = newCount;
 }
 
-invariant checkCount(address who, address where)
-    ghostCount[who][where] == getPermissionsLength(who, where);
+// This invariant was written only for development purposes
+//
+// invariant checkCount(address who, address where)
+//     ghostCount[who][where] == getPermissionsLength(who, where);
 
-// INVARIANTS
-invariant validPermissionsState(address who, address where)
-    forall bytes4 what . (ghostCount[who][where] == 0 => !ghostAuthorized[who][where][what])
-        && (ghostAuthorized[who][where][what] => ghostCount[who][where] > 0);
 
-invariant validParamsLength(address who, address where, bytes4 what)
-    !ghostAuthorized[who][where][what] => ghostParamsLength[who][where][what] == 0;
+/************************************************************/
+/*****                  INVARIANTS                      *****/
+/************************************************************/
 
-// RULES
+// ⚠️ NOTE: These invariants are commented for now since the Prover is failing due to a time out.
+// In the meantime, the Certora team is analyzing the issue to see how it can be optimized.
+//
+// invariant validPermissionsState(address who, address where)
+//     forall bytes4 what . (ghostCount[who][where] == 0 => !ghostAuthorized[who][where][what])
+//         && (ghostAuthorized[who][where][what] => ghostCount[who][where] > 0);
+//
+// invariant validParamsLength(address who, address where, bytes4 what)
+//     !ghostAuthorized[who][where][what] => ghostParamsLength[who][where][what] == 0;
+
+
+/************************************************************/
+/*****                   RULES                      *****/
+/************************************************************/
+
 use rule sanity;
 
 use rule reentrancyGuard filtered {
@@ -192,7 +224,7 @@ rule unauthorizeAfterAuthorizeShouldNotChangeStorage
 {
     require params.length == 0;
     require !hasPermission(who, where, what);
-    require getPermissionParamsLength(who, where, what) == 0; // TODO: delete this line once the invarian works
+    require getPermissionParamsLength(who, where, what) == 0; // TODO: delete this line once the invariant works
 
     storage initStorage = lastStorage;
 
@@ -217,7 +249,7 @@ rule authorizeWorksProperly(env e, address who, address where, bytes4 what, IAut
     assert !hasPermission(who, where2, what2);
 }
 
-rule someoneCanPerfomTheOperation(env e, address who, address where, bytes4 what, uint256[] how, IAuthorizer.Param[] params)
+rule someoneCanPerformTheOperation(env e, address who, address where, bytes4 what, uint256[] how, IAuthorizer.Param[] params)
     good_description "If we call authorize then someone can perform the operation"
 {
     require how.length == 3 && params.length <= 3;
@@ -247,24 +279,28 @@ rule unauthorizedUserCannotDoAnything(address who, address where, bytes4 what, u
     assert !isAuthorized(who, where, what, how);
 }
 
-rule grantingPermissionsIsLikeAuthorizing(env e, address who, address where, bytes4 what, IAuthorizer.Param[] params)
-    good_description "Calling changePermissions with 1 grant should be equivalent to calling authorize"
-{
-    require params.length == 0;
-    require !hasPermission(who, where, what);
-    require getPermissionParamsLength(who, where, what) == 0; // TODO: delete this line once the invarian works
-
-    storage initStorage = lastStorage;
-
-    IAuthorizer.PermissionChange change = buildPermissionChange(where, true, who, what, false, 0, to_bytes4(0));
-    changePermissions(e, [change]);
-    storage afterChangePermissions = lastStorage;
-
-    authorize(e, who, where, what, params) at initStorage;
-    storage afterAuthorize = lastStorage;
-
-    assert afterChangePermissions[currentContract] == afterAuthorize[currentContract];
-}
+// ⚠️ NOTE: We are commenting this rule out since we are receiving false negative results from the prover.
+// The buildPermissionChange function requires the params list is empty but for some reason the prover is showing
+// examples invalidating the rule that do have non-empty params. The Certora team is currently working on it.
+//
+// rule grantingPermissionsIsLikeAuthorizing(env e, address who, address where, bytes4 what, IAuthorizer.Param[] params)
+//     good_description "Calling changePermissions with 1 grant should be equivalent to calling authorize"
+// {
+//     require params.length == 0;
+//     require !hasPermission(who, where, what);
+//     require getPermissionParamsLength(who, where, what) == 0; // TODO: delete this line once the invariant works
+//
+//     storage initStorage = lastStorage;
+//
+//     IAuthorizer.PermissionChange change = buildPermissionChange(where, true, who, what, false, 0, to_bytes4(0));
+//     changePermissions(e, [change]);
+//     storage afterChangePermissions = lastStorage;
+//
+//     authorize(e, who, where, what, params) at initStorage;
+//     storage afterAuthorize = lastStorage;
+//
+//     assert afterChangePermissions[currentContract] == afterAuthorize[currentContract];
+// }
 
 rule revokingPermissionsIsLikeUnauthorizing(env e, address who, address where, bytes4 what)
     good_description "Calling changePermissions with 1 revoke should be equivalent to calling unauthorize"
@@ -287,6 +323,10 @@ rule changePermissionsInBetweenShouldNotChangeStorage
 {
     require params.length == 0 && who != who2 && what != what2;
 
+    // ⚠️ NOTE: Ideally we would require that the permissions params length is zero but this is not being followed by
+    // the prover. Therefore, we had to manage to make sure this pre-requisite is fulfilled by creating this
+    // cleanStorage function that basically empties the storage related to a permission. The Certora team is currently
+    // working on this issue.
     cleanStorage(e, who, where, what);
     cleanStorage(e, who2, where, what2);
 
@@ -306,6 +346,10 @@ rule changePermissionsInBetweenShouldNotChangeStorage
 rule changePermissionsOrderMatters(env e, address who, address where, bytes4 what)
     good_description "Calling changePermissions with a grant and its corresponding revoke should leave the user unauthorized"
 {
+    // ⚠️ NOTE: Ideally we would require that the permissions params length is zero but this is not being followed by
+    // the prover. Therefore, we had to manage to make sure this pre-requisite is fulfilled by creating this
+    // cleanStorage function that basically empties the storage related to a permission. The Certora team is currently
+    // working on this issue.
     cleanStorage(e, who, where, what);
 
     storage initStorage = lastStorage;
