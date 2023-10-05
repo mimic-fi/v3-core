@@ -15,7 +15,9 @@
     "lint:solidity": "solhint 'contracts/**/*.sol' --config ../../node_modules/solhint-config-mimic/index.js",
     "lint:typescript": "eslint . --ext .ts",
     "test": "hardhat test",
-    "prepare": "yarn build"
+    "prepare": "yarn build",
+    "prove": "certoraRun certora/conf/smart-vault.conf",
+    "prove:ci": "yarn prove --solc solc8.17"
   },
   "dependencies": {
     "@mimic-fi/v3-authorizer": "0.1.0",
