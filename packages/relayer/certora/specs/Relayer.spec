@@ -1,11 +1,16 @@
 import "./General.spec";
 
 using Helpers as helpers;
+using Depositor as Depositor;
 
-// METHODS
+/************************************************************/
+/*****                    METHODS                       *****/
+/************************************************************/
+
 methods {
     // Helpers
     function helpers.balanceOf(address) external returns (uint256) envfree;
+    function helpers.areValidTasks(address[]) external returns (bool) envfree;
 
     // Relayer
     function owner() external returns (address) envfree;
@@ -16,9 +21,21 @@ methods {
     function getSmartVaultMaxQuota(address) external returns (uint256) envfree;
     function getSmartVaultUsedQuota(address) external returns (uint256) envfree;
     function payTransactionGasToRelayer(address,uint256) external envfree;
+
+    // Wildcard entries
+    function _.smartVault() external => PER_CALLEE_CONSTANT;
+    function _.hasPermissions(address) external => PER_CALLEE_CONSTANT;
 }
 
-// DEFINITIONS
+
+/************************************************************/
+/*****                  DEFINITIONS                     *****/
+/************************************************************/
+
+// Constants
+definition MAX_UINT256() returns mathint = 2^256 - 1;
+
+// Signatures
 definition SET_EXECUTOR() returns uint32 = sig:setExecutor(address, bool).selector;
 definition SET_DEFAULT_COLLECTOR() returns uint32 = sig:setDefaultCollector(address).selector;
 definition SET_SMART_VAULT_COLLECTOR() returns uint32 = sig:setSmartVaultCollector(address, address).selector;
@@ -30,39 +47,64 @@ definition SIMULATE() returns uint32 = sig:simulate(address[], bytes[], bool).se
 definition RESCUE_FUNDS() returns uint32 = sig:rescueFunds(address, address, uint256).selector;
 definition PAY_TRANSACTION_GAS_TO_RELAYER() returns uint32 = sig:payTransactionGasToRelayer(address, uint256).selector;
 
-// FUNCTIONS
-function checkBalanceIntegrity(uint32 selector, uint256 initBalance, uint256 currentBalance) returns bool {
-    if (currentBalance > initBalance) {
+
+/************************************************************/
+/*****                   FUNCTIONS                      *****/
+/************************************************************/
+
+function checkBalanceIntegrity(uint32 selector, uint256 initialBalance, uint256 currentBalance) returns bool {
+    if (currentBalance > initialBalance) {
         return selector == DEPOSIT();
     }
 
-    if (currentBalance < initBalance) {
+    if (currentBalance < initialBalance) {
         return selector == EXECUTE() || selector == WITHDRAW();
     }
 
     return true;
 }
 
-function checkUsedQuotaIntegrity(uint32 selector, uint256 initUsedQuota, uint256 currentUsedQuota) returns bool {
-    if (currentUsedQuota > initUsedQuota) {
+function checkUsedQuotaIntegrity(uint32 selector, uint256 initialUsedQuota, uint256 currentUsedQuota) returns bool {
+    if (currentUsedQuota > initialUsedQuota) {
         return selector == EXECUTE();
     }
 
-    if (currentUsedQuota < initUsedQuota) {
+    if (currentUsedQuota < initialUsedQuota) {
         return selector == DEPOSIT();
     }
 
     return true;
 }
 
-// GHOSTS AND HOOKS
-ghost uint256 callOutput;
 
-hook CALL(uint g, address addr, uint value, uint argsOffset, uint argsLength, uint retOffset, uint retLength) uint rc {
-    callOutput = rc;
+/************************************************************/
+/*****               GHOSTS AND HOOKS                   *****/
+/************************************************************/
+
+ghost uint256 ghostSumOfSmartVaultBalances {
+    init_state axiom ghostSumOfSmartVaultBalances == 0;
 }
 
-// RULES
+hook Sstore currentContract.getSmartVaultBalance[KEY address smartVault] uint256 newBalance (uint256 oldBalance) STORAGE {
+    ghostSumOfSmartVaultBalances = require_uint256(ghostSumOfSmartVaultBalances + newBalance - oldBalance);
+}
+
+
+/************************************************************/
+/*****                  INVARIANTS                      *****/
+/************************************************************/
+
+// TODO: ==
+invariant contractBalanceIsSumOfBalances()
+    ghostSumOfSmartVaultBalances <= helpers.balanceOf(currentContract)
+    filtered { f -> f.selector != SIMULATE() }
+    { preserved with (env e) { require e.msg.sender != currentContract; } }
+
+
+/************************************************************/
+/*****                    RULES                         *****/
+/************************************************************/
+
 use rule sanity filtered { f -> f.selector != SIMULATE() }
 
 rule senderIsOwner(env e, method f, calldataarg args)
@@ -89,11 +131,11 @@ rule setExecutorOnly(env e, method f, calldataarg args, address executor)
     }
     good_description "The only method that can allow/disallow an executor is `setExecutor`"
 {
-    bool initExecutorAllowance = isExecutorAllowed(executor);
+    bool initialExecutorAllowance = isExecutorAllowed(executor);
 
     f(e, args);
 
-    assert isExecutorAllowed(executor) == initExecutorAllowance;
+    assert isExecutorAllowed(executor) == initialExecutorAllowance;
 }
 
 rule setDefaultCollectorOnly(env e, method f, calldataarg args)
@@ -104,11 +146,11 @@ rule setDefaultCollectorOnly(env e, method f, calldataarg args)
     }
     good_description "The only method that can modify the defaultCollector reference is `setDefaultCollector`"
 {
-    address initDefaultCollector = defaultCollector();
+    address initialDefaultCollector = defaultCollector();
 
     f(e, args);
 
-    assert defaultCollector() == initDefaultCollector;
+    assert defaultCollector() == initialDefaultCollector;
 }
 
 rule setSmartVaultCollectorOnly(env e, method f, calldataarg args, address smartVault)
@@ -119,11 +161,11 @@ rule setSmartVaultCollectorOnly(env e, method f, calldataarg args, address smart
     }
     good_description "The only method that can modify a smart vault's collector reference is `setSmartVaultCollector`"
 {
-    address initSmartVaultCollector = getSmartVaultCollector(smartVault);
+    address initialSmartVaultCollector = getSmartVaultCollector(smartVault);
 
     f(e, args);
 
-    assert getSmartVaultCollector(smartVault) == initSmartVaultCollector;
+    assert getSmartVaultCollector(smartVault) == initialSmartVaultCollector;
 }
 
 rule setSmartVaultMaxQuotaOnly(env e, method f, calldataarg args, address smartVault)
@@ -134,11 +176,11 @@ rule setSmartVaultMaxQuotaOnly(env e, method f, calldataarg args, address smartV
     }
     good_description "The only method that can modify a smart vault's maxQuota value is `setSmartVaultMaxQuota`"
 {
-    uint256 initSmartVaultMaxQuota = getSmartVaultMaxQuota(smartVault);
+    uint256 initialSmartVaultMaxQuota = getSmartVaultMaxQuota(smartVault);
 
     f(e, args);
 
-    assert getSmartVaultMaxQuota(smartVault) == initSmartVaultMaxQuota;
+    assert getSmartVaultMaxQuota(smartVault) == initialSmartVaultMaxQuota;
 }
 
 rule smartVaultBalanceIntegrity(env e, method f, calldataarg args, address smartVault)
@@ -150,12 +192,12 @@ rule smartVaultBalanceIntegrity(env e, method f, calldataarg args, address smart
     }
     good_description "A smart vault balance can only be increased by `deposit` and decreased by `execute` or `withdraw`"
 {
-    uint256 initBalance = getSmartVaultBalance(smartVault);
+    uint256 initialBalance = getSmartVaultBalance(smartVault);
 
     f(e, args);
 
     uint256 currentBalance = getSmartVaultBalance(smartVault);
-    assert checkBalanceIntegrity(f.selector, initBalance, currentBalance);
+    assert checkBalanceIntegrity(f.selector, initialBalance, currentBalance);
 }
 
 rule smartVaultBalanceCorrectness(env e, method f, calldataarg args, address smartVault, address otherSmartVault)
@@ -164,14 +206,14 @@ rule smartVaultBalanceCorrectness(env e, method f, calldataarg args, address sma
 {
     require smartVault != otherSmartVault;
 
-    uint256 initBalance = getSmartVaultBalance(smartVault);
-    uint256 initOtherBalance = getSmartVaultBalance(otherSmartVault);
+    uint256 initialBalance = getSmartVaultBalance(smartVault);
+    uint256 initialOtherBalance = getSmartVaultBalance(otherSmartVault);
 
     f(e, args);
 
     uint256 currentBalance = getSmartVaultBalance(smartVault);
     uint256 currentOtherBalance = getSmartVaultBalance(otherSmartVault);
-    assert initBalance == currentBalance || initOtherBalance == currentOtherBalance;
+    assert initialBalance == currentBalance || initialOtherBalance == currentOtherBalance;
 }
 
 rule smartVaultUsedQuotaIntegrity(env e, method f, calldataarg args, address smartVault)
@@ -183,12 +225,12 @@ rule smartVaultUsedQuotaIntegrity(env e, method f, calldataarg args, address sma
     }
     good_description "A smart vault used quota can only be increased by `execute` and decreased by `deposit`"
 {
-    uint256 initUsedQuota = getSmartVaultUsedQuota(smartVault);
+    uint256 initialUsedQuota = getSmartVaultUsedQuota(smartVault);
 
     f(e, args);
 
     uint256 currentUsedQuota = getSmartVaultUsedQuota(smartVault);
-    assert checkUsedQuotaIntegrity(f.selector, initUsedQuota, currentUsedQuota);
+    assert checkUsedQuotaIntegrity(f.selector, initialUsedQuota, currentUsedQuota);
 }
 
 rule smartVaultUsedQuotaCorrectness(env e, method f, calldataarg args, address smartVault, address otherSmartVault)
@@ -197,14 +239,14 @@ rule smartVaultUsedQuotaCorrectness(env e, method f, calldataarg args, address s
 {
     require smartVault != otherSmartVault;
 
-    uint256 initUsedQuota = getSmartVaultUsedQuota(smartVault);
-    uint256 initOtherUsedQuota = getSmartVaultUsedQuota(otherSmartVault);
+    uint256 initialUsedQuota = getSmartVaultUsedQuota(smartVault);
+    uint256 initialOtherUsedQuota = getSmartVaultUsedQuota(otherSmartVault);
 
     f(e, args);
 
     uint256 currentUsedQuota = getSmartVaultUsedQuota(smartVault);
     uint256 currentOtherUsedQuota = getSmartVaultUsedQuota(otherSmartVault);
-    assert initUsedQuota == currentUsedQuota || initOtherUsedQuota == currentOtherUsedQuota;
+    assert initialUsedQuota == currentUsedQuota || initialOtherUsedQuota == currentOtherUsedQuota;
 }
 
 rule depositValidAmount(env e, address smartVault, uint256 amount)
@@ -218,65 +260,70 @@ rule depositValidAmount(env e, address smartVault, uint256 amount)
 rule depositProperBalances(env e, address smartVault, uint256 amount)
     good_description "After calling `deposit` the smart vault balance is increased at most by `amount`"
 {
-    uint256 initSmartVaultBalance = getSmartVaultBalance(smartVault);
-    uint256 initRelayerBalance = helpers.balanceOf(currentContract);
+    uint256 initialSmartVaultBalance = getSmartVaultBalance(smartVault);
+    uint256 initialRelayerBalance = helpers.balanceOf(currentContract);
 
     deposit(e, smartVault, amount);
 
     uint256 currentSmartVaultBalance = getSmartVaultBalance(smartVault);
     uint256 currentRelayerBalance = helpers.balanceOf(currentContract);
 
-    assert to_mathint(currentSmartVaultBalance) <= initSmartVaultBalance + amount;
-    assert to_mathint(currentRelayerBalance) == initRelayerBalance + (e.msg.sender == currentContract ? 0 : amount);
+    assert to_mathint(currentSmartVaultBalance) <= initialSmartVaultBalance + amount;
+    assert to_mathint(currentRelayerBalance) == initialRelayerBalance + (e.msg.sender == currentContract ? 0 : amount);
 }
 
 rule payQuotaProperBalances(env e, address smartVault, uint256 amount)
     good_description "If a smart vault used quota is lower than amount, then after calling `deposit` its value is 0. Otherwise, it is decreased by amount"
 {
-    uint256 initUsedQuota = getSmartVaultUsedQuota(smartVault);
+    uint256 initialUsedQuota = getSmartVaultUsedQuota(smartVault);
 
     deposit(e, smartVault, amount);
 
     uint256 currentUsedQuota = getSmartVaultUsedQuota(smartVault);
-    assert to_mathint(currentUsedQuota) == (initUsedQuota < amount ? 0 : initUsedQuota - amount);
+    assert to_mathint(currentUsedQuota) == (initialUsedQuota < amount ? 0 : initialUsedQuota - amount);
 }
 
 rule withdrawValidAmount(env e, uint256 amount)
     good_description "If the call to `withdraw` doesn't revert, then `amount` was lower than (or equal to) the smart vault balance"
 {
-    uint256 initSmartVaultBalance = getSmartVaultBalance(e.msg.sender);
+    uint256 initialSmartVaultBalance = getSmartVaultBalance(e.msg.sender);
 
     withdraw(e, amount);
 
-    assert amount <= initSmartVaultBalance;
+    assert amount <= initialSmartVaultBalance;
 }
 
 rule withdrawProperBalances(env e, uint256 amount)
     good_description "After calling `withdraw` the smart vault balance is decreased by `amount`"
 {
-    uint256 initSmartVaultBalance = getSmartVaultBalance(e.msg.sender);
-    uint256 initRelayerBalance = helpers.balanceOf(currentContract);
+    uint256 initialSmartVaultBalance = getSmartVaultBalance(e.msg.sender);
+    uint256 initialRelayerBalance = helpers.balanceOf(currentContract);
 
     withdraw(e, amount);
 
     uint256 currentSmartVaultBalance = getSmartVaultBalance(e.msg.sender);
     uint256 currentRelayerBalance = helpers.balanceOf(currentContract);
 
-    assert to_mathint(currentSmartVaultBalance) == initSmartVaultBalance - amount;
-    assert to_mathint(currentRelayerBalance) == initRelayerBalance - amount;
+    assert to_mathint(currentSmartVaultBalance) == initialSmartVaultBalance - amount;
+    assert to_mathint(currentRelayerBalance) == initialRelayerBalance - amount;
 }
 
 rule withdrawIntegrity(env e, uint256 amount)
     good_description "If a smart vault balance is greater than 0, withdrawing at most that amount shouldn't revert"
 {
-    require callOutput == 0;
+    require e.msg.sender == Depositor;
+    require e.msg.value == 0;
 
-    uint256 balance = getSmartVaultBalance(e.msg.sender);
-    require amount <= balance;
+    uint256 smartVaultBalance = getSmartVaultBalance(e.msg.sender);
+    require amount <= smartVaultBalance;
+
+    uint256 relayerBalance = helpers.balanceOf(currentContract);
+    require relayerBalance >= amount;
+
+    uint256 senderBalance = helpers.balanceOf(e.msg.sender);
+    require senderBalance + amount <= MAX_UINT256();
 
     withdraw@withrevert(e, amount);
-
-    require callOutput == 1;
 
     assert !lastReverted;
 }
@@ -291,46 +338,43 @@ rule executeAllowedExecutor(env e, address[] tasks, bytes[] data, bool continueI
     assert executorAllowed;
 }
 
+rule executeValidTasks(env e, address[] tasks, bytes[] data)
+    good_description "If the call to `execute` doesn't revert, then all the tasks had permissions over the smart vault and the smart vaults were all the same"
+{
+    bool areValidTasks = helpers.areValidTasks(tasks);
+
+    bool continueIfFailed = true;
+    execute(e, tasks, data, continueIfFailed);
+
+    assert areValidTasks;
+}
+
 rule payTransactionGasValidAmount(address smartVault, uint256 amount)
     good_description "If the call to `_payTransactionGasToRelayer` doesn't revert, then the `amount` was lower than (or equal to) the smart vault balance plus its available quota"
 {
-    uint256 initBalance = getSmartVaultBalance(smartVault);
+    uint256 initialBalance = getSmartVaultBalance(smartVault);
     uint256 usedQuota = getSmartVaultUsedQuota(smartVault);
     uint256 maxQuota = getSmartVaultMaxQuota(smartVault);
-    uint256 initAvailableQuota = usedQuota >= maxQuota ? 0 : assert_uint256(maxQuota - usedQuota);
+    uint256 initialAvailableQuota = usedQuota >= maxQuota ? 0 : assert_uint256(maxQuota - usedQuota);
 
     payTransactionGasToRelayer(smartVault, amount);
 
-    assert to_mathint(amount) <= initBalance + initAvailableQuota;
+    assert to_mathint(amount) <= initialBalance + initialAvailableQuota;
 }
 
 rule payTransactionGasProperBalances(address smartVault, uint256 amount)
     good_description "If a smart vault balance is lower than `amount`, then after calling `_payTransactionGasToRelayer` its value is 0 and the used quota grows. Otherwise it is decreased by `amount`"
 {
-    uint256 initBalance = getSmartVaultBalance(smartVault);
-    uint256 initUsedQuota = getSmartVaultUsedQuota(smartVault);
+    uint256 initialBalance = getSmartVaultBalance(smartVault);
+    uint256 initialUsedQuota = getSmartVaultUsedQuota(smartVault);
 
     payTransactionGasToRelayer(smartVault, amount);
 
     uint256 currentBalance = getSmartVaultBalance(smartVault);
     uint256 currentUsedQuota = getSmartVaultUsedQuota(smartVault);
 
-    assert to_mathint(currentBalance) == (initBalance < amount ? 0 : initBalance - amount);
-    assert to_mathint(currentUsedQuota) == initUsedQuota + (initBalance < amount ? amount - initBalance : 0);
-}
-
-rule maxQuotaCorrectness(env e, address smartVault, uint256 amount)
-    good_description "If a smart vault max quota is decreased below its used quota, then calling `_payTransactionGasToRelayer` should revert in case the smart vault has insufficient balance"
-{
-    uint256 initBalance = getSmartVaultBalance(smartVault);
-
-    uint256 usedQuota = getSmartVaultUsedQuota(smartVault);
-    uint256 newMaxQuota = require_uint256(usedQuota - 1);
-    setSmartVaultMaxQuota(e, smartVault, newMaxQuota);
-
-    payTransactionGasToRelayer@withrevert(smartVault, amount);
-
-    assert initBalance < amount => lastReverted;
+    assert to_mathint(currentBalance) == (initialBalance < amount ? 0 : initialBalance - amount);
+    assert to_mathint(currentUsedQuota) == initialUsedQuota + (initialBalance < amount ? amount - initialBalance : 0);
 }
 
 rule maxQuotaIntegrity(env e, method f, calldataarg args, address smartVault)
@@ -342,9 +386,9 @@ rule maxQuotaIntegrity(env e, method f, calldataarg args, address smartVault)
     }
     good_description "If a smart vault used quota is lower than (or equal to) its max quota, then after calling `f` it should remain being lower"
 {
-    uint256 initUsedQuota = getSmartVaultUsedQuota(smartVault);
+    uint256 initialUsedQuota = getSmartVaultUsedQuota(smartVault);
     uint256 maxQuota = getSmartVaultMaxQuota(smartVault);
-    require initUsedQuota <= maxQuota;
+    require initialUsedQuota <= maxQuota;
 
     f(e, args);
 
