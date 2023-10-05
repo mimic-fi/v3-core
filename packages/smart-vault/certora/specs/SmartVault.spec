@@ -6,7 +6,10 @@ using Authorizer as Authorizer;
 using FeeController as FeeController;
 using Registry as Registry;
 
-// METHODS
+/************************************************************/
+/*****                    METHODS                       *****/
+/************************************************************/
+
 methods {
     // Helpers
     function helpers.NATIVE_TOKEN() external returns (address) envfree => ALWAYS(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
@@ -51,7 +54,11 @@ methods {
     function _.functionCallWithValue(address,bytes,uint256,string) external => NONDET DELETE(true);
 }
 
-// DEFINITIONS
+
+/************************************************************/
+/*****                  DEFINITIONS                     *****/
+/************************************************************/
+
 // Constants
 definition FIXED_POINT_ONE() returns uint256 = 10^18;
 definition MAX_UINT256() returns mathint = 2^256 - 1;
@@ -70,7 +77,11 @@ definition UNWRAP() returns uint32 = sig:unwrap(uint256).selector;
 definition COLLECT() returns uint32 = sig:collect(address, address, uint256).selector;
 definition WITHDRAW() returns uint32 = sig:withdraw(address, address, uint256).selector;
 
-// FUNCTIONS
+
+/************************************************************/
+/*****                   FUNCTIONS                      *****/
+/************************************************************/
+
 function requireValidFeeCollector() {
     uint256 maxPct;
     uint256 pct;
@@ -111,7 +122,11 @@ function requireNonGenericPermissions(address who, address where, bytes4 what) {
     require !Authorizer.hasPermission(Authorizer.ANYONE(), Authorizer.ANYWHERE(), what);
 }
 
-// RULES
+
+/************************************************************/
+/*****                     RULES                        *****/
+/************************************************************/
+
 use rule sanity;
 
 use rule reentrancyGuard filtered {
@@ -121,6 +136,32 @@ use rule reentrancyGuard filtered {
         && f.selector != INITIALIZE()
         && f.selector != PAUSE()
         && f.selector != UNPAUSE()
+}
+
+rule senderMustBeAuthorized(env e, method f, calldataarg args)
+    filtered {
+        f ->
+            !f.isView
+            && !f.isFallback
+            && f.selector != INITIALIZE()
+    }
+    good_description "If the call does not revert, then the sender must be authorized"
+{
+    address who = e.msg.sender;
+    address where = currentContract;
+    bytes4 what = to_bytes4(f.selector);
+
+    requireEmptyParams(who, where, what);
+    requireEmptyParams(Authorizer.ANYONE(), where, what);
+    requireEmptyParams(who, Authorizer.ANYWHERE(), what);
+    requireEmptyParams(Authorizer.ANYONE(), Authorizer.ANYWHERE(), what);
+    requireNonGenericPermissions(who, where, what);
+
+    bool hasPermission = Authorizer.hasPermission(who, where, what);
+
+    f(e, args);
+
+    assert hasPermission;
 }
 
 rule canOnlyCallUnpause(env e, method f, calldataarg args)
@@ -141,15 +182,19 @@ rule canOnlyCallUnpause(env e, method f, calldataarg args)
 
 rule stillUnpaused(env e) good_description "Calling pause and then unpause should leave the smart vault unpaused" {
     require !isPaused();
+    
     pause(e);
     unpause(e);
+    
     assert !isPaused();
 }
 
 rule stillPaused(env e) good_description "Calling unpause and then pause should leave the smart vault paused" {
     require isPaused();
+    
     unpause(e);
     pause(e);
+    
     assert isPaused();
 }
 
@@ -158,84 +203,84 @@ rule setPriceOracleOnly(env e, method f, calldataarg args)
         f -> 
             !f.isView
             && f.selector != INITIALIZE()
-            && f.selector != EXECUTE() // It should be excluded as there's no way to dispatch `delegateCall`, and an unresolved call can change the storage
+            && f.selector != EXECUTE() // It needs to be excluded as there's no way to dispatch `delegateCall`, and an unresolved call can change the storage
             && f.selector != SET_PRICE_ORACLE()
     }
     good_description "The only method that can modify `priceOracle` reference is `setPriceOracle`"
 {
-    address initPriceOracle = priceOracle();
+    address initialPriceOracle = priceOracle();
 
     f(e, args);
     
-    assert priceOracle() == initPriceOracle;
+    assert priceOracle() == initialPriceOracle;
 }
 
 rule overrideConnectorCheckOnly(env e, method f, calldataarg args, address connector)
     filtered {
         f -> 
             !f.isView
-            && f.selector != EXECUTE() // It should be excluded as there's no way to dispatch `delegateCall`, and an unresolved call can change the storage
+            && f.selector != EXECUTE() // It needs to be excluded as there's no way to dispatch `delegateCall`, and an unresolved call can change the storage
             && f.selector != OVERRIDE_CONNECTOR_CHECK()
     }
     good_description "The only method that can modify `isConnectorCheckIgnored` values is `overrideConnectorCheck`"
 {
-    bool initIgnored = isConnectorCheckIgnored(connector);
+    bool initialIgnored = isConnectorCheckIgnored(connector);
 
     f(e, args);
 
-    assert isConnectorCheckIgnored(connector) == initIgnored;
+    assert isConnectorCheckIgnored(connector) == initialIgnored;
 }
 
 rule updateBalanceConnectorOnly(env e, method f, calldataarg args, bytes32 id, address token)
     filtered {
         f -> 
             !f.isView
-            && f.selector != EXECUTE() // It should be excluded as there's no way to dispatch `delegateCall`, and an unresolved call can change the storage
+            && f.selector != EXECUTE() // It needs to be excluded as there's no way to dispatch `delegateCall`, and an unresolved call can change the storage
             && f.selector != UPDATE_BALANCE_CONNECTOR()
     }
     good_description "The only method that can modify balances connectors is `updateBalanceConnector`"
 {
-    uint256 initBalanceConnector = getBalanceConnector(id, token);
+    uint256 initialBalanceConnector = getBalanceConnector(id, token);
 
     f(e, args);
 
-   assert getBalanceConnector(id, token) == initBalanceConnector;
+   assert getBalanceConnector(id, token) == initialBalanceConnector;
 }
 
 rule increaseAndDecreaseShouldNotChangeBalanceConnector(env e, bytes32 id, address token, uint256 amount)
     good_description "Calling `updateBalanceConnector` twice with opposite `amount` values should not change the connector balance"
 {
-    uint256 initBalanceConnector = getBalanceConnector(id, token);
+    uint256 initialBalanceConnector = getBalanceConnector(id, token);
 
     updateBalanceConnector(e, id, token, amount, true);
     updateBalanceConnector(e, id, token, amount, false);
 
     uint256 currentBalanceConnector = getBalanceConnector(id, token);
-    assert initBalanceConnector == currentBalanceConnector;
+    assert initialBalanceConnector == currentBalanceConnector;
 }
 
 rule wrapUnwrapIntegrity(env e, uint256 amount)
     good_description "Calling `wrap` and then `unwrap` should not change the storage"
 {
-    storage initStorage = lastStorage;
+    storage initialStorage = lastStorage;
 
     wrap(e, amount);
     unwrap(e, amount);
 
     storage currentStorage = lastStorage;
-    assert initStorage[currentContract] == currentStorage[currentContract];
+    assert initialStorage[currentContract] == currentStorage[currentContract];
 }
 
 rule unwrapWrapIntegrity(env e, uint256 amount)
     good_description "Calling `unwrap` and then `wrap` should not change the storage"
 {
-    storage initStorage = lastStorage;
+    storage initialStorage = lastStorage;
 
     unwrap(e, amount);
     wrap(e, amount);
 
     storage currentStorage = lastStorage;
-    assert initStorage[currentContract] == currentStorage[currentContract];
+    assert initialStorage[currentContract] == currentStorage[currentContract];
 }
 
 rule wrapProperBalances(env e, uint256 amount)
@@ -243,16 +288,16 @@ rule wrapProperBalances(env e, uint256 amount)
 {
     require wrappedNativeToken() != helpers.NATIVE_TOKEN();
 
-    uint256 initNativeBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
-    uint256 initWrappedBalance = helpers.balanceOf(wrappedNativeToken(), currentContract);
+    uint256 initialNativeBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
+    uint256 initialWrappedBalance = helpers.balanceOf(wrappedNativeToken(), currentContract);
 
     wrap(e, amount);
 
     uint256 currentNativeBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
     uint256 currentWrappedBalance = helpers.balanceOf(wrappedNativeToken(), currentContract);
     
-    assert to_mathint(currentNativeBalance) == initNativeBalance - amount;
-    assert to_mathint(currentWrappedBalance) == initWrappedBalance + amount;
+    assert to_mathint(currentNativeBalance) == initialNativeBalance - amount;
+    assert to_mathint(currentWrappedBalance) == initialWrappedBalance + amount;
 }
 
 rule unwrapProperBalances(env e, uint256 amount)
@@ -260,16 +305,16 @@ rule unwrapProperBalances(env e, uint256 amount)
 {
     require wrappedNativeToken() != helpers.NATIVE_TOKEN();
 
-    uint256 initNativeBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
-    uint256 initWrappedBalance = helpers.balanceOf(wrappedNativeToken(), currentContract);
+    uint256 initialNativeBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
+    uint256 initialWrappedBalance = helpers.balanceOf(wrappedNativeToken(), currentContract);
 
     unwrap(e, amount);
 
     uint256 currentNativeBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
     uint256 currentWrappedBalance = helpers.balanceOf(wrappedNativeToken(), currentContract);
     
-    assert to_mathint(currentNativeBalance) == initNativeBalance + amount;
-    assert to_mathint(currentWrappedBalance) == initWrappedBalance - amount;
+    assert to_mathint(currentNativeBalance) == initialNativeBalance + amount;
+    assert to_mathint(currentWrappedBalance) == initialWrappedBalance - amount;
 }
 
 rule unwrapCannotRevertAfterWrap(env e, uint256 amount, uint256 amountToUnwrap)
@@ -321,13 +366,13 @@ rule collectWithdrawIntegrity(env e, address token, address user, uint256 amount
     require user != currentContract;
     requireValidFeeCollector();
 
-    uint256 initBalance = helpers.balanceOf(token, currentContract);
+    uint256 initialBalance = helpers.balanceOf(token, currentContract);
 
     collect(e, token, user, amount);
     withdraw(e, token, user, amount);
 
     uint256 currentBalance = helpers.balanceOf(token, currentContract);
-    assert initBalance == currentBalance;
+    assert initialBalance == currentBalance;
 }
 
 rule withdrawCollectIntegrity(env e, address token, address user, uint256 amount)
@@ -337,13 +382,13 @@ rule withdrawCollectIntegrity(env e, address token, address user, uint256 amount
     require user != currentContract;
     requireValidFeeCollector();
 
-    uint256 initBalance = helpers.balanceOf(token, currentContract);
+    uint256 initialBalance = helpers.balanceOf(token, currentContract);
 
     withdraw(e, token, user, amount);
     collect(e, token, user, amount);
 
     uint256 currentBalance = helpers.balanceOf(token, currentContract);
-    assert initBalance == currentBalance;
+    assert initialBalance == currentBalance;
 }
 
 rule collectProperBalances(env e, address token, address from, uint256 amount)
@@ -352,12 +397,12 @@ rule collectProperBalances(env e, address token, address from, uint256 amount)
     require wrappedNativeToken() != helpers.NATIVE_TOKEN();
     require from != currentContract;
 
-    uint256 initBalance = helpers.balanceOf(token, currentContract);
+    uint256 initialBalance = helpers.balanceOf(token, currentContract);
 
     collect(e, token, from, amount);
 
     uint256 currentBalance = helpers.balanceOf(token, currentContract);
-    assert to_mathint(currentBalance) == initBalance + amount;
+    assert to_mathint(currentBalance) == initialBalance + amount;
 }
 
 rule withdrawProperBalances(env e, address token, address recipient, uint256 amount)
@@ -366,12 +411,12 @@ rule withdrawProperBalances(env e, address token, address recipient, uint256 amo
     require recipient != currentContract;
     requireValidFeeCollector();
 
-    uint256 initBalance = helpers.balanceOf(token, currentContract);
+    uint256 initialBalance = helpers.balanceOf(token, currentContract);
 
     withdraw(e, token, recipient, amount);
 
     uint256 currentBalance = helpers.balanceOf(token, currentContract);
-    assert to_mathint(currentBalance) == initBalance - amount;
+    assert to_mathint(currentBalance) == initialBalance - amount;
 }
 
 rule withdrawCannotRevertAfterCollect(env e, address token, address user, uint256 amount, uint256 amountToWithdraw)
@@ -447,30 +492,4 @@ rule callSenderMustBeAuthorized(env e, address target, bytes data, uint256 value
     call(e, target, data, value);
 
     assert isAuthorized;
-}
-
-rule senderMustBeAuthorized(env e, method f, calldataarg args)
-    filtered {
-        f -> 
-            !f.isView
-            && !f.isFallback
-            && f.selector != INITIALIZE()
-    }
-    good_description "If the call does not revert, then the sender must be authorized"
-{
-    address who = e.msg.sender;
-    address where = currentContract;
-    bytes4 what = to_bytes4(f.selector);
-
-    requireEmptyParams(who, where, what);
-    requireEmptyParams(Authorizer.ANYONE(), where, what);
-    requireEmptyParams(who, Authorizer.ANYWHERE(), what);
-    requireEmptyParams(Authorizer.ANYONE(), Authorizer.ANYWHERE(), what);
-    requireNonGenericPermissions(who, where, what);
-    
-    bool hasPermission = Authorizer.hasPermission(who, where, what);
-
-    f(e, args);
-
-    assert hasPermission;
 }
