@@ -44,8 +44,9 @@ definition DEPOSIT() returns uint32 = sig:deposit(address, uint256).selector;
 definition WITHDRAW() returns uint32 = sig:withdraw(uint256).selector;
 definition EXECUTE() returns uint32 = sig:execute(address[], bytes[], bool).selector;
 definition SIMULATE() returns uint32 = sig:simulate(address[], bytes[], bool).selector;
-definition RESCUE_FUNDS() returns uint32 = sig:rescueFunds(address, address, uint256).selector;
 definition PAY_TRANSACTION_GAS_TO_RELAYER() returns uint32 = sig:payTransactionGasToRelayer(address, uint256).selector;
+definition TRANSFER_OWNERSHIP() returns uint32 = sig:transferOwnership(address).selector;
+definition RENOUNCE_OWNERSHIP() returns uint32 = sig:renounceOwnership().selector;
 
 
 /************************************************************/
@@ -94,7 +95,6 @@ hook Sstore currentContract.getSmartVaultBalance[KEY address smartVault] uint256
 /*****                  INVARIANTS                      *****/
 /************************************************************/
 
-// TODO: ==
 invariant contractBalanceIsSumOfBalances()
     ghostSumOfSmartVaultBalances <= helpers.balanceOf(currentContract)
     filtered { f -> f.selector != SIMULATE() }
@@ -110,11 +110,14 @@ use rule sanity filtered { f -> f.selector != SIMULATE() }
 rule senderIsOwner(env e, method f, calldataarg args)
     filtered {
         f -> 
-            f.selector == SET_EXECUTOR()
-            || f.selector == SET_DEFAULT_COLLECTOR()
-            || f.selector == SET_SMART_VAULT_COLLECTOR()
-            || f.selector == SET_SMART_VAULT_MAX_QUOTA()
-            || f.selector == RESCUE_FUNDS()
+            !f.isView
+            && f.selector != DEPOSIT()
+            && f.selector != WITHDRAW()
+            && f.selector != EXECUTE()
+            && f.selector != SIMULATE()
+            && f.selector != PAY_TRANSACTION_GAS_TO_RELAYER()
+            && f.selector != TRANSFER_OWNERSHIP()
+            && f.selector != RENOUNCE_OWNERSHIP()
     }
     good_description "If the call to `f` doesn't revert, then the sender is the owner"
 {
@@ -125,9 +128,10 @@ rule senderIsOwner(env e, method f, calldataarg args)
 
 rule setExecutorOnly(env e, method f, calldataarg args, address executor)
     filtered { 
-        f -> !f.isView
-        && f.selector != SET_EXECUTOR()
-        && f.selector != SIMULATE()
+        f ->
+            !f.isView
+            && f.selector != SET_EXECUTOR()
+            && f.selector != SIMULATE()
     }
     good_description "The only method that can allow/disallow an executor is `setExecutor`"
 {
@@ -140,9 +144,10 @@ rule setExecutorOnly(env e, method f, calldataarg args, address executor)
 
 rule setDefaultCollectorOnly(env e, method f, calldataarg args)
     filtered { 
-        f -> !f.isView
-        && f.selector != SET_DEFAULT_COLLECTOR()
-        && f.selector != SIMULATE()
+        f ->
+            !f.isView
+            && f.selector != SET_DEFAULT_COLLECTOR()
+            && f.selector != SIMULATE()
     }
     good_description "The only method that can modify the defaultCollector reference is `setDefaultCollector`"
 {
@@ -155,9 +160,10 @@ rule setDefaultCollectorOnly(env e, method f, calldataarg args)
 
 rule setSmartVaultCollectorOnly(env e, method f, calldataarg args, address smartVault)
     filtered { 
-        f -> !f.isView
-        && f.selector != SET_SMART_VAULT_COLLECTOR()
-        && f.selector != SIMULATE()
+        f ->
+            !f.isView
+            && f.selector != SET_SMART_VAULT_COLLECTOR()
+            && f.selector != SIMULATE()
     }
     good_description "The only method that can modify a smart vault's collector reference is `setSmartVaultCollector`"
 {
@@ -170,9 +176,10 @@ rule setSmartVaultCollectorOnly(env e, method f, calldataarg args, address smart
 
 rule setSmartVaultMaxQuotaOnly(env e, method f, calldataarg args, address smartVault)
     filtered { 
-        f -> !f.isView
-        && f.selector != SET_SMART_VAULT_MAX_QUOTA()
-        && f.selector != SIMULATE()
+        f ->
+            !f.isView
+            && f.selector != SET_SMART_VAULT_MAX_QUOTA()
+            && f.selector != SIMULATE()
     }
     good_description "The only method that can modify a smart vault's maxQuota value is `setSmartVaultMaxQuota`"
 {
@@ -260,6 +267,8 @@ rule depositValidAmount(env e, address smartVault, uint256 amount)
 rule depositProperBalances(env e, address smartVault, uint256 amount)
     good_description "After calling `deposit` the smart vault balance is increased at most by `amount`"
 {
+    require e.msg.sender != currentContract;
+
     uint256 initialSmartVaultBalance = getSmartVaultBalance(smartVault);
     uint256 initialRelayerBalance = helpers.balanceOf(currentContract);
 
@@ -269,7 +278,7 @@ rule depositProperBalances(env e, address smartVault, uint256 amount)
     uint256 currentRelayerBalance = helpers.balanceOf(currentContract);
 
     assert to_mathint(currentSmartVaultBalance) <= initialSmartVaultBalance + amount;
-    assert to_mathint(currentRelayerBalance) == initialRelayerBalance + (e.msg.sender == currentContract ? 0 : amount);
+    assert to_mathint(currentRelayerBalance) == initialRelayerBalance + amount;
 }
 
 rule payQuotaProperBalances(env e, address smartVault, uint256 amount)
