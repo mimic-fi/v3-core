@@ -1,0 +1,23 @@
+name: Prover Relayer
+
+env:
+  CI: true
+
+on:
+  pull_request:
+    branches: "*"
+    paths:
+      - packages/relayer/**
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Prove
+        uses: ./.github/actions/certora
+        with:
+          workspace: '@mimic-fi/v3-relayer'
+          certora-key: ${{ secrets.CERTORA_KEY }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
