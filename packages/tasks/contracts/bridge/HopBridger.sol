@@ -36,22 +36,8 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     // Maximum deadline in seconds
     uint256 public override maxDeadline;
 
-    // Default max fee percentage
-    uint256 public override defaultMaxFeePct;
-
-    // Max fee percentage per token
-    mapping (address => uint256) public override customMaxFeePct;
-
     // List of Hop entrypoints per token
     mapping (address => address) public override tokenHopEntrypoint;
-
-    /**
-     * @dev Custom max fee percentage config. Only used in the initializer.
-     */
-    struct CustomMaxFeePct {
-        address token;
-        uint256 maxFeePct;
-    }
 
     /**
      * @dev Token Hop entrypoint config. Only used in the initializer.
@@ -66,9 +52,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      */
     struct HopBridgeConfig {
         address relayer;
-        uint256 maxFeePct;
         uint256 maxDeadline;
-        CustomMaxFeePct[] customMaxFeePcts;
         TokenHopEntrypoint[] tokenHopEntrypoints;
         BaseBridgeConfig baseBridgeConfig;
     }
@@ -97,26 +81,11 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     function __HopBridger_init_unchained(HopBridgeConfig memory config) internal onlyInitializing {
         _setRelayer(config.relayer);
         _setMaxDeadline(config.maxDeadline);
-        _setDefaultMaxFeePct(config.maxFeePct);
-
-        for (uint256 i = 0; i < config.customMaxFeePcts.length; i++) {
-            CustomMaxFeePct memory customConfig = config.customMaxFeePcts[i];
-            _setCustomMaxFeePct(customConfig.token, customConfig.maxFeePct);
-        }
 
         for (uint256 i = 0; i < config.tokenHopEntrypoints.length; i++) {
             TokenHopEntrypoint memory customConfig = config.tokenHopEntrypoints[i];
             _setTokenHopEntrypoint(customConfig.token, customConfig.entrypoint);
         }
-    }
-
-    /**
-     * @dev Tells the max fee percentage that should be used for a token
-     * @param token Address of the token being queried
-     */
-    function getMaxFeePct(address token) public view virtual override returns (uint256) {
-        uint256 maxFeePct = customMaxFeePct[token];
-        return maxFeePct == 0 ? defaultMaxFeePct : maxFeePct;
     }
 
     /**
@@ -133,27 +102,6 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      */
     function setMaxDeadline(uint256 newMaxDeadline) external override authP(authParams(newMaxDeadline)) {
         _setMaxDeadline(newMaxDeadline);
-    }
-
-    /**
-     * @dev Sets the default max fee percentage
-     * @param maxFeePct New default max fee percentage to be set
-     */
-    function setDefaultMaxFeePct(uint256 maxFeePct) external override authP(authParams(maxFeePct)) {
-        _setDefaultMaxFeePct(maxFeePct);
-    }
-
-    /**
-     * @dev Sets a custom max fee percentage
-     * @param token Token address to set a max fee percentage for
-     * @param maxFeePct Max fee percentage to be set for a token
-     */
-    function setCustomMaxFeePct(address token, uint256 maxFeePct)
-        external
-        override
-        authP(authParams(token, maxFeePct))
-    {
-        _setCustomMaxFeePct(token, maxFeePct);
     }
 
     /**
@@ -180,7 +128,8 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
         if (amount == 0) amount = getTaskAmount(token);
         _beforeHopBridger(token, amount, slippage, fee);
 
-        uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
+        uint256 amountAfterFees = amount - fee;
+        uint256 minAmountOut = amountAfterFees.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
             IHopConnector.execute.selector,
             getDestinationChain(token),
@@ -202,18 +151,15 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      * @dev Before Hop bridger hook
      */
     function _beforeHopBridger(address token, uint256 amount, uint256 slippage, uint256 fee) internal virtual {
-        _beforeBaseBridgeTask(token, amount, slippage);
+        _beforeBaseBridgeTask(token, amount, slippage, fee);
         if (tokenHopEntrypoint[token] == address(0)) revert TaskMissingHopEntrypoint();
-        uint256 feePct = fee.divUp(amount);
-        uint256 maxFeePct = getMaxFeePct(token);
-        if (feePct > maxFeePct) revert TaskFeePctAboveMax(feePct, maxFeePct);
     }
 
     /**
      * @dev After Hop bridger hook
      */
-    function _afterHopBridger(address token, uint256 amount, uint256 slippage, uint256) internal virtual {
-        _afterBaseBridgeTask(token, amount, slippage);
+    function _afterHopBridger(address token, uint256 amount, uint256 slippage, uint256 fee) internal virtual {
+        _afterBaseBridgeTask(token, amount, slippage, fee);
     }
 
     /**
@@ -231,26 +177,6 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
         if (_maxDeadline == 0) revert TaskMaxDeadlineZero();
         maxDeadline = _maxDeadline;
         emit MaxDeadlineSet(_maxDeadline);
-    }
-
-    /**
-     * @dev Sets the default max fee percentage
-     * @param maxFeePct Default max fee percentage to be set
-     */
-    function _setDefaultMaxFeePct(uint256 maxFeePct) internal {
-        defaultMaxFeePct = maxFeePct;
-        emit DefaultMaxFeePctSet(maxFeePct);
-    }
-
-    /**
-     * @dev Sets a custom max fee percentage for a token
-     * @param token Address of the token to set a custom max fee percentage for
-     * @param maxFeePct Max fee percentage to be set for the given token
-     */
-    function _setCustomMaxFeePct(address token, uint256 maxFeePct) internal {
-        if (token == address(0)) revert TaskTokenZero();
-        customMaxFeePct[token] = maxFeePct;
-        emit CustomMaxFeePctSet(token, maxFeePct);
     }
 
     /**

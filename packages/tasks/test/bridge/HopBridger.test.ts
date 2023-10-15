@@ -46,17 +46,20 @@ describe('HopBridger', () => {
       [
         {
           relayer: relayer.address,
-          maxFeePct: fp(0.2),
           maxDeadline: MAX_UINT256.div(10),
-          customMaxFeePcts: [],
           tokenHopEntrypoints: [],
           baseBridgeConfig: {
             connector: connector.address,
             recipient: smartVault.address,
             destinationChain: 0,
             maxSlippage: fp(0.1),
+            maxFee: {
+              token: ZERO_ADDRESS,
+              maxFee: 0,
+            },
             customDestinationChains: [],
             customMaxSlippages: [],
+            customMaxFees: [],
             taskConfig: buildEmptyTaskConfig(owner, smartVault),
           },
         },
@@ -138,72 +141,6 @@ describe('HopBridger', () => {
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
         await expect(task.setMaxDeadline(1)).to.be.revertedWith('AuthSenderNotAllowed')
-      })
-    })
-  })
-
-  describe('setDefaultMaxFeePct', () => {
-    const maxFeePct = fp(0.5)
-
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async function () {
-        const setDefaultMaxFeePctRole = task.interface.getSighash('setDefaultMaxFeePct')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxFeePctRole, [])
-        task = task.connect(owner)
-      })
-
-      it('sets the default max fee pct', async function () {
-        await task.setDefaultMaxFeePct(maxFeePct)
-
-        expect(await task.defaultMaxFeePct()).to.be.equal(maxFeePct)
-      })
-
-      it('emits an event', async function () {
-        const tx = await task.setDefaultMaxFeePct(maxFeePct)
-
-        await assertEvent(tx, 'DefaultMaxFeePctSet', { maxFeePct })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async function () {
-        await expect(task.setDefaultMaxFeePct(1)).to.be.revertedWith('AuthSenderNotAllowed')
-      })
-    })
-  })
-
-  describe('setCustomMaxFeePct', () => {
-    const maxFeePct = fp(0.5)
-    let token: Contract
-
-    beforeEach('deploy token', async function () {
-      token = await deployTokenMock('TKN')
-    })
-
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async function () {
-        const setCustomMaxFeePctRole = task.interface.getSighash('setCustomMaxFeePct')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setCustomMaxFeePctRole, [])
-        task = task.connect(owner)
-      })
-
-      it('sets the max fee pct', async function () {
-        await task.setCustomMaxFeePct(token.address, maxFeePct)
-
-        const customMaxFeePct = await task.customMaxFeePct(token.address)
-        expect(customMaxFeePct).to.be.equal(maxFeePct)
-      })
-
-      it('emits an event', async function () {
-        const tx = await task.setCustomMaxFeePct(token.address, maxFeePct)
-
-        await assertEvent(tx, 'CustomMaxFeePctSet', { token, maxFeePct })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async function () {
-        await expect(task.setCustomMaxFeePct(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -370,7 +307,8 @@ describe('HopBridger', () => {
                     const tx = await task.call(token.address, requestedAmount, slippage, fee)
 
                     const deadline = (await currentTimestamp()).add(MAX_UINT256.div(10))
-                    const minAmountOut = amount.mul(fp(1).sub(slippage)).div(fp(1))
+                    const amountAfterFees = amount.sub(fee)
+                    const minAmountOut = amountAfterFees.mul(fp(1).sub(slippage)).div(fp(1))
 
                     const connectorData = connector.interface.encodeFunctionData('execute', [
                       chainId,

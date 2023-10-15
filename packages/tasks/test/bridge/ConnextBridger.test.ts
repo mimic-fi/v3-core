@@ -50,8 +50,13 @@ describe('ConnextBridger', () => {
             recipient: smartVault.address,
             destinationChain: 0,
             maxSlippage: 0,
+            maxFee: {
+              token: ZERO_ADDRESS,
+              maxFee: 0,
+            },
             customDestinationChains: [],
             customMaxSlippages: [],
+            customMaxFees: [],
             taskConfig: buildEmptyTaskConfig(owner, smartVault),
           },
         },

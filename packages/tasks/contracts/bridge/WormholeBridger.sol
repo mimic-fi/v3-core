@@ -91,13 +91,13 @@ contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
      * @dev Before Wormhole bridger hook
      */
     function _beforeWormholeBridger(address token, uint256 amount, uint256 slippage) internal virtual {
-        _beforeBaseBridgeTask(token, amount, slippage);
+        _beforeBaseBridgeTask(token, amount, slippage, 0);
     }
 
     /**
      * @dev After Wormhole bridger hook
      */
     function _afterWormholeBridger(address token, uint256 amount, uint256 slippage) internal virtual {
-        _afterBaseBridgeTask(token, amount, slippage);
+        _afterBaseBridgeTask(token, amount, slippage, 0);
     }
 }
