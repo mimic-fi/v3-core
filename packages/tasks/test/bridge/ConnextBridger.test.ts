@@ -43,8 +43,6 @@ describe('ConnextBridger', () => {
       [],
       [
         {
-          maxFeePct: 0,
-          customMaxFeePcts: [],
           baseBridgeConfig: {
             connector: connector.address,
             recipient: smartVault.address,
@@ -74,72 +72,6 @@ describe('ConnextBridger', () => {
     itBehavesLikeBaseBridgeTask('CONNEXT_BRIDGER')
   })
 
-  describe('setDefaultMaxFeePct', () => {
-    const maxFeePct = fp(0.01)
-
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async function () {
-        const setDefaultMaxFeePctRole = task.interface.getSighash('setDefaultMaxFeePct')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxFeePctRole, [])
-        task = task.connect(owner)
-      })
-
-      it('sets the default max fee percentage', async function () {
-        await task.setDefaultMaxFeePct(maxFeePct)
-
-        expect(await task.defaultMaxFeePct()).to.be.equal(maxFeePct)
-      })
-
-      it('emits an event', async function () {
-        const tx = await task.setDefaultMaxFeePct(maxFeePct)
-
-        await assertEvent(tx, 'DefaultMaxFeePctSet', { maxFeePct })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async function () {
-        await expect(task.setDefaultMaxFeePct(1)).to.be.revertedWith('AuthSenderNotAllowed')
-      })
-    })
-  })
-
-  describe('setCustomMaxFeePct', () => {
-    const maxFeePct = fp(5)
-    let token: Contract
-
-    beforeEach('deploy token', async function () {
-      token = await deployTokenMock('TKN')
-    })
-
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async function () {
-        const setCustomMaxFeePctRole = task.interface.getSighash('setCustomMaxFeePct')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setCustomMaxFeePctRole, [])
-        task = task.connect(owner)
-      })
-
-      it('sets the max fee percentage', async function () {
-        await task.setCustomMaxFeePct(token.address, maxFeePct)
-
-        const customMaxFeePct = await task.customMaxFeePct(token.address)
-        expect(customMaxFeePct).to.be.equal(maxFeePct)
-      })
-
-      it('emits an event', async function () {
-        const tx = await task.setCustomMaxFeePct(token.address, maxFeePct)
-
-        await assertEvent(tx, 'CustomMaxFeePctSet', { token, maxFeePct })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async function () {
-        await expect(task.setCustomMaxFeePct(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
-      })
-    })
-  })
-
   // TODO: let's skip this one until we merge Connext PR
   describe.skip('call', () => {
     beforeEach('authorize task', async () => {
@@ -166,7 +98,8 @@ describe('ConnextBridger', () => {
           const amount = fp(100)
           const slippage = fp(0.5)
           const relayerFee = amount.div(10)
-          const minAmountOut = amount.sub(amount.mul(slippage).div(fp(1)))
+          const amountAfterFees = amount.sub(relayerFee)
+          const minAmountOut = amountAfterFees.mul(fp(1).sub(slippage)).div(fp(1))
 
           context('when the destination chain was set', () => {
             const chainId = 1
@@ -202,15 +135,13 @@ describe('ConnextBridger', () => {
                     await task.connect(owner).setDefaultMaxSlippage(slippage)
                   })
 
-                  context('when the given fee is below the limit', () => {
-                    beforeEach('set max fee percentage', async () => {
-                      const setDefaultMaxFeePctRole = task.interface.getSighash('setDefaultMaxFeePct')
-                      await authorizer
-                        .connect(owner)
-                        .authorize(owner.address, task.address, setDefaultMaxFeePctRole, [])
-                      await task.connect(owner).setDefaultMaxFeePct(relayerFee)
-                    })
+                  beforeEach('set max fee', async () => {
+                    const setDefaultMaxFeeRole = task.interface.getSighash('setDefaultMaxFee')
+                    await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxFeeRole, [])
+                    await task.connect(owner).setDefaultMaxFee(token.address, relayerFee)
+                  })
 
+                  context('when the given fee is below the limit', () => {
                     const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
                       it('executes the expected connector', async () => {
                         const tx = await task.call(token.address, requestedAmount, slippage, relayerFee)
@@ -303,8 +234,8 @@ describe('ConnextBridger', () => {
 
                   context('when the given fee is above the limit', () => {
                     it('reverts', async () => {
-                      await expect(task.call(token.address, amount, 0, relayerFee)).to.be.revertedWith(
-                        'TaskFeePctAboveMax'
+                      await expect(task.call(token.address, amount, 0, relayerFee.add(1))).to.be.revertedWith(
+                        'TaskFeeAboveMax'
                       )
                     })
                   })

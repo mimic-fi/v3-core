@@ -30,26 +30,10 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('CONNEXT_BRIDGER');
 
-    // Default max fee percentage
-    uint256 public override defaultMaxFeePct;
-
-    // Max fee percentage per token
-    mapping (address => uint256) public override customMaxFeePct;
-
-    /**
-     * @dev Custom max fee percentage config. Only used in the initializer.
-     */
-    struct CustomMaxFeePct {
-        address token;
-        uint256 maxFeePct;
-    }
-
     /**
      * @dev Connext bridge config. Only used in the initializer.
      */
     struct ConnextBridgeConfig {
-        uint256 maxFeePct;
-        CustomMaxFeePct[] customMaxFeePcts;
         BaseBridgeConfig baseBridgeConfig;
     }
 
@@ -75,42 +59,7 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
      * @param config Connext bridge config
      */
     function __ConnextBridger_init_unchained(ConnextBridgeConfig memory config) internal onlyInitializing {
-        _setDefaultMaxFeePct(config.maxFeePct);
-
-        for (uint256 i = 0; i < config.customMaxFeePcts.length; i++) {
-            CustomMaxFeePct memory customConfig = config.customMaxFeePcts[i];
-            _setCustomMaxFeePct(customConfig.token, customConfig.maxFeePct);
-        }
-    }
-
-    /**
-     * @dev Tells the max fee percentage that should be used for a token
-     * @param token Address of the token being queried
-     */
-    function getMaxFeePct(address token) public view virtual override returns (uint256) {
-        uint256 maxFeePct = customMaxFeePct[token];
-        return maxFeePct == 0 ? defaultMaxFeePct : maxFeePct;
-    }
-
-    /**
-     * @dev Sets the default max fee percentage
-     * @param maxFeePct New default max fee percentage to be set
-     */
-    function setDefaultMaxFeePct(uint256 maxFeePct) external override authP(authParams(maxFeePct)) {
-        _setDefaultMaxFeePct(maxFeePct);
-    }
-
-    /**
-     * @dev Sets a custom max fee percentage
-     * @param token Token address to set a max fee percentage for
-     * @param maxFeePct Max fee percentage to be set for a token
-     */
-    function setCustomMaxFeePct(address token, uint256 maxFeePct)
-        external
-        override
-        authP(authParams(token, maxFeePct))
-    {
-        _setCustomMaxFeePct(token, maxFeePct);
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     /**
@@ -124,7 +73,8 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
         if (amount == 0) amount = getTaskAmount(token);
         _beforeConnextBridger(token, amount, slippage, fee);
 
-        uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
+        uint256 amountAfterFees = amount - fee;
+        uint256 minAmountOut = amountAfterFees.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
             IConnextConnector.execute.selector,
             getDestinationChain(token),
@@ -144,9 +94,6 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
      */
     function _beforeConnextBridger(address token, uint256 amount, uint256 slippage, uint256 fee) internal virtual {
         _beforeBaseBridgeTask(token, amount, slippage, fee);
-        uint256 feePct = fee.divUp(amount);
-        uint256 maxFeePct = getMaxFeePct(token);
-        if (feePct > maxFeePct) revert TaskFeePctAboveMax(feePct, maxFeePct);
     }
 
     /**
@@ -154,25 +101,5 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
      */
     function _afterConnextBridger(address token, uint256 amount, uint256 slippage, uint256 fee) internal virtual {
         _afterBaseBridgeTask(token, amount, slippage, fee);
-    }
-
-    /**
-     * @dev Sets the default max fee percentage
-     * @param maxFeePct Default max fee percentage to be set
-     */
-    function _setDefaultMaxFeePct(uint256 maxFeePct) internal {
-        defaultMaxFeePct = maxFeePct;
-        emit DefaultMaxFeePctSet(maxFeePct);
-    }
-
-    /**
-     * @dev Sets a custom max fee percentage for a token
-     * @param token Address of the token to set a custom max fee percentage for
-     * @param maxFeePct Max fee percentage to be set for the given token
-     */
-    function _setCustomMaxFeePct(address token, uint256 maxFeePct) internal {
-        if (token == address(0)) revert TaskTokenZero();
-        customMaxFeePct[token] = maxFeePct;
-        emit CustomMaxFeePctSet(token, maxFeePct);
     }
 }

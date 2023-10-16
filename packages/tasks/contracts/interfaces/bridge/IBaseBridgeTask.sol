@@ -66,11 +66,6 @@ interface IBaseBridgeTask is ITask {
     error TaskSlippageAboveMax(uint256 slippage, uint256 maxSlippage);
 
     /**
-     * @dev The requested fee percentage is greater than the maximum fee percentage
-     */
-    error TaskFeePctAboveMax(uint256 feePct, uint256 maxFeePct);
-
-    /**
      * @dev The requested fee is greater than the maximum fee
      */
     error TaskFeeAboveMax(uint256 fee, uint256 maxFee);
