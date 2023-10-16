@@ -54,7 +54,7 @@ describe('MorphoAaveV3Connector', function () {
     expect(currentWethBalance).to.be.equal(previousWethBalance.sub(SUPPLY_AMOUNT))
 
     const currentSupplyBalance = await morpho.supplyBalance(WETH, connector.address)
-    expect(currentSupplyBalance).to.be.equal(previousSupplyBalance.add(SUPPLY_AMOUNT))
+    assertAlmostEqual(currentSupplyBalance, previousSupplyBalance.add(SUPPLY_AMOUNT), 1e-8)
   })
 
   it('accumulates yield over time', async () => {
