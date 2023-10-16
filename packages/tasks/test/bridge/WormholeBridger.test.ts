@@ -97,7 +97,6 @@ describe('WormholeBridger', () => {
           const amount = fp(100)
           const relayerFee = fp(35)
           const minAmountOut = amount.sub(relayerFee)
-          const slippage = fp(0.35)
 
           context('when the destination chain was set', () => {
             const chainId = 1
@@ -124,18 +123,16 @@ describe('WormholeBridger', () => {
                   await token.mint(smartVault.address, amount)
                 })
 
-                context('when the slippage is below the limit', () => {
-                  beforeEach('set max slippage', async () => {
-                    const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
-                    await authorizer
-                      .connect(owner)
-                      .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
-                    await task.connect(owner).setDefaultMaxSlippage(slippage)
-                  })
+                beforeEach('set max fee', async () => {
+                  const setDefaultMaxFeeRole = task.interface.getSighash('setDefaultMaxFee')
+                  await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxFeeRole, [])
+                  await task.connect(owner).setDefaultMaxFee(token.address, relayerFee)
+                })
 
+                context('when the given fee is below the limit', () => {
                   const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
                     it('executes the expected connector', async () => {
-                      const tx = await task.call(token.address, requestedAmount, slippage)
+                      const tx = await task.call(token.address, requestedAmount, relayerFee)
 
                       const connectorData = connector.interface.encodeFunctionData('execute', [
                         chainId,
@@ -160,7 +157,7 @@ describe('WormholeBridger', () => {
                     })
 
                     it('emits an Executed event', async () => {
-                      const tx = await task.call(token.address, requestedAmount, slippage)
+                      const tx = await task.call(token.address, requestedAmount, relayerFee)
 
                       await assertEvent(tx, 'Executed')
                     })
@@ -172,7 +169,7 @@ describe('WormholeBridger', () => {
                     itExecutesTheTaskProperly(requestedAmount)
 
                     it('does not update any balance connectors', async () => {
-                      const tx = await task.call(token.address, requestedAmount, slippage)
+                      const tx = await task.call(token.address, requestedAmount, relayerFee)
 
                       await assertNoEvent(tx, 'BalanceConnectorUpdated')
                     })
@@ -210,7 +207,7 @@ describe('WormholeBridger', () => {
                     itExecutesTheTaskProperly(requestedAmount)
 
                     it('updates the balance connectors properly', async () => {
-                      const tx = await task.call(token.address, requestedAmount, slippage)
+                      const tx = await task.call(token.address, requestedAmount, relayerFee)
 
                       await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
                         id: prevConnectorId,
@@ -222,9 +219,11 @@ describe('WormholeBridger', () => {
                   })
                 })
 
-                context('when the slippage is above the limit', () => {
+                context('when the given fee is above the limit', () => {
                   it('reverts', async () => {
-                    await expect(task.call(token.address, amount, slippage)).to.be.revertedWith('TaskSlippageAboveMax')
+                    await expect(task.call(token.address, amount, relayerFee.add(1))).to.be.revertedWith(
+                      'TaskFeeAboveMax'
+                    )
                   })
                 })
               })
@@ -241,7 +240,7 @@ describe('WormholeBridger', () => {
                 })
 
                 it('reverts', async () => {
-                  await expect(task.call(token.address, amount, slippage)).to.be.revertedWith(
+                  await expect(task.call(token.address, amount, relayerFee)).to.be.revertedWith(
                     'TaskTokenThresholdNotMet'
                   )
                 })
@@ -256,14 +255,16 @@ describe('WormholeBridger', () => {
               })
 
               it('reverts', async () => {
-                await expect(task.call(token.address, amount, slippage)).to.be.revertedWith('TaskTokenNotAllowed')
+                await expect(task.call(token.address, amount, relayerFee)).to.be.revertedWith('TaskTokenNotAllowed')
               })
             })
           })
 
           context('when the destination chain was not set', () => {
             it('reverts', async () => {
-              await expect(task.call(token.address, amount, slippage)).to.be.revertedWith('TaskDestinationChainNotSet')
+              await expect(task.call(token.address, amount, relayerFee)).to.be.revertedWith(
+                'TaskDestinationChainNotSet'
+              )
             })
           })
         })
