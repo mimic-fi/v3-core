@@ -60,7 +60,7 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
      * @param token Address of the token to be used to pay the relayer
      */
     function getTaskAmount(address token) public view virtual override(IBaseTask, BaseTask) returns (uint256) {
-        Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
+        Threshold memory threshold = _getTokenThreshold(token);
         if (threshold.token == address(0)) return 0;
 
         uint256 depositedThresholdToken = _getDepositedInThresholdToken(threshold.token);
@@ -83,7 +83,7 @@ abstract contract BaseRelayerFundTask is IBaseRelayerFundTask, Task {
      * @dev Before token threshold task hook
      */
     function _beforeTokenThresholdTask(address token, uint256 amount) internal virtual override {
-        Threshold memory threshold = TokenThresholdTask.getTokenThreshold(token);
+        Threshold memory threshold = _getTokenThreshold(token);
         if (threshold.token == address(0)) revert TaskTokenThresholdNotSet(token);
 
         uint256 amountInThresholdToken = amount.mulUp(_getPrice(token, threshold.token));

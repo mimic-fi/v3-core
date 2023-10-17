@@ -35,6 +35,15 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, Authorized {
     mapping (address => Threshold) internal _customThresholds;
 
     /**
+     * @dev Threshold defined by a token address and min/max values
+     */
+    struct Threshold {
+        address token;
+        uint256 min;
+        uint256 max;
+    }
+
+    /**
      * @dev Custom token threshold config. Only used in the initializer.
      */
     struct CustomThresholdConfig {
@@ -78,54 +87,67 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, Authorized {
     /**
      * @dev Tells the default token threshold
      */
-    function defaultTokenThreshold() external view override returns (Threshold memory) {
-        return _defaultThreshold;
+    function defaultTokenThreshold() external view override returns (address thresholdToken, uint256 min, uint256 max) {
+        Threshold memory threshold = _defaultThreshold;
+        return (threshold.token, threshold.min, threshold.max);
     }
 
     /**
      * @dev Tells the token threshold defined for a specific token
      * @param token Address of the token being queried
      */
-    function customTokenThreshold(address token) public view override returns (Threshold memory) {
-        return _customThresholds[token];
+    function customTokenThreshold(address token)
+        external
+        view
+        override
+        returns (address thresholdToken, uint256 min, uint256 max)
+    {
+        Threshold memory threshold = _customThresholds[token];
+        return (threshold.token, threshold.min, threshold.max);
     }
 
     /**
      * @dev Tells the threshold that should be used for a token, it prioritizes custom thresholds over the default one
      * @param token Address of the token being queried
      */
-    function getTokenThreshold(address token) public view virtual override returns (Threshold memory) {
-        Threshold storage customThreshold = _customThresholds[token];
-        return customThreshold.token == address(0) ? _defaultThreshold : customThreshold;
+    function getTokenThreshold(address token)
+        external
+        view
+        virtual
+        override
+        returns (address thresholdToken, uint256 min, uint256 max)
+    {
+        Threshold memory threshold = _getTokenThreshold(token);
+        return (threshold.token, threshold.min, threshold.max);
     }
 
     /**
      * @dev Sets a new default threshold config
      * @param thresholdToken New threshold token to be set
-     * @param thresholdMin New threshold minimum to be set
-     * @param thresholdMax New threshold maximum to be set
+     * @param min New threshold minimum to be set
+     * @param max New threshold maximum to be set
      */
-    function setDefaultTokenThreshold(address thresholdToken, uint256 thresholdMin, uint256 thresholdMax)
+    function setDefaultTokenThreshold(address thresholdToken, uint256 min, uint256 max)
         external
         override
-        authP(authParams(thresholdToken, thresholdMin, thresholdMax))
+        authP(authParams(thresholdToken, min, max))
     {
-        _setDefaultTokenThreshold(thresholdToken, thresholdMin, thresholdMax);
+        _setDefaultTokenThreshold(thresholdToken, min, max);
     }
 
     /**
      * @dev Sets a custom token threshold
      * @param token Address of the token to set a custom threshold for
      * @param thresholdToken New custom threshold token to be set
-     * @param thresholdMin New custom threshold minimum to be set
-     * @param thresholdMax New custom threshold maximum to be set
+     * @param min New custom threshold minimum to be set
+     * @param max New custom threshold maximum to be set
      */
-    function setCustomTokenThreshold(address token, address thresholdToken, uint256 thresholdMin, uint256 thresholdMax)
+    function setCustomTokenThreshold(address token, address thresholdToken, uint256 min, uint256 max)
         external
         override
-        authP(authParams(token, thresholdToken, thresholdMin, thresholdMax))
+        authP(authParams(token, thresholdToken, min, max))
     {
-        _setCustomTokenThreshold(token, thresholdToken, thresholdMin, thresholdMax);
+        _setCustomTokenThreshold(token, thresholdToken, min, max);
     }
 
     /**
@@ -134,10 +156,19 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, Authorized {
     function _getPrice(address base, address quote) internal view virtual returns (uint256);
 
     /**
+     * @dev Tells the threshold that should be used for a token, it prioritizes custom thresholds over the default one
+     * @param token Address of the token being queried
+     */
+    function _getTokenThreshold(address token) internal view returns (Threshold memory) {
+        Threshold storage customThreshold = _customThresholds[token];
+        return customThreshold.token == address(0) ? _defaultThreshold : customThreshold;
+    }
+
+    /**
      * @dev Before token threshold task hook
      */
     function _beforeTokenThresholdTask(address token, uint256 amount) internal virtual {
-        Threshold memory threshold = getTokenThreshold(token);
+        Threshold memory threshold = _getTokenThreshold(token);
         if (threshold.token == address(0)) return;
 
         uint256 convertedAmount = threshold.token == token ? amount : amount.mulDown(_getPrice(token, threshold.token));
@@ -155,27 +186,25 @@ abstract contract TokenThresholdTask is ITokenThresholdTask, Authorized {
     /**
      * @dev Sets a new default threshold config
      * @param thresholdToken New threshold token to be set
-     * @param thresholdMin New threshold minimum to be set
-     * @param thresholdMax New threshold maximum to be set
+     * @param min New threshold minimum to be set
+     * @param max New threshold maximum to be set
      */
-    function _setDefaultTokenThreshold(address thresholdToken, uint256 thresholdMin, uint256 thresholdMax) internal {
-        _setTokenThreshold(_defaultThreshold, thresholdToken, thresholdMin, thresholdMax);
-        emit DefaultTokenThresholdSet(thresholdToken, thresholdMin, thresholdMax);
+    function _setDefaultTokenThreshold(address thresholdToken, uint256 min, uint256 max) internal {
+        _setTokenThreshold(_defaultThreshold, thresholdToken, min, max);
+        emit DefaultTokenThresholdSet(thresholdToken, min, max);
     }
 
     /**
      * @dev Sets a custom of tokens thresholds
      * @param token Address of the token to set a custom threshold for
      * @param thresholdToken New custom threshold token to be set
-     * @param thresholdMin New custom threshold minimum to be set
-     * @param thresholdMax New custom threshold maximum to be set
+     * @param min New custom threshold minimum to be set
+     * @param max New custom threshold maximum to be set
      */
-    function _setCustomTokenThreshold(address token, address thresholdToken, uint256 thresholdMin, uint256 thresholdMax)
-        internal
-    {
+    function _setCustomTokenThreshold(address token, address thresholdToken, uint256 min, uint256 max) internal {
         if (token == address(0)) revert TaskThresholdTokenZero();
-        _setTokenThreshold(_customThresholds[token], thresholdToken, thresholdMin, thresholdMax);
-        emit CustomTokenThresholdSet(token, thresholdToken, thresholdMin, thresholdMax);
+        _setTokenThreshold(_customThresholds[token], thresholdToken, min, max);
+        emit CustomTokenThresholdSet(token, thresholdToken, min, max);
     }
 
     /**
