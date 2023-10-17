@@ -33,8 +33,9 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
         it('can be set', async function () {
           const tx = await this.task.setBalanceConnectors(previous, next)
 
-          expect(await this.task.previousBalanceConnectorId()).to.be.equal(previous)
-          expect(await this.task.nextBalanceConnectorId()).to.be.equal(next)
+          const connectors = await this.task.getBalanceConnectors()
+          expect(connectors.previous).to.be.equal(previous)
+          expect(connectors.next).to.be.equal(next)
 
           await assertEvent(tx, 'BalanceConnectorsSet', { previous, next })
         })

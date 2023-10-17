@@ -50,16 +50,6 @@ interface IBaseTask is IAuthorized {
     function smartVault() external view returns (address);
 
     /**
-     * @dev Tells the balance connector id of the previous task in the workflow
-     */
-    function previousBalanceConnectorId() external view returns (bytes32);
-
-    /**
-     * @dev Tells the balance connector id of the next task in the workflow
-     */
-    function nextBalanceConnectorId() external view returns (bytes32);
-
-    /**
      * @dev Tells the address from where the token amounts to execute this task are fetched.
      * This address must the the Smart Vault in case the previous balance connector is set.
      */
@@ -70,6 +60,11 @@ interface IBaseTask is IAuthorized {
      * @param token Address of the token being queried
      */
     function getTaskAmount(address token) external view returns (uint256);
+
+    /**
+     * @dev Tells the previous and next balance connectors id of the previous task in the workflow
+     */
+    function getBalanceConnectors() external view returns (bytes32 previous, bytes32 next);
 
     /**
      * @dev Sets the balance connector IDs

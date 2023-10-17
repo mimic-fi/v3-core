@@ -137,8 +137,9 @@ describe('BaseTask', () => {
         it('can be set', async () => {
           const tx = await task.setBalanceConnectors(previous, next)
 
-          expect(await task.previousBalanceConnectorId()).to.be.equal(previous)
-          expect(await task.nextBalanceConnectorId()).to.be.equal(next)
+          const connectors = await task.getBalanceConnectors()
+          expect(connectors.previous).to.be.equal(previous)
+          expect(connectors.next).to.be.equal(next)
 
           await assertEvent(tx, 'BalanceConnectorsSet', { previous, next })
         })
