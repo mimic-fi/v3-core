@@ -20,7 +20,7 @@ export function itBehavesLikeConnextConnector(
   })
 
   context('when the recipient is not the zero address', async () => {
-    const slippage = 0.5
+    const slippage = 0.05
     const relayerFee = amount.div(10)
 
     let minAmountOut: BigNumber, amountAfterFees: BigNumber

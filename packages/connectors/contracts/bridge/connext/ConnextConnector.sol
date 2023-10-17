@@ -82,7 +82,7 @@ contract ConnextConnector is IConnextConnector {
 
         // We validated `minAmountOut` is lower than or equal to `amountAfterFees`
         // then we can compute slippage in BPS (e.g. 30 = 0.3%)
-        uint256 slippage = 100 - ((minAmountOut * 100) / amountAfterFees);
+        uint256 slippage = 10000 - ((minAmountOut * 10000) / amountAfterFees);
 
         uint256 preBalance = IERC20(token).balanceOf(address(this));
         ERC20Helpers.approve(token, connext, amount);
