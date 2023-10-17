@@ -32,6 +32,18 @@ abstract contract VolumeLimitedTask is IVolumeLimitedTask, Authorized {
     mapping (address => VolumeLimit) internal _customVolumeLimits;
 
     /**
+     * @dev Volume limit config
+     * @param token Address to measure the volume limit
+     */
+    struct VolumeLimit {
+        address token;
+        uint256 amount;
+        uint256 accrued;
+        uint256 period;
+        uint256 nextResetTime;
+    }
+
+    /**
      * @dev Volume limit params. Only used in the initializer.
      */
     struct VolumeLimitParams {
@@ -82,24 +94,42 @@ abstract contract VolumeLimitedTask is IVolumeLimitedTask, Authorized {
     /**
      * @dev Tells the default volume limit set
      */
-    function defaultVolumeLimit() external view override returns (VolumeLimit memory) {
-        return _defaultVolumeLimit;
+    function defaultVolumeLimit()
+        external
+        view
+        override
+        returns (address limitToken, uint256 amount, uint256 accrued, uint256 period, uint256 nextResetTime)
+    {
+        VolumeLimit memory limit = _defaultVolumeLimit;
+        return (limit.token, limit.amount, limit.accrued, limit.period, limit.nextResetTime);
     }
 
     /**
      * @dev Tells the custom volume limit set for a specific token
      * @param token Address of the token being queried
      */
-    function customVolumeLimit(address token) external view override returns (VolumeLimit memory) {
-        return _customVolumeLimits[token];
+    function customVolumeLimit(address token)
+        external
+        view
+        override
+        returns (address limitToken, uint256 amount, uint256 accrued, uint256 period, uint256 nextResetTime)
+    {
+        VolumeLimit memory limit = _customVolumeLimits[token];
+        return (limit.token, limit.amount, limit.accrued, limit.period, limit.nextResetTime);
     }
 
     /**
      * @dev Tells the volume limit that should be used for a token, it prioritizes custom limits over the default one
      * @param token Address of the token being queried
      */
-    function getVolumeLimit(address token) public view virtual override returns (VolumeLimit memory) {
-        return _getVolumeLimit(token);
+    function getVolumeLimit(address token)
+        external
+        view
+        override
+        returns (address limitToken, uint256 amount, uint256 accrued, uint256 period, uint256 nextResetTime)
+    {
+        VolumeLimit memory limit = _getVolumeLimit(token);
+        return (limit.token, limit.amount, limit.accrued, limit.period, limit.nextResetTime);
     }
 
     /**

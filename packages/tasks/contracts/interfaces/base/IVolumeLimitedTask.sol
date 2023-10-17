@@ -21,18 +21,6 @@ import './IBaseTask.sol';
  */
 interface IVolumeLimitedTask is IBaseTask {
     /**
-     * @dev Volume limit config
-     * @param token Address to measure the volume limit
-     */
-    struct VolumeLimit {
-        address token;
-        uint256 amount;
-        uint256 accrued;
-        uint256 period;
-        uint256 nextResetTime;
-    }
-
-    /**
      * @dev The volume limit token is zero
      */
     error TaskVolumeLimitTokenZero();
@@ -50,7 +38,7 @@ interface IVolumeLimitedTask is IBaseTask {
     /**
      * @dev Emitted every time a default volume limit is set
      */
-    event DefaultVolumeLimitSet(address indexed token, uint256 amount, uint256 period);
+    event DefaultVolumeLimitSet(address indexed limitToken, uint256 amount, uint256 period);
 
     /**
      * @dev Emitted every time a custom volume limit is set
@@ -60,19 +48,28 @@ interface IVolumeLimitedTask is IBaseTask {
     /**
      * @dev Tells the default volume limit set
      */
-    function defaultVolumeLimit() external view returns (VolumeLimit memory);
+    function defaultVolumeLimit()
+        external
+        view
+        returns (address limitToken, uint256 amount, uint256 accrued, uint256 period, uint256 nextResetTime);
 
     /**
      * @dev Tells the custom volume limit set for a specific token
      * @param token Address of the token being queried
      */
-    function customVolumeLimit(address token) external view returns (VolumeLimit memory);
+    function customVolumeLimit(address token)
+        external
+        view
+        returns (address limitToken, uint256 amount, uint256 accrued, uint256 period, uint256 nextResetTime);
 
     /**
      * @dev Tells the volume limit that should be used for a token
      * @param token Address of the token being queried
      */
-    function getVolumeLimit(address token) external view returns (VolumeLimit memory);
+    function getVolumeLimit(address token)
+        external
+        view
+        returns (address limitToken, uint256 amount, uint256 accrued, uint256 period, uint256 nextResetTime);
 
     /**
      * @dev Sets a the default volume limit config
