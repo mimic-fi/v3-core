@@ -25,11 +25,6 @@ contract TokenIndexedTaskMock is BaseTask, TokenIndexedTask {
         _afterTokenIndexedTaskMock(token);
     }
 
-    function isTokenAllowed(address token) external view returns (bool) {
-        bool containsToken = _tokens.contains(token);
-        return tokensAcceptanceType == TokensAcceptanceType.AllowList ? containsToken : !containsToken;
-    }
-
     /**
      * @dev Before token indexed task mock hook
      */

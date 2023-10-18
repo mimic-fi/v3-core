@@ -59,6 +59,12 @@ interface ITokenIndexedTask is IBaseTask {
     function tokensAcceptanceType() external view returns (TokensAcceptanceType);
 
     /**
+     * @dev Tells whether a token is allowed or not
+     * @param token Address of the token being queried
+     */
+    function isTokenAllowed(address token) external view returns (bool);
+
+    /**
      * @dev Sets the tokens acceptance type of the task
      * @param newTokensAcceptanceType New token acceptance type to be set
      */
