@@ -420,10 +420,10 @@ describe('HopBridger', () => {
                     })
 
                     context('when the given fee is above the limit', () => {
+                      const highFee = fee.add(1)
+
                       it('reverts', async () => {
-                        await expect(task.call(token.address, amount, 0, fee.add(1))).to.be.revertedWith(
-                          'TaskFeeAboveMax'
-                        )
+                        await expect(task.call(token.address, amount, 0, highFee)).to.be.revertedWith('TaskFeeAboveMax')
                       })
                     })
                   })

@@ -288,13 +288,14 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
         uint256 maxSlippage = getMaxSlippage(token);
         if (slippage > maxSlippage) revert TaskSlippageAboveMax(slippage, maxSlippage);
 
+        // If no fee is given we simply ignore the max fee config
         if (fee == 0) return;
 
+        // Otherwise, we revert in case there is no max fee set
         MaxFee memory maxFee = _getMaxFee(token);
-        uint256 convertedFee;
-        if (maxFee.token == address(0)) convertedFee = type(uint256).max;
-        else convertedFee = maxFee.token == token ? fee : fee.mulDown(_getPrice(token, maxFee.token));
+        if (maxFee.token == address(0)) revert TaskFeeAboveMax(fee, maxFee.amount);
 
+        uint256 convertedFee = maxFee.token == token ? fee : fee.mulDown(_getPrice(token, maxFee.token));
         if (convertedFee > maxFee.amount) revert TaskFeeAboveMax(convertedFee, maxFee.amount);
     }
 
