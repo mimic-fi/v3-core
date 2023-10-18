@@ -103,7 +103,7 @@ interface IBaseBridgeTask is ITask {
     /**
      * @dev Emitted every time the default max fee is set
      */
-    event DefaultMaxFeeSet(address indexed token, uint256 amount);
+    event DefaultMaxFeeSet(address indexed maxFeeToken, uint256 amount);
 
     /**
      * @dev Emitted every time a custom destination chain is set for a token
@@ -143,7 +143,7 @@ interface IBaseBridgeTask is ITask {
     /**
      * @dev Tells the default max fee
      */
-    function defaultMaxFee() external view returns (address token, uint256 amount);
+    function defaultMaxFee() external view returns (address maxFeeToken, uint256 amount);
 
     /**
      * @dev Tells the destination chain defined for a specific token

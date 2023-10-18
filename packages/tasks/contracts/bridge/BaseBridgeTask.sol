@@ -137,7 +137,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     /**
      * @dev Tells the default max fee
      */
-    function defaultMaxFee() external view override returns (address token, uint256 amount) {
+    function defaultMaxFee() external view override returns (address maxFeeToken, uint256 amount) {
         MaxFee memory maxFee = _defaultMaxFee;
         return (maxFee.token, maxFee.amount);
     }

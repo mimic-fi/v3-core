@@ -462,14 +462,14 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
           await this.task.setDefaultMaxFee(maxFeeToken, amount)
 
           const defaultMaxFee = await this.task.defaultMaxFee()
-          expect(defaultMaxFee.token).to.be.equal(maxFeeToken)
+          expect(defaultMaxFee.maxFeeToken).to.be.equal(maxFeeToken)
           expect(defaultMaxFee.amount).to.be.equal(amount)
         })
 
         it('emits an event', async function () {
           const tx = await this.task.setDefaultMaxFee(maxFeeToken, amount)
 
-          await assertEvent(tx, 'DefaultMaxFeeSet', { token: maxFeeToken, amount })
+          await assertEvent(tx, 'DefaultMaxFeeSet', { maxFeeToken, amount })
         })
       }
 
