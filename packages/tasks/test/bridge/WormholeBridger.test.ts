@@ -96,7 +96,6 @@ describe('WormholeBridger', () => {
         context('when the amount is not zero', () => {
           const amount = fp(100)
           const relayerFee = fp(35)
-          const minAmountOut = amount.sub(relayerFee)
 
           context('when the destination chain was set', () => {
             const chainId = 1
@@ -123,107 +122,125 @@ describe('WormholeBridger', () => {
                   await token.mint(smartVault.address, amount)
                 })
 
-                beforeEach('set max fee', async () => {
-                  const setDefaultMaxFeeRole = task.interface.getSighash('setDefaultMaxFee')
-                  await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxFeeRole, [])
-                  await task.connect(owner).setDefaultMaxFee(token.address, relayerFee)
-                })
+                const itExecutesTheTaskProperly = (requestedAmount: BigNumberish, relayerFee: BigNumberish) => {
+                  it('executes the expected connector', async () => {
+                    const tx = await task.call(token.address, requestedAmount, relayerFee)
 
-                context('when the given fee is below the limit', () => {
-                  const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
-                    it('executes the expected connector', async () => {
-                      const tx = await task.call(token.address, requestedAmount, relayerFee)
+                    const minAmountOut = amount.sub(relayerFee)
 
-                      const connectorData = connector.interface.encodeFunctionData('execute', [
-                        chainId,
-                        token.address,
-                        amount,
-                        minAmountOut,
-                        smartVault.address,
-                      ])
+                    const connectorData = connector.interface.encodeFunctionData('execute', [
+                      chainId,
+                      token.address,
+                      amount,
+                      minAmountOut,
+                      smartVault.address,
+                    ])
 
-                      await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
-                        connector,
-                        data: connectorData,
-                      })
-
-                      await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
-                        chainId,
-                        token,
-                        amount,
-                        minAmountOut,
-                        recipient: smartVault,
-                      })
+                    await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
+                      connector,
+                      data: connectorData,
                     })
 
-                    it('emits an Executed event', async () => {
-                      const tx = await task.call(token.address, requestedAmount, relayerFee)
-
-                      await assertEvent(tx, 'Executed')
-                    })
-                  }
-
-                  context('without balance connectors', () => {
-                    const requestedAmount = amount
-
-                    itExecutesTheTaskProperly(requestedAmount)
-
-                    it('does not update any balance connectors', async () => {
-                      const tx = await task.call(token.address, requestedAmount, relayerFee)
-
-                      await assertNoEvent(tx, 'BalanceConnectorUpdated')
+                    await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
+                      chainId,
+                      token,
+                      amount,
+                      minAmountOut,
+                      recipient: smartVault,
                     })
                   })
 
-                  context('with balance connectors', () => {
-                    const requestedAmount = 0
-                    const prevConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000001'
+                  it('emits an Executed event', async () => {
+                    const tx = await task.call(token.address, requestedAmount, relayerFee)
 
-                    beforeEach('set balance connectors', async () => {
-                      const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
-                      await authorizer
-                        .connect(owner)
-                        .authorize(owner.address, task.address, setBalanceConnectorsRole, [])
-                      await task.connect(owner).setBalanceConnectors(prevConnectorId, ZERO_BYTES32)
-                    })
+                    await assertEvent(tx, 'Executed')
+                  })
+                }
 
-                    beforeEach('authorize task to update balance connectors', async () => {
-                      const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-                      await authorizer
-                        .connect(owner)
-                        .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
-                    })
+                context('when the max fee is set', () => {
+                  beforeEach('set max fee', async () => {
+                    const setDefaultMaxFeeRole = task.interface.getSighash('setDefaultMaxFee')
+                    await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxFeeRole, [])
+                    await task.connect(owner).setDefaultMaxFee(token.address, relayerFee)
+                  })
 
-                    beforeEach('assign amount to previous balance connector', async () => {
-                      const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-                      await authorizer
-                        .connect(owner)
-                        .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
-                      await smartVault
-                        .connect(owner)
-                        .updateBalanceConnector(prevConnectorId, token.address, amount, true)
-                    })
+                  context('when the given fee is below the limit', () => {
+                    context('without balance connectors', () => {
+                      const requestedAmount = amount
 
-                    itExecutesTheTaskProperly(requestedAmount)
+                      itExecutesTheTaskProperly(requestedAmount, relayerFee)
 
-                    it('updates the balance connectors properly', async () => {
-                      const tx = await task.call(token.address, requestedAmount, relayerFee)
+                      it('does not update any balance connectors', async () => {
+                        const tx = await task.call(token.address, requestedAmount, relayerFee)
 
-                      await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
-                        id: prevConnectorId,
-                        token,
-                        amount: amount,
-                        added: false,
+                        await assertNoEvent(tx, 'BalanceConnectorUpdated')
                       })
+                    })
+
+                    context('with balance connectors', () => {
+                      const requestedAmount = 0
+                      const prevConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000001'
+
+                      beforeEach('set balance connectors', async () => {
+                        const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+                        await authorizer
+                          .connect(owner)
+                          .authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+                        await task.connect(owner).setBalanceConnectors(prevConnectorId, ZERO_BYTES32)
+                      })
+
+                      beforeEach('authorize task to update balance connectors', async () => {
+                        const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                        await authorizer
+                          .connect(owner)
+                          .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+                      })
+
+                      beforeEach('assign amount to previous balance connector', async () => {
+                        const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                        await authorizer
+                          .connect(owner)
+                          .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
+                        await smartVault
+                          .connect(owner)
+                          .updateBalanceConnector(prevConnectorId, token.address, amount, true)
+                      })
+
+                      itExecutesTheTaskProperly(requestedAmount, relayerFee)
+
+                      it('updates the balance connectors properly', async () => {
+                        const tx = await task.call(token.address, requestedAmount, relayerFee)
+
+                        await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+                          id: prevConnectorId,
+                          token,
+                          amount: amount,
+                          added: false,
+                        })
+                      })
+                    })
+                  })
+
+                  context('when the given fee is above the limit', () => {
+                    const highFee = relayerFee.add(1)
+
+                    it('reverts', async () => {
+                      await expect(task.call(token.address, amount, highFee)).to.be.revertedWith('TaskFeeAboveMax')
                     })
                   })
                 })
 
-                context('when the given fee is above the limit', () => {
-                  it('reverts', async () => {
-                    await expect(task.call(token.address, amount, relayerFee.add(1))).to.be.revertedWith(
-                      'TaskFeeAboveMax'
-                    )
+                context('when the max fee is not set', () => {
+                  context('when the given fee is zero', () => {
+                    const relayerFee = 0
+
+                    itExecutesTheTaskProperly(amount, relayerFee)
+                  })
+
+                  context('when the given fee is not zero', () => {
+                    it('reverts', async () => {
+                      await expect(task.call(token.address, amount, relayerFee)).to.be.revertedWith('TaskFeeAboveMax')
+                    })
                   })
                 })
               })
