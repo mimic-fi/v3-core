@@ -85,15 +85,15 @@ contract AxelarBridger is IAxelarBridger, BaseBridgeTask {
      * @dev Before Axelar bridger hook
      */
     function _beforeAxelarBridger(address token, uint256 amount) internal virtual {
-        // Axelar does not support specifying slippage
-        _beforeBaseBridgeTask(token, amount, 0);
+        // Axelar does not support specifying slippage nor fee
+        _beforeBaseBridgeTask(token, amount, 0, 0);
     }
 
     /**
      * @dev After Axelar bridger task hook
      */
     function _afterAxelarBridger(address token, uint256 amount) internal virtual {
-        // Axelar does not support specifying slippage
-        _afterBaseBridgeTask(token, amount, 0);
+        // Axelar does not support specifying slippage nor fee
+        _afterBaseBridgeTask(token, amount, 0, 0);
     }
 }

@@ -143,7 +143,7 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
      * @dev Before connext bridger hook
      */
     function _beforeConnextBridger(address token, uint256 amount, uint256 slippage, uint256 fee) internal virtual {
-        _beforeBaseBridgeTask(token, amount, slippage);
+        _beforeBaseBridgeTask(token, amount, slippage, fee);
         uint256 feePct = fee.divUp(amount);
         uint256 maxFeePct = getMaxFeePct(token);
         if (feePct > maxFeePct) revert TaskFeePctAboveMax(feePct, maxFeePct);
@@ -152,8 +152,8 @@ contract ConnextBridger is IConnextBridger, BaseBridgeTask {
     /**
      * @dev After connext bridger hook
      */
-    function _afterConnextBridger(address token, uint256 amount, uint256 slippage, uint256) internal virtual {
-        _afterBaseBridgeTask(token, amount, slippage);
+    function _afterConnextBridger(address token, uint256 amount, uint256 slippage, uint256 fee) internal virtual {
+        _afterBaseBridgeTask(token, amount, slippage, fee);
     }
 
     /**

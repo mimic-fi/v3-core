@@ -1,4 +1,12 @@
-import { assertEvent, deployTokenMock, fp, ONES_ADDRESS, ZERO_ADDRESS, ZERO_BYTES32 } from '@mimic-fi/v3-helpers'
+import {
+  assertEvent,
+  BigNumberish,
+  deployTokenMock,
+  fp,
+  ONES_ADDRESS,
+  ZERO_ADDRESS,
+  ZERO_BYTES32,
+} from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
@@ -435,6 +443,144 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
     context('when the sender is not authorized', () => {
       it('reverts', async function () {
         await expect(this.task.setCustomMaxSlippage(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
+      })
+    })
+  })
+
+  describe('setDefaultMaxFee', () => {
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async function () {
+        const setDefaultMaxFeeRole = this.task.interface.getSighash('setDefaultMaxFee')
+        await this.authorizer
+          .connect(this.owner)
+          .authorize(this.owner.address, this.task.address, setDefaultMaxFeeRole, [])
+        this.task = this.task.connect(this.owner)
+      })
+
+      const itCanBeSet = (maxFeeToken: string, amount: BigNumberish) => {
+        it('sets the default max fee', async function () {
+          await this.task.setDefaultMaxFee(maxFeeToken, amount)
+
+          const defaultMaxFee = await this.task.defaultMaxFee()
+          expect(defaultMaxFee.maxFeeToken).to.be.equal(maxFeeToken)
+          expect(defaultMaxFee.amount).to.be.equal(amount)
+        })
+
+        it('emits an event', async function () {
+          const tx = await this.task.setDefaultMaxFee(maxFeeToken, amount)
+
+          await assertEvent(tx, 'DefaultMaxFeeSet', { maxFeeToken, amount })
+        })
+      }
+
+      context('when the max fee token is not zero', () => {
+        const maxFeeToken = ONES_ADDRESS
+        const amount = 5
+
+        itCanBeSet(maxFeeToken, amount)
+      })
+
+      context('when the max fee token is zero', () => {
+        const maxFeeToken = ZERO_ADDRESS
+
+        context('when the max fee amount is zero', () => {
+          const amount = 0
+
+          itCanBeSet(maxFeeToken, amount)
+        })
+
+        context('when the max fee amount is not zero', () => {
+          const amount = 1
+
+          it('reverts', async function () {
+            await expect(this.task.setDefaultMaxFee(maxFeeToken, amount)).to.be.revertedWith('TaskInvalidMaxFee')
+          })
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(this.task.setDefaultMaxFee(ZERO_ADDRESS, 1)).to.be.revertedWith('AuthSenderNotAllowed')
+      })
+    })
+  })
+
+  describe('setCustomMaxFee', () => {
+    let token: Contract
+
+    beforeEach('deploy token', async function () {
+      token = await deployTokenMock('TKN')
+    })
+
+    context('when the sender is authorized', () => {
+      beforeEach('authorize sender', async function () {
+        const setCustomMaxFeeRole = this.task.interface.getSighash('setCustomMaxFee')
+        await this.authorizer
+          .connect(this.owner)
+          .authorize(this.owner.address, this.task.address, setCustomMaxFeeRole, [])
+        this.task = this.task.connect(this.owner)
+      })
+
+      context('when the token is not zero', () => {
+        const itCanBeSet = (maxFeeToken: string, amount: BigNumberish) => {
+          it('sets the max fee', async function () {
+            await this.task.setCustomMaxFee(token.address, maxFeeToken, amount)
+
+            const customMaxFee = await this.task.customMaxFee(token.address)
+            expect(customMaxFee.maxFeeToken).to.be.equal(maxFeeToken)
+            expect(customMaxFee.amount).to.be.equal(amount)
+          })
+
+          it('emits an event', async function () {
+            const tx = await this.task.setCustomMaxFee(token.address, maxFeeToken, amount)
+
+            await assertEvent(tx, 'CustomMaxFeeSet', { token, maxFeeToken, amount })
+          })
+        }
+
+        context('when the max fee token is not zero', () => {
+          const maxFeeToken = ONES_ADDRESS
+          const amount = 5
+
+          itCanBeSet(maxFeeToken, amount)
+        })
+
+        context('when the max fee token is zero', () => {
+          const maxFeeToken = ZERO_ADDRESS
+
+          context('when the max fee amount is zero', () => {
+            const amount = 0
+
+            itCanBeSet(maxFeeToken, amount)
+          })
+
+          context('when the max fee amount is not zero', () => {
+            const amount = 1
+
+            it('reverts', async function () {
+              await expect(this.task.setCustomMaxFee(token.address, maxFeeToken, amount)).to.be.revertedWith(
+                'TaskInvalidMaxFee'
+              )
+            })
+          })
+        })
+      })
+
+      context('when the token is zero', () => {
+        const token = ZERO_ADDRESS
+
+        it('reverts', async function () {
+          await expect(this.task.setCustomMaxFee(token, ZERO_ADDRESS, 0)).to.be.revertedWith('TaskTokenZero')
+        })
+      })
+    })
+
+    context('when the sender is not authorized', () => {
+      it('reverts', async function () {
+        await expect(this.task.setCustomMaxFee(ZERO_ADDRESS, ZERO_ADDRESS, 0)).to.be.revertedWith(
+          'AuthSenderNotAllowed'
+        )
       })
     })
   })

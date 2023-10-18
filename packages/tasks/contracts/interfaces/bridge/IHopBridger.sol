@@ -41,16 +41,6 @@ interface IHopBridger is IBaseBridgeTask {
     event MaxDeadlineSet(uint256 maxDeadline);
 
     /**
-     * @dev Emitted every time the default max fee percentage is set
-     */
-    event DefaultMaxFeePctSet(uint256 maxFeePct);
-
-    /**
-     * @dev Emitted every time a custom max fee percentage is set
-     */
-    event CustomMaxFeePctSet(address indexed token, uint256 maxFeePct);
-
-    /**
      * @dev Emitted every time a Hop entrypoint is set for a token
      */
     event TokenHopEntrypointSet(address indexed token, address indexed entrypoint);
@@ -66,25 +56,9 @@ interface IHopBridger is IBaseBridgeTask {
     function maxDeadline() external view returns (uint256);
 
     /**
-     * @dev Tells the default max fee pct
-     */
-    function defaultMaxFeePct() external view returns (uint256);
-
-    /**
-     * @dev Tells the max fee percentage defined for a specific token
-     */
-    function customMaxFeePct(address token) external view returns (uint256 maxFeePct);
-
-    /**
      * @dev Tells Hop entrypoint set for a token
      */
     function tokenHopEntrypoint(address token) external view returns (address entrypoint);
-
-    /**
-     * @dev Tells the max fee percentage that should be used for a token
-     * @param token Address of the token being queried
-     */
-    function getMaxFeePct(address token) external view returns (uint256);
 
     /**
      * @dev Sets the relayer, only used when bridging from L1 to L2
@@ -97,19 +71,6 @@ interface IHopBridger is IBaseBridgeTask {
      * @param maxDeadline New max deadline to be set
      */
     function setMaxDeadline(uint256 maxDeadline) external;
-
-    /**
-     * @dev Sets the default max fee percentage
-     * @param maxFeePct New default max fee percentage to be set
-     */
-    function setDefaultMaxFeePct(uint256 maxFeePct) external;
-
-    /**
-     * @dev Sets a custom max fee percentage
-     * @param token Token address to set a max fee percentage for
-     * @param maxFeePct Max fee percentage to be set for a token
-     */
-    function setCustomMaxFeePct(address token, uint256 maxFeePct) external;
 
     /**
      * @dev Sets an entrypoint for a tokens

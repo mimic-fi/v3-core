@@ -46,17 +46,20 @@ describe('HopBridger', () => {
       [
         {
           relayer: relayer.address,
-          maxFeePct: fp(0.2),
           maxDeadline: MAX_UINT256.div(10),
-          customMaxFeePcts: [],
           tokenHopEntrypoints: [],
           baseBridgeConfig: {
             connector: connector.address,
             recipient: smartVault.address,
             destinationChain: 0,
-            maxSlippage: fp(0.1),
+            maxSlippage: 0,
+            maxFee: {
+              token: ZERO_ADDRESS,
+              amount: 0,
+            },
             customDestinationChains: [],
             customMaxSlippages: [],
+            customMaxFees: [],
             taskConfig: buildEmptyTaskConfig(owner, smartVault),
           },
         },
@@ -138,72 +141,6 @@ describe('HopBridger', () => {
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
         await expect(task.setMaxDeadline(1)).to.be.revertedWith('AuthSenderNotAllowed')
-      })
-    })
-  })
-
-  describe('setDefaultMaxFeePct', () => {
-    const maxFeePct = fp(0.5)
-
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async function () {
-        const setDefaultMaxFeePctRole = task.interface.getSighash('setDefaultMaxFeePct')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxFeePctRole, [])
-        task = task.connect(owner)
-      })
-
-      it('sets the default max fee pct', async function () {
-        await task.setDefaultMaxFeePct(maxFeePct)
-
-        expect(await task.defaultMaxFeePct()).to.be.equal(maxFeePct)
-      })
-
-      it('emits an event', async function () {
-        const tx = await task.setDefaultMaxFeePct(maxFeePct)
-
-        await assertEvent(tx, 'DefaultMaxFeePctSet', { maxFeePct })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async function () {
-        await expect(task.setDefaultMaxFeePct(1)).to.be.revertedWith('AuthSenderNotAllowed')
-      })
-    })
-  })
-
-  describe('setCustomMaxFeePct', () => {
-    const maxFeePct = fp(0.5)
-    let token: Contract
-
-    beforeEach('deploy token', async function () {
-      token = await deployTokenMock('TKN')
-    })
-
-    context('when the sender is authorized', () => {
-      beforeEach('authorize sender', async function () {
-        const setCustomMaxFeePctRole = task.interface.getSighash('setCustomMaxFeePct')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setCustomMaxFeePctRole, [])
-        task = task.connect(owner)
-      })
-
-      it('sets the max fee pct', async function () {
-        await task.setCustomMaxFeePct(token.address, maxFeePct)
-
-        const customMaxFeePct = await task.customMaxFeePct(token.address)
-        expect(customMaxFeePct).to.be.equal(maxFeePct)
-      })
-
-      it('emits an event', async function () {
-        const tx = await task.setCustomMaxFeePct(token.address, maxFeePct)
-
-        await assertEvent(tx, 'CustomMaxFeePctSet', { token, maxFeePct })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async function () {
-        await expect(task.setCustomMaxFeePct(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
@@ -365,97 +302,154 @@ describe('HopBridger', () => {
                   await task.connect(owner).setTokenHopEntrypoint(token.address, entrypoint.address)
                 })
 
-                const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
-                  it('executes the expected connector', async () => {
-                    const tx = await task.call(token.address, requestedAmount, slippage, fee)
+                context('when the slippage is below the limit', () => {
+                  beforeEach('set max slippage', async () => {
+                    const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
+                    await authorizer
+                      .connect(owner)
+                      .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
+                    await task.connect(owner).setDefaultMaxSlippage(slippage)
+                  })
 
-                    const deadline = (await currentTimestamp()).add(MAX_UINT256.div(10))
-                    const minAmountOut = amount.mul(fp(1).sub(slippage)).div(fp(1))
+                  const itExecutesTheTaskProperly = (requestedAmount: BigNumberish, fee: BigNumberish) => {
+                    it('executes the expected connector', async () => {
+                      const tx = await task.call(token.address, requestedAmount, slippage, fee)
 
-                    const connectorData = connector.interface.encodeFunctionData('execute', [
-                      chainId,
-                      token.address,
-                      amount,
-                      minAmountOut,
-                      smartVault.address,
-                      entrypoint.address,
-                      deadline,
-                      relayer.address,
-                      fee,
-                    ])
-                    await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
-                      connector,
-                      data: connectorData,
+                      const deadline = (await currentTimestamp()).add(MAX_UINT256.div(10))
+                      const amountAfterFees = amount.sub(fee)
+                      const minAmountOut = amountAfterFees.mul(fp(1).sub(slippage)).div(fp(1))
+
+                      const connectorData = connector.interface.encodeFunctionData('execute', [
+                        chainId,
+                        token.address,
+                        amount,
+                        minAmountOut,
+                        smartVault.address,
+                        entrypoint.address,
+                        deadline,
+                        relayer.address,
+                        fee,
+                      ])
+                      await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
+                        connector,
+                        data: connectorData,
+                      })
+
+                      await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
+                        chainId,
+                        token,
+                        amount,
+                        minAmountOut,
+                        recipient: smartVault,
+                        bridge: entrypoint,
+                        deadline,
+                        relayer,
+                        fee,
+                      })
                     })
 
-                    await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
-                      chainId,
-                      token,
-                      amount,
-                      minAmountOut,
-                      recipient: smartVault,
-                      bridge: entrypoint,
-                      deadline,
-                      relayer,
-                      fee,
+                    it('emits an Executed event', async () => {
+                      const tx = await task.call(token.address, requestedAmount, slippage, fee)
+
+                      await assertEvent(tx, 'Executed')
+                    })
+                  }
+
+                  context('when the max fee is set', () => {
+                    beforeEach('set max fee', async () => {
+                      const setDefaultMaxFeeRole = task.interface.getSighash('setDefaultMaxFee')
+                      await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultMaxFeeRole, [])
+                      await task.connect(owner).setDefaultMaxFee(token.address, fee)
+                    })
+
+                    context('when the given fee is below the limit', () => {
+                      context('without balance connectors', () => {
+                        const requestedAmount = amount
+
+                        itExecutesTheTaskProperly(requestedAmount, fee)
+
+                        it('does not update any balance connectors', async () => {
+                          const tx = await task.call(token.address, requestedAmount, slippage, fee)
+
+                          await assertNoEvent(tx, 'BalanceConnectorUpdated')
+                        })
+                      })
+
+                      context('with balance connectors', () => {
+                        const requestedAmount = 0
+                        const prevConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000001'
+
+                        beforeEach('set balance connectors', async () => {
+                          const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+                          await authorizer
+                            .connect(owner)
+                            .authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+                          await task.connect(owner).setBalanceConnectors(prevConnectorId, ZERO_BYTES32)
+                        })
+
+                        beforeEach('authorize task to update balance connectors', async () => {
+                          const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                          await authorizer
+                            .connect(owner)
+                            .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+                        })
+
+                        beforeEach('assign amount to previous balance connector', async () => {
+                          const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                          await authorizer
+                            .connect(owner)
+                            .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
+                          await smartVault
+                            .connect(owner)
+                            .updateBalanceConnector(prevConnectorId, token.address, amount, true)
+                        })
+
+                        itExecutesTheTaskProperly(requestedAmount, fee)
+
+                        it('updates the balance connectors properly', async () => {
+                          const tx = await task.call(token.address, amount, slippage, fee)
+
+                          await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+                            id: prevConnectorId,
+                            token,
+                            amount: amount,
+                            added: false,
+                          })
+                        })
+                      })
+                    })
+
+                    context('when the given fee is above the limit', () => {
+                      const highFee = fee.add(1)
+
+                      it('reverts', async () => {
+                        await expect(task.call(token.address, amount, 0, highFee)).to.be.revertedWith('TaskFeeAboveMax')
+                      })
                     })
                   })
 
-                  it('emits an Executed event', async () => {
-                    const tx = await task.call(token.address, requestedAmount, slippage, fee)
+                  context('when the max fee is not set', () => {
+                    context('when the given fee is zero', () => {
+                      const fee = 0
 
-                    await assertEvent(tx, 'Executed')
-                  })
-                }
+                      itExecutesTheTaskProperly(amount, fee)
+                    })
 
-                context('without balance connectors', () => {
-                  const requestedAmount = amount
-
-                  itExecutesTheTaskProperly(requestedAmount)
-
-                  it('does not update any balance connectors', async () => {
-                    const tx = await task.call(token.address, requestedAmount, slippage, fee)
-
-                    await assertNoEvent(tx, 'BalanceConnectorUpdated')
+                    context('when the given fee is not zero', () => {
+                      it('reverts', async () => {
+                        await expect(task.call(token.address, amount, slippage, fee)).to.be.revertedWith(
+                          'TaskFeeAboveMax'
+                        )
+                      })
+                    })
                   })
                 })
 
-                context('with balance connectors', () => {
-                  const requestedAmount = 0
-                  const prevConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000001'
-
-                  beforeEach('set balance connectors', async () => {
-                    const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
-                    await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
-                    await task.connect(owner).setBalanceConnectors(prevConnectorId, ZERO_BYTES32)
-                  })
-
-                  beforeEach('authorize task to update balance connectors', async () => {
-                    const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-                    await authorizer
-                      .connect(owner)
-                      .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
-                  })
-
-                  beforeEach('assign amount to previous balance connector', async () => {
-                    const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-                    await authorizer
-                      .connect(owner)
-                      .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
-                    await smartVault.connect(owner).updateBalanceConnector(prevConnectorId, token.address, amount, true)
-                  })
-
-                  itExecutesTheTaskProperly(requestedAmount)
-
-                  it('updates the balance connectors properly', async () => {
-                    const tx = await task.call(token.address, amount, slippage, fee)
-
-                    await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
-                      id: prevConnectorId,
-                      token,
-                      amount: amount,
-                      added: false,
-                    })
+                context('when the slippage is above the limit', () => {
+                  it('reverts', async () => {
+                    await expect(task.call(token.address, amount, slippage, 0)).to.be.revertedWith(
+                      'TaskSlippageAboveMax'
+                    )
                   })
                 })
               })

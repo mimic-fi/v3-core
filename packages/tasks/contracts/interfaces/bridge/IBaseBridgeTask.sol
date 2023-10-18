@@ -71,6 +71,16 @@ interface IBaseBridgeTask is ITask {
     error TaskFeePctAboveMax(uint256 feePct, uint256 maxFeePct);
 
     /**
+     * @dev The requested fee is greater than the maximum fee
+     */
+    error TaskFeeAboveMax(uint256 fee, uint256 maxFee);
+
+    /**
+     * @dev The max fee token is zero but the max fee value is not zero
+     */
+    error TaskInvalidMaxFee();
+
+    /**
      * @dev Emitted every time the connector is set
      */
     event ConnectorSet(address indexed connector);
@@ -91,6 +101,11 @@ interface IBaseBridgeTask is ITask {
     event DefaultMaxSlippageSet(uint256 maxSlippage);
 
     /**
+     * @dev Emitted every time the default max fee is set
+     */
+    event DefaultMaxFeeSet(address indexed maxFeeToken, uint256 amount);
+
+    /**
      * @dev Emitted every time a custom destination chain is set for a token
      */
     event CustomDestinationChainSet(address indexed token, uint256 indexed destinationChain);
@@ -99,6 +114,11 @@ interface IBaseBridgeTask is ITask {
      * @dev Emitted every time a custom max slippage is set
      */
     event CustomMaxSlippageSet(address indexed token, uint256 maxSlippage);
+
+    /**
+     * @dev Emitted every time a custom max fee is set
+     */
+    event CustomMaxFeeSet(address indexed token, address indexed maxFeeToken, uint256 amount);
 
     /**
      * @dev Tells the connector tied to the task
@@ -121,6 +141,11 @@ interface IBaseBridgeTask is ITask {
     function defaultMaxSlippage() external view returns (uint256);
 
     /**
+     * @dev Tells the default max fee
+     */
+    function defaultMaxFee() external view returns (address maxFeeToken, uint256 amount);
+
+    /**
      * @dev Tells the destination chain defined for a specific token
      * @param token Address of the token being queried
      */
@@ -133,6 +158,12 @@ interface IBaseBridgeTask is ITask {
     function customMaxSlippage(address token) external view returns (uint256);
 
     /**
+     * @dev Tells the max fee defined for a specific token
+     * @param token Address of the token being queried
+     */
+    function customMaxFee(address token) external view returns (address maxFeeToken, uint256 amount);
+
+    /**
      * @dev Tells the destination chain that should be used for a token
      * @param token Address of the token to get the destination chain for
      */
@@ -143,6 +174,12 @@ interface IBaseBridgeTask is ITask {
      * @param token Address of the token to get the max slippage for
      */
     function getMaxSlippage(address token) external view returns (uint256);
+
+    /**
+     * @dev Tells the max fee that should be used for a token
+     * @param token Address of the token to get the max fee for
+     */
+    function getMaxFee(address token) external view returns (address maxFeeToken, uint256 amount);
 
     /**
      * @dev Sets a new connector
@@ -169,6 +206,13 @@ interface IBaseBridgeTask is ITask {
     function setDefaultMaxSlippage(uint256 maxSlippage) external;
 
     /**
+     * @dev Sets the default max fee
+     * @param maxFeeToken Default max fee token to be set
+     * @param amount Default max fee amount to be set
+     */
+    function setDefaultMaxFee(address maxFeeToken, uint256 amount) external;
+
+    /**
      * @dev Sets a custom destination chain for a token
      * @param token Address of the token to set a custom destination chain for
      * @param destinationChain Destination chain to be set
@@ -181,4 +225,12 @@ interface IBaseBridgeTask is ITask {
      * @param maxSlippage Max slippage to be set
      */
     function setCustomMaxSlippage(address token, uint256 maxSlippage) external;
+
+    /**
+     * @dev Sets a custom max fee
+     * @param token Address of the token to set a custom max fee for
+     * @param maxFeeToken Max fee token to be set for the given token
+     * @param amount Max fee amount to be set for the given token
+     */
+    function setCustomMaxFee(address token, address maxFeeToken, uint256 amount) external;
 }

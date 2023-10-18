@@ -38,11 +38,25 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     // Default maximum slippage in fixed point
     uint256 public override defaultMaxSlippage;
 
+    // Default maximum fee
+    MaxFee internal _defaultMaxFee;
+
     // Destination chain per token address
     mapping (address => uint256) public override customDestinationChain;
 
     // Maximum slippage per token address
     mapping (address => uint256) public override customMaxSlippage;
+
+    // Maximum fee per token address
+    mapping (address => MaxFee) internal _customMaxFee;
+
+    /**
+     * @dev Maximum fee defined by a token address and a max fee value
+     */
+    struct MaxFee {
+        address token;
+        uint256 amount;
+    }
 
     /**
      * @dev Custom destination chain config. Only used in the initializer.
@@ -61,6 +75,14 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     }
 
     /**
+     * @dev Custom max fee config. Only used in the initializer.
+     */
+    struct CustomMaxFee {
+        address token;
+        MaxFee maxFee;
+    }
+
+    /**
      * @dev Base bridge config. Only used in the initializer.
      */
     struct BaseBridgeConfig {
@@ -68,8 +90,10 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
         address recipient;
         uint256 destinationChain;
         uint256 maxSlippage;
+        MaxFee maxFee;
         CustomDestinationChain[] customDestinationChains;
         CustomMaxSlippage[] customMaxSlippages;
+        CustomMaxFee[] customMaxFees;
         TaskConfig taskConfig;
     }
 
@@ -91,6 +115,8 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
         _setRecipient(config.recipient);
         _setDefaultDestinationChain(config.destinationChain);
         _setDefaultMaxSlippage(config.maxSlippage);
+        MaxFee memory defaultFee = config.maxFee;
+        _setDefaultMaxFee(defaultFee.token, defaultFee.amount);
 
         for (uint256 i = 0; i < config.customDestinationChains.length; i++) {
             CustomDestinationChain memory customConfig = config.customDestinationChains[i];
@@ -100,6 +126,29 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
         for (uint256 i = 0; i < config.customMaxSlippages.length; i++) {
             _setCustomMaxSlippage(config.customMaxSlippages[i].token, config.customMaxSlippages[i].maxSlippage);
         }
+
+        for (uint256 i = 0; i < config.customMaxFees.length; i++) {
+            CustomMaxFee memory customConfig = config.customMaxFees[i];
+            MaxFee memory maxFee = customConfig.maxFee;
+            _setCustomMaxFee(customConfig.token, maxFee.token, maxFee.amount);
+        }
+    }
+
+    /**
+     * @dev Tells the default max fee
+     */
+    function defaultMaxFee() external view override returns (address maxFeeToken, uint256 amount) {
+        MaxFee memory maxFee = _defaultMaxFee;
+        return (maxFee.token, maxFee.amount);
+    }
+
+    /**
+     * @dev Tells the max fee defined for a specific token
+     * @param token Address of the token being queried
+     */
+    function customMaxFee(address token) external view override returns (address maxFeeToken, uint256 amount) {
+        MaxFee memory maxFee = _customMaxFee[token];
+        return (maxFee.token, maxFee.amount);
     }
 
     /**
@@ -118,6 +167,15 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     function getMaxSlippage(address token) public view virtual override returns (uint256) {
         uint256 maxSlippage = customMaxSlippage[token];
         return maxSlippage == 0 ? defaultMaxSlippage : maxSlippage;
+    }
+
+    /**
+     * @dev Tells the max fee that should be used for a token
+     * @param token Address of the token to get the max fee for
+     */
+    function getMaxFee(address token) external view virtual override returns (address maxFeeToken, uint256 amount) {
+        MaxFee memory maxFee = _getMaxFee(token);
+        return (maxFee.token, maxFee.amount);
     }
 
     /**
@@ -157,6 +215,19 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     }
 
     /**
+     * @dev Sets the default max fee
+     * @param maxFeeToken Default max fee token to be set
+     * @param amount Default max fee amount to be set
+     */
+    function setDefaultMaxFee(address maxFeeToken, uint256 amount)
+        external
+        override
+        authP(authParams(maxFeeToken, amount))
+    {
+        _setDefaultMaxFee(maxFeeToken, amount);
+    }
+
+    /**
      * @dev Sets a custom destination chain
      * @param token Address of the token to set a custom destination chain for
      * @param destinationChain Destination chain to be set
@@ -183,9 +254,32 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     }
 
     /**
+     * @dev Sets a custom max fee
+     * @param token Address of the token to set a custom max fee for
+     * @param maxFeeToken Max fee token to be set for the given token
+     * @param amount Max fee amount to be set for the given token
+     */
+    function setCustomMaxFee(address token, address maxFeeToken, uint256 amount)
+        external
+        override
+        authP(authParams(token, maxFeeToken, amount))
+    {
+        _setCustomMaxFee(token, maxFeeToken, amount);
+    }
+
+    /**
+     * @dev Tells the max fee that should be used for a token
+     * @param token Address of the token to get the max fee for
+     */
+    function _getMaxFee(address token) internal view virtual returns (MaxFee memory) {
+        MaxFee memory maxFee = _customMaxFee[token];
+        return maxFee.token == address(0) ? _defaultMaxFee : maxFee;
+    }
+
+    /**
      * @dev Before base bridge task hook
      */
-    function _beforeBaseBridgeTask(address token, uint256 amount, uint256 slippage) internal virtual {
+    function _beforeBaseBridgeTask(address token, uint256 amount, uint256 slippage, uint256 fee) internal virtual {
         _beforeTask(token, amount);
         if (token == address(0)) revert TaskTokenZero();
         if (amount == 0) revert TaskAmountZero();
@@ -193,12 +287,22 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
 
         uint256 maxSlippage = getMaxSlippage(token);
         if (slippage > maxSlippage) revert TaskSlippageAboveMax(slippage, maxSlippage);
+
+        // If no fee is given we simply ignore the max fee config
+        if (fee == 0) return;
+
+        // Otherwise, we revert in case there is no max fee set
+        MaxFee memory maxFee = _getMaxFee(token);
+        if (maxFee.token == address(0)) revert TaskFeeAboveMax(fee, maxFee.amount);
+
+        uint256 convertedFee = maxFee.token == token ? fee : fee.mulDown(_getPrice(token, maxFee.token));
+        if (convertedFee > maxFee.amount) revert TaskFeeAboveMax(convertedFee, maxFee.amount);
     }
 
     /**
      * @dev After base bridge task hook
      */
-    function _afterBaseBridgeTask(address token, uint256 amount, uint256) internal virtual {
+    function _afterBaseBridgeTask(address token, uint256 amount, uint256, uint256) internal virtual {
         _afterTask(token, amount);
     }
 
@@ -253,6 +357,16 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     }
 
     /**
+     * @dev Sets the default max fee
+     * @param maxFeeToken Default max fee token to be set
+     * @param amount Default max fee amount to be set
+     */
+    function _setDefaultMaxFee(address maxFeeToken, uint256 amount) internal {
+        _setMaxFee(_defaultMaxFee, maxFeeToken, amount);
+        emit DefaultMaxFeeSet(maxFeeToken, amount);
+    }
+
+    /**
      * @dev Sets a custom destination chain for a token
      * @param token Address of the token to set the custom destination chain for
      * @param destinationChain Destination chain to be set
@@ -274,5 +388,29 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
         if (maxSlippage > FixedPoint.ONE) revert TaskSlippageAboveOne();
         customMaxSlippage[token] = maxSlippage;
         emit CustomMaxSlippageSet(token, maxSlippage);
+    }
+
+    /**
+     * @dev Sets a custom max fee for a token
+     * @param token Address of the token to set the custom max fee for
+     * @param maxFeeToken Max fee token to be set for the given token
+     * @param amount Max fee amount to be set for the given token
+     */
+    function _setCustomMaxFee(address token, address maxFeeToken, uint256 amount) internal {
+        if (token == address(0)) revert TaskTokenZero();
+        _setMaxFee(_customMaxFee[token], maxFeeToken, amount);
+        emit CustomMaxFeeSet(token, maxFeeToken, amount);
+    }
+
+    /**
+     * @dev Sets a max fee
+     * @param maxFee Max fee to be updated
+     * @param token Max fee token to be set
+     * @param amount Max fee amount to be set
+     */
+    function _setMaxFee(MaxFee storage maxFee, address token, uint256 amount) private {
+        if (token == address(0) && amount != 0) revert TaskInvalidMaxFee();
+        maxFee.token = token;
+        maxFee.amount = amount;
     }
 }
