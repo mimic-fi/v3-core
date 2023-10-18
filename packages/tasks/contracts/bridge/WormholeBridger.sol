@@ -87,6 +87,7 @@ contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
      * @dev Before Wormhole bridger hook
      */
     function _beforeWormholeBridger(address token, uint256 amount, uint256 fee) internal virtual {
+        // Wormhole does not support specifying slippage
         _beforeBaseBridgeTask(token, amount, 0, fee);
     }
 
@@ -94,6 +95,7 @@ contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
      * @dev After Wormhole bridger hook
      */
     function _afterWormholeBridger(address token, uint256 amount, uint256 fee) internal virtual {
+        // Wormhole does not support specifying slippage
         _afterBaseBridgeTask(token, amount, 0, fee);
     }
 }
