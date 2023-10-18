@@ -21,14 +21,6 @@ import '../ITask.sol';
  */
 interface IBaseBridgeTask is ITask {
     /**
-     * @dev Maximum fee defined by a token address and a max fee value
-     */
-    struct MaxFee {
-        address token;
-        uint256 maxFee;
-    }
-
-    /**
      * @dev The token is zero
      */
     error TaskTokenZero();
@@ -81,7 +73,7 @@ interface IBaseBridgeTask is ITask {
     /**
      * @dev The requested fee is greater than the maximum fee
      */
-    error TaskFeeAboveMax(address token, uint256 maxFee, uint256 fee);
+    error TaskFeeAboveMax(uint256 fee, uint256 maxFee);
 
     /**
      * @dev The max fee token is zero but the max fee value is not zero
@@ -111,7 +103,7 @@ interface IBaseBridgeTask is ITask {
     /**
      * @dev Emitted every time the default max fee is set
      */
-    event DefaultMaxFeeSet(address indexed token, uint256 maxFee);
+    event DefaultMaxFeeSet(address indexed token, uint256 amount);
 
     /**
      * @dev Emitted every time a custom destination chain is set for a token
@@ -126,7 +118,7 @@ interface IBaseBridgeTask is ITask {
     /**
      * @dev Emitted every time a custom max fee is set
      */
-    event CustomMaxFeeSet(address indexed token, address indexed maxFeeToken, uint256 maxFee);
+    event CustomMaxFeeSet(address indexed token, address indexed maxFeeToken, uint256 amount);
 
     /**
      * @dev Tells the connector tied to the task
@@ -151,7 +143,7 @@ interface IBaseBridgeTask is ITask {
     /**
      * @dev Tells the default max fee
      */
-    function defaultMaxFee() external view returns (MaxFee memory);
+    function defaultMaxFee() external view returns (address token, uint256 amount);
 
     /**
      * @dev Tells the destination chain defined for a specific token
@@ -169,7 +161,7 @@ interface IBaseBridgeTask is ITask {
      * @dev Tells the max fee defined for a specific token
      * @param token Address of the token being queried
      */
-    function customMaxFee(address token) external view returns (MaxFee memory);
+    function customMaxFee(address token) external view returns (address maxFeeToken, uint256 amount);
 
     /**
      * @dev Tells the destination chain that should be used for a token
@@ -187,7 +179,7 @@ interface IBaseBridgeTask is ITask {
      * @dev Tells the max fee that should be used for a token
      * @param token Address of the token to get the max fee for
      */
-    function getMaxFee(address token) external view returns (MaxFee memory);
+    function getMaxFee(address token) external view returns (address maxFeeToken, uint256 amount);
 
     /**
      * @dev Sets a new connector
@@ -216,9 +208,9 @@ interface IBaseBridgeTask is ITask {
     /**
      * @dev Sets the default max fee
      * @param maxFeeToken Default max fee token to be set
-     * @param maxFee Default max fee to be set
+     * @param amount Default max fee amount to be set
      */
-    function setDefaultMaxFee(address maxFeeToken, uint256 maxFee) external;
+    function setDefaultMaxFee(address maxFeeToken, uint256 amount) external;
 
     /**
      * @dev Sets a custom destination chain for a token
@@ -237,8 +229,8 @@ interface IBaseBridgeTask is ITask {
     /**
      * @dev Sets a custom max fee
      * @param token Address of the token to set a custom max fee for
-     * @param maxFeeToken Default max fee token to be set
-     * @param maxFee Default max fee to be set
+     * @param maxFeeToken Max fee token to be set for the given token
+     * @param amount Max fee amount to be set for the given token
      */
-    function setCustomMaxFee(address token, address maxFeeToken, uint256 maxFee) external;
+    function setCustomMaxFee(address token, address maxFeeToken, uint256 amount) external;
 }

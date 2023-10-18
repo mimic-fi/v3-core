@@ -55,7 +55,7 @@ describe('HopBridger', () => {
             maxSlippage: fp(0.1),
             maxFee: {
               token: ZERO_ADDRESS,
-              maxFee: 0,
+              amount: 0,
             },
             customDestinationChains: [],
             customMaxSlippages: [],

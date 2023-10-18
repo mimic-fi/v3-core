@@ -50,7 +50,7 @@ describe('AxelarBridger', () => {
             maxSlippage: 0,
             maxFee: {
               token: ZERO_ADDRESS,
-              maxFee: 0,
+              amount: 0,
             },
             customDestinationChains: [],
             customMaxSlippages: [],

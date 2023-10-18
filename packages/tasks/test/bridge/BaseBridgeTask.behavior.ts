@@ -457,43 +457,43 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
         this.task = this.task.connect(this.owner)
       })
 
-      const itCanBeSet = (maxFeeToken: string, maxFee: BigNumberish) => {
+      const itCanBeSet = (maxFeeToken: string, amount: BigNumberish) => {
         it('sets the default max fee', async function () {
-          await this.task.setDefaultMaxFee(maxFeeToken, maxFee)
+          await this.task.setDefaultMaxFee(maxFeeToken, amount)
 
           const defaultMaxFee = await this.task.defaultMaxFee()
           expect(defaultMaxFee.token).to.be.equal(maxFeeToken)
-          expect(defaultMaxFee.maxFee).to.be.equal(maxFee)
+          expect(defaultMaxFee.amount).to.be.equal(amount)
         })
 
         it('emits an event', async function () {
-          const tx = await this.task.setDefaultMaxFee(maxFeeToken, maxFee)
+          const tx = await this.task.setDefaultMaxFee(maxFeeToken, amount)
 
-          await assertEvent(tx, 'DefaultMaxFeeSet', { token: maxFeeToken, maxFee })
+          await assertEvent(tx, 'DefaultMaxFeeSet', { token: maxFeeToken, amount })
         })
       }
 
       context('when the max fee token is not zero', () => {
         const maxFeeToken = ONES_ADDRESS
-        const maxFee = 5
+        const amount = 5
 
-        itCanBeSet(maxFeeToken, maxFee)
+        itCanBeSet(maxFeeToken, amount)
       })
 
       context('when the max fee token is zero', () => {
         const maxFeeToken = ZERO_ADDRESS
 
-        context('when the max fee is zero', () => {
-          const maxFee = 0
+        context('when the max fee amount is zero', () => {
+          const amount = 0
 
-          itCanBeSet(maxFeeToken, maxFee)
+          itCanBeSet(maxFeeToken, amount)
         })
 
-        context('when the max fee is not zero', () => {
-          const maxFee = 1
+        context('when the max fee amount is not zero', () => {
+          const amount = 1
 
           it('reverts', async function () {
-            await expect(this.task.setDefaultMaxFee(maxFeeToken, maxFee)).to.be.revertedWith('TaskInvalidMaxFee')
+            await expect(this.task.setDefaultMaxFee(maxFeeToken, amount)).to.be.revertedWith('TaskInvalidMaxFee')
           })
         })
       })
@@ -523,43 +523,43 @@ export function itBehavesLikeBaseBridgeTask(executionType: string): void {
       })
 
       context('when the token is not zero', () => {
-        const itCanBeSet = (maxFeeToken: string, maxFee: BigNumberish) => {
+        const itCanBeSet = (maxFeeToken: string, amount: BigNumberish) => {
           it('sets the max fee', async function () {
-            await this.task.setCustomMaxFee(token.address, maxFeeToken, maxFee)
+            await this.task.setCustomMaxFee(token.address, maxFeeToken, amount)
 
             const customMaxFee = await this.task.customMaxFee(token.address)
-            expect(customMaxFee.token).to.be.equal(maxFeeToken)
-            expect(customMaxFee.maxFee).to.be.equal(maxFee)
+            expect(customMaxFee.maxFeeToken).to.be.equal(maxFeeToken)
+            expect(customMaxFee.amount).to.be.equal(amount)
           })
 
           it('emits an event', async function () {
-            const tx = await this.task.setCustomMaxFee(token.address, maxFeeToken, maxFee)
+            const tx = await this.task.setCustomMaxFee(token.address, maxFeeToken, amount)
 
-            await assertEvent(tx, 'CustomMaxFeeSet', { token, maxFeeToken, maxFee })
+            await assertEvent(tx, 'CustomMaxFeeSet', { token, maxFeeToken, amount })
           })
         }
 
         context('when the max fee token is not zero', () => {
           const maxFeeToken = ONES_ADDRESS
-          const maxFee = 5
+          const amount = 5
 
-          itCanBeSet(maxFeeToken, maxFee)
+          itCanBeSet(maxFeeToken, amount)
         })
 
         context('when the max fee token is zero', () => {
           const maxFeeToken = ZERO_ADDRESS
 
-          context('when the max fee is zero', () => {
-            const maxFee = 0
+          context('when the max fee amount is zero', () => {
+            const amount = 0
 
-            itCanBeSet(maxFeeToken, maxFee)
+            itCanBeSet(maxFeeToken, amount)
           })
 
-          context('when the max fee is not zero', () => {
-            const maxFee = 1
+          context('when the max fee amount is not zero', () => {
+            const amount = 1
 
             it('reverts', async function () {
-              await expect(this.task.setCustomMaxFee(token.address, maxFeeToken, maxFee)).to.be.revertedWith(
+              await expect(this.task.setCustomMaxFee(token.address, maxFeeToken, amount)).to.be.revertedWith(
                 'TaskInvalidMaxFee'
               )
             })

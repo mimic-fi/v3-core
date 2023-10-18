@@ -51,6 +51,14 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     mapping (address => MaxFee) internal _customMaxFee;
 
     /**
+     * @dev Maximum fee defined by a token address and a max fee value
+     */
+    struct MaxFee {
+        address token;
+        uint256 amount;
+    }
+
+    /**
      * @dev Custom destination chain config. Only used in the initializer.
      */
     struct CustomDestinationChain {
@@ -108,7 +116,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
         _setDefaultDestinationChain(config.destinationChain);
         _setDefaultMaxSlippage(config.maxSlippage);
         MaxFee memory defaultFee = config.maxFee;
-        _setDefaultMaxFee(defaultFee.token, defaultFee.maxFee);
+        _setDefaultMaxFee(defaultFee.token, defaultFee.amount);
 
         for (uint256 i = 0; i < config.customDestinationChains.length; i++) {
             CustomDestinationChain memory customConfig = config.customDestinationChains[i];
@@ -122,23 +130,25 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
         for (uint256 i = 0; i < config.customMaxFees.length; i++) {
             CustomMaxFee memory customConfig = config.customMaxFees[i];
             MaxFee memory maxFee = customConfig.maxFee;
-            _setCustomMaxFee(customConfig.token, maxFee.token, maxFee.maxFee);
+            _setCustomMaxFee(customConfig.token, maxFee.token, maxFee.amount);
         }
     }
 
     /**
      * @dev Tells the default max fee
      */
-    function defaultMaxFee() external view override returns (MaxFee memory) {
-        return _defaultMaxFee;
+    function defaultMaxFee() external view override returns (address token, uint256 amount) {
+        MaxFee memory maxFee = _defaultMaxFee;
+        return (maxFee.token, maxFee.amount);
     }
 
     /**
      * @dev Tells the max fee defined for a specific token
      * @param token Address of the token being queried
      */
-    function customMaxFee(address token) external view override returns (MaxFee memory) {
-        return _customMaxFee[token];
+    function customMaxFee(address token) external view override returns (address maxFeeToken, uint256 amount) {
+        MaxFee memory maxFee = _customMaxFee[token];
+        return (maxFee.token, maxFee.amount);
     }
 
     /**
@@ -163,9 +173,9 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
      * @dev Tells the max fee that should be used for a token
      * @param token Address of the token to get the max fee for
      */
-    function getMaxFee(address token) public view virtual override returns (MaxFee memory) {
-        MaxFee memory maxFee = _customMaxFee[token];
-        return maxFee.token == address(0) ? _defaultMaxFee : maxFee;
+    function getMaxFee(address token) external view virtual override returns (address maxFeeToken, uint256 amount) {
+        MaxFee memory maxFee = _getMaxFee(token);
+        return (maxFee.token, maxFee.amount);
     }
 
     /**
@@ -207,14 +217,14 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     /**
      * @dev Sets the default max fee
      * @param maxFeeToken Default max fee token to be set
-     * @param maxFee Default max fee to be set
+     * @param amount Default max fee amount to be set
      */
-    function setDefaultMaxFee(address maxFeeToken, uint256 maxFee)
+    function setDefaultMaxFee(address maxFeeToken, uint256 amount)
         external
         override
-        authP(authParams(maxFeeToken, maxFee))
+        authP(authParams(maxFeeToken, amount))
     {
-        _setDefaultMaxFee(maxFeeToken, maxFee);
+        _setDefaultMaxFee(maxFeeToken, amount);
     }
 
     /**
@@ -246,15 +256,24 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     /**
      * @dev Sets a custom max fee
      * @param token Address of the token to set a custom max fee for
-     * @param maxFeeToken Default max fee token to be set
-     * @param maxFee Default max fee to be set
+     * @param maxFeeToken Max fee token to be set for the given token
+     * @param amount Max fee amount to be set for the given token
      */
-    function setCustomMaxFee(address token, address maxFeeToken, uint256 maxFee)
+    function setCustomMaxFee(address token, address maxFeeToken, uint256 amount)
         external
         override
-        authP(authParams(token, maxFeeToken, maxFee))
+        authP(authParams(token, maxFeeToken, amount))
     {
-        _setCustomMaxFee(token, maxFeeToken, maxFee);
+        _setCustomMaxFee(token, maxFeeToken, amount);
+    }
+
+    /**
+     * @dev Tells the max fee that should be used for a token
+     * @param token Address of the token to get the max fee for
+     */
+    function _getMaxFee(address token) internal view virtual returns (MaxFee memory) {
+        MaxFee memory maxFee = _customMaxFee[token];
+        return maxFee.token == address(0) ? _defaultMaxFee : maxFee;
     }
 
     /**
@@ -269,11 +288,11 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
         uint256 maxSlippage = getMaxSlippage(token);
         if (slippage > maxSlippage) revert TaskSlippageAboveMax(slippage, maxSlippage);
 
-        MaxFee memory maxFee = getMaxFee(token);
+        MaxFee memory maxFee = _getMaxFee(token);
         if (maxFee.token == address(0)) return;
 
         uint256 convertedFee = maxFee.token == token ? fee : fee.mulDown(_getPrice(token, maxFee.token));
-        if (convertedFee > maxFee.maxFee) revert TaskFeeAboveMax(maxFee.token, maxFee.maxFee, convertedFee);
+        if (convertedFee > maxFee.amount) revert TaskFeeAboveMax(convertedFee, maxFee.amount);
     }
 
     /**
@@ -336,11 +355,11 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     /**
      * @dev Sets the default max fee
      * @param maxFeeToken Default max fee token to be set
-     * @param maxFee Default max fee to be set
+     * @param amount Default max fee amount to be set
      */
-    function _setDefaultMaxFee(address maxFeeToken, uint256 maxFee) internal {
-        _setMaxFee(_defaultMaxFee, maxFeeToken, maxFee);
-        emit DefaultMaxFeeSet(maxFeeToken, maxFee);
+    function _setDefaultMaxFee(address maxFeeToken, uint256 amount) internal {
+        _setMaxFee(_defaultMaxFee, maxFeeToken, amount);
+        emit DefaultMaxFeeSet(maxFeeToken, amount);
     }
 
     /**
@@ -370,24 +389,24 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     /**
      * @dev Sets a custom max fee for a token
      * @param token Address of the token to set the custom max fee for
-     * @param maxFeeToken Default max fee token to be set
-     * @param maxFee Default max fee to be set
+     * @param maxFeeToken Max fee token to be set for the given token
+     * @param amount Max fee amount to be set for the given token
      */
-    function _setCustomMaxFee(address token, address maxFeeToken, uint256 maxFee) internal {
+    function _setCustomMaxFee(address token, address maxFeeToken, uint256 amount) internal {
         if (token == address(0)) revert TaskTokenZero();
-        _setMaxFee(_customMaxFee[token], maxFeeToken, maxFee);
-        emit CustomMaxFeeSet(token, maxFeeToken, maxFee);
+        _setMaxFee(_customMaxFee[token], maxFeeToken, amount);
+        emit CustomMaxFeeSet(token, maxFeeToken, amount);
     }
 
     /**
      * @dev Sets a max fee
      * @param maxFee Max fee to be updated
      * @param token Max fee token to be set
-     * @param max Max fee value to be set
+     * @param amount Max fee amount to be set
      */
-    function _setMaxFee(MaxFee storage maxFee, address token, uint256 max) private {
-        if (token == address(0) && max != 0) revert TaskInvalidMaxFee();
+    function _setMaxFee(MaxFee storage maxFee, address token, uint256 amount) private {
+        if (token == address(0) && amount != 0) revert TaskInvalidMaxFee();
         maxFee.token = token;
-        maxFee.maxFee = max;
+        maxFee.amount = amount;
     }
 }
