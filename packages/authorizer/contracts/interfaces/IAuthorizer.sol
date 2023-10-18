@@ -96,6 +96,15 @@ interface IAuthorizer {
     function getPermissionsLength(address who, address where) external view returns (uint256);
 
     /**
+     * @dev Tells whether `who` has permission to call `what` on `where`. Note `how` is not evaluated here,
+     * which means `who` might be authorized on or not depending on the call at the moment of the execution
+     * @param who Address asking permission for
+     * @param where Target address asking permission for
+     * @param what Function selector asking permission for
+     */
+    function hasPermission(address who, address where, bytes4 what) external view returns (bool);
+
+    /**
      * @dev Tells whether `who` is allowed to call `what` on `where` with `how`
      * @param who Address asking permission for
      * @param where Target address asking permission for
