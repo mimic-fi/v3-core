@@ -911,6 +911,22 @@
     "@mimic-fi/v3-helpers" "0.1.0"
     "@openzeppelin/contracts" "4.7.0"
 
+"@mimic-fi/v3-helpers@0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-helpers/-/v3-helpers-0.1.0.tgz#e64ace8cf1d5893ec351301c4b3538e96993dd4d"
+  integrity sha512-Ro2Y8bKS6M3NTGcS4sV+Be/dXN9ITGHvuUawI0p2f/hmW3bs/KVUsurQZdac9N2CycUw4JJZqt/C8WvRIhXC7A==
+  dependencies:
+    "@nomiclabs/hardhat-ethers" "^2.2.3"
+    "@nomiclabs/hardhat-waffle" "2.0.3"
+    "@types/chai" "^4.3.5"
+    "@types/mocha" "^10.0.1"
+    "@types/sinon-chai" "^3.2.3"
+    chai "^4.3.7"
+    decimal.js "~10.4.3"
+    ethers "~5.6.0"
+    hardhat "^2.14.1"
+    mocha "^6.2.3"
+
 "@noble/hashes@1.2.0", "@noble/hashes@~1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.2.0.tgz#a3150eeb09cc7ab207ebf6d7b9ad311a9bdbed12"
