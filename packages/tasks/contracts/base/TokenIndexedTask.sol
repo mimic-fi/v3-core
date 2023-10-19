@@ -64,6 +64,15 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, Authorized {
     }
 
     /**
+     * @dev Tells whether a token is allowed or not
+     * @param token Address of the token being queried
+     */
+    function isTokenAllowed(address token) public view override returns (bool) {
+        bool containsToken = _tokens.contains(token);
+        return tokensAcceptanceType == TokensAcceptanceType.AllowList ? containsToken : !containsToken;
+    }
+
+    /**
      * @dev Sets the tokens acceptance type of the task
      * @param newTokensAcceptanceType New token acceptance type to be set
      */
@@ -91,9 +100,7 @@ abstract contract TokenIndexedTask is ITokenIndexedTask, Authorized {
      * @dev Before token indexed task hook
      */
     function _beforeTokenIndexedTask(address token, uint256) internal virtual {
-        bool containsToken = _tokens.contains(token);
-        bool isTokenAllowed = tokensAcceptanceType == TokensAcceptanceType.AllowList ? containsToken : !containsToken;
-        if (!isTokenAllowed) revert TaskTokenNotAllowed(token);
+        if (!isTokenAllowed(token)) revert TaskTokenNotAllowed(token);
     }
 
     /**
