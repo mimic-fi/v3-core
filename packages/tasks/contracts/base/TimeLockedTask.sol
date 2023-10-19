@@ -156,10 +156,12 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
 
             // Construct when would be the current allowed timestamp only considering the current month and year
             uint256 currentAllowedAt = _getCurrentAllowedDateForMonthlyRelativeFrequency(allowedAt, day);
+            if (block.timestamp < currentAllowedAt) revert TaskTimeLockActive(block.timestamp, currentAllowedAt);
 
-            // Since we already checked the current timestamp is not before the allowed timestamp set,
-            // we simply need to check we are within the allowed execution window
-            if (block.timestamp - currentAllowedAt > window) revert TaskTimeLockActive(block.timestamp, allowedAt);
+            // Otherwise, we simply need to check we are within the allowed execution window
+            uint256 finalCurrentAllowedAt = currentAllowedAt + window;
+            bool exceedsExecutionWindow = block.timestamp > finalCurrentAllowedAt;
+            if (exceedsExecutionWindow) revert TaskTimeLockActive(block.timestamp, finalCurrentAllowedAt);
 
             // Finally set the next allowed date to the corresponding number of months from the current date
             _nextAllowedAt = _getNextAllowedDateForMonthlyRelativeFrequency(currentAllowedAt, monthsToAdd);
