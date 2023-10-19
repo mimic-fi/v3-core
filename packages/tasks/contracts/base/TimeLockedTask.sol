@@ -129,18 +129,23 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
                 _nextAllowedAt = allowedAt + ((periods + 1) * frequency);
             }
         } else {
-            // Check the current timestamp is not before the current allowed date
-            uint256 currentAllowedDateDay = mode == Mode.OnDay ? allowedAt.getDay() : block.timestamp.getDaysInMonth();
-            uint256 currentAllowedDate = _getCurrentAllowedDate(allowedAt, currentAllowedDateDay);
-            if (block.timestamp < currentAllowedDate) revert TaskTimeLockActive(block.timestamp, currentAllowedDate);
+            if (block.timestamp >= allowedAt && block.timestamp <= allowedAt + window) {
+                // Check the current timestamp has not passed the allowed at set
+                _nextAllowedAt = _getNextAllowedDate(allowedAt, frequency);
+            } else {
+                // Check the current timestamp is not before the current allowed date
+                uint256 currentAllowedDay = mode == Mode.OnDay ? allowedAt.getDay() : block.timestamp.getDaysInMonth();
+                uint256 currentAllowedAt = _getCurrentAllowedDate(allowedAt, currentAllowedDay);
+                if (block.timestamp < currentAllowedAt) revert TaskTimeLockActive(block.timestamp, currentAllowedAt);
 
-            // Check the current timestamp has not passed the allowed execution window
-            uint256 extendedCurrentAllowedDate = currentAllowedDate + window;
-            bool exceedsExecutionWindow = block.timestamp > extendedCurrentAllowedDate;
-            if (exceedsExecutionWindow) revert TaskTimeLockActive(block.timestamp, extendedCurrentAllowedDate);
+                // Check the current timestamp has not passed the allowed execution window
+                uint256 extendedCurrentAllowedAt = currentAllowedAt + window;
+                bool exceedsExecutionWindow = block.timestamp > extendedCurrentAllowedAt;
+                if (exceedsExecutionWindow) revert TaskTimeLockActive(block.timestamp, extendedCurrentAllowedAt);
 
-            // Finally set the next allowed date to the corresponding number of months from the current date
-            _nextAllowedAt = _getNextAllowedDate(currentAllowedDate, frequency);
+                // Finally set the next allowed date to the corresponding number of months from the current date
+                _nextAllowedAt = _getNextAllowedDate(currentAllowedAt, frequency);
+            }
         }
     }
 
