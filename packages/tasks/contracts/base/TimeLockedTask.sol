@@ -30,15 +30,13 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
     /**
      * @dev Time-locks supports different frequency modes
      * @param Seconds To indicate the execution must occur every certain number of seconds
-     * @param OnDay To indicate the execution must occur on day number from 1 to 28
-     * @param OnLastMonthDay To indicate the execution must occur on the last day of the month
-     * @param EverySomeMonths To indicate the execution must occur every certain number of months
+     * @param OnDay To indicate the execution must occur on day number from 1 to 28 every certain months
+     * @param OnLastMonthDay To indicate the execution must occur on the last day of the month every certain months
      */
     enum Mode {
         Seconds,
         OnDay,
-        OnLastMonthDay,
-        EverySomeMonths
+        OnLastMonthDay
     }
 
     // Time lock mode
@@ -131,40 +129,18 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
                 _nextAllowedAt = allowedAt + ((periods + 1) * frequency);
             }
         } else {
-            uint256 day;
-            uint256 monthsToAdd;
+            // Check the current timestamp is not before the current allowed date
+            uint256 currentAllowedDateDay = mode == Mode.OnDay ? allowedAt.getDay() : block.timestamp.getDaysInMonth();
+            uint256 currentAllowedDate = _getCurrentAllowedDate(allowedAt, currentAllowedDateDay);
+            if (block.timestamp < currentAllowedDate) revert TaskTimeLockActive(block.timestamp, currentAllowedDate);
 
-            if (mode == Mode.EverySomeMonths) {
-                // Check the difference in months matches the frequency value
-                uint256 diff = allowedAt.diffMonths(block.timestamp);
-                if (diff % frequency != 0) revert TaskTimeLockActive(block.timestamp, allowedAt);
-                day = allowedAt.getDay();
-                monthsToAdd = frequency;
-            } else {
-                if (mode == Mode.OnDay) {
-                    day = allowedAt.getDay();
-                } else if (mode == Mode.OnLastMonthDay) {
-                    day = block.timestamp.getDaysInMonth();
-                } else {
-                    revert TaskInvalidFrequencyMode(uint8(mode));
-                }
-
-                // Check the current day matches the one in the configuration
-                if (block.timestamp.getDay() != day) revert TaskTimeLockActive(block.timestamp, allowedAt);
-                monthsToAdd = 1;
-            }
-
-            // Construct when would be the current allowed timestamp only considering the current month and year
-            uint256 currentAllowedAt = _getCurrentAllowedDateForMonthlyRelativeFrequency(allowedAt, day);
-            if (block.timestamp < currentAllowedAt) revert TaskTimeLockActive(block.timestamp, currentAllowedAt);
-
-            // Otherwise, we simply need to check we are within the allowed execution window
-            uint256 finalCurrentAllowedAt = currentAllowedAt + window;
-            bool exceedsExecutionWindow = block.timestamp > finalCurrentAllowedAt;
-            if (exceedsExecutionWindow) revert TaskTimeLockActive(block.timestamp, finalCurrentAllowedAt);
+            // Check the current timestamp has not passed the allowed execution window
+            uint256 extendedCurrentAllowedDate = currentAllowedDate + window;
+            bool exceedsExecutionWindow = block.timestamp > extendedCurrentAllowedDate;
+            if (exceedsExecutionWindow) revert TaskTimeLockActive(block.timestamp, extendedCurrentAllowedDate);
 
             // Finally set the next allowed date to the corresponding number of months from the current date
-            _nextAllowedAt = _getNextAllowedDateForMonthlyRelativeFrequency(currentAllowedAt, monthsToAdd);
+            _nextAllowedAt = _getNextAllowedDate(currentAllowedDate, frequency);
         }
     }
 
@@ -190,36 +166,26 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
                 if (window == 0 || window > frequency) revert TaskInvalidAllowedWindow(mode, window);
                 if (allowedAt == 0) revert TaskInvalidAllowedDate(mode, allowedAt);
             }
-        } else if (mode == uint8(Mode.OnDay)) {
-            // It must be valid for every month, then the frequency value cannot be larger than 28 days
-            if (frequency == 0 || frequency > 28) revert TaskInvalidFrequency(mode, frequency);
-
-            // The execution window that cannot be larger than 28 days
-            if (window == 0 || window > DAYS_28) revert TaskInvalidAllowedWindow(mode, window);
-
-            // The allowed date must match the specified frequency value
-            if (allowedAt == 0 || allowedAt.getDay() != frequency) revert TaskInvalidAllowedDate(mode, allowedAt);
-        } else if (mode == uint8(Mode.OnLastMonthDay)) {
-            // There must be no frequency value in this case
-            if (frequency != 0) revert TaskInvalidFrequency(mode, frequency);
-
-            // The execution window that cannot be larger than 28 days
-            if (window == 0 || window > DAYS_28) revert TaskInvalidAllowedWindow(mode, window);
-
-            // The allowed date timestamp must be the last day of the month
-            if (allowedAt == 0) revert TaskInvalidAllowedDate(mode, allowedAt);
-            if (allowedAt.getDay() != allowedAt.getDaysInMonth()) revert TaskInvalidAllowedDate(mode, allowedAt);
-        } else if (mode == uint8(Mode.EverySomeMonths)) {
-            // There is no limit on the number of months
+        } else {
+            // The other modes can be "on-day" or "on-last-day" where the frequency represents a number of months
+            // There is no limit for the frequency, it simply cannot be zero
             if (frequency == 0) revert TaskInvalidFrequency(mode, frequency);
 
             // The execution window cannot be larger than the number of months considering months of 28 days
             if (window == 0 || window > frequency * DAYS_28) revert TaskInvalidAllowedWindow(mode, window);
 
-            // The execution allowed at timestamp and the day cannot be greater than the 28th
-            if (allowedAt == 0 || allowedAt.getDay() > 28) revert TaskInvalidAllowedDate(mode, allowedAt);
-        } else {
-            revert TaskInvalidFrequencyMode(mode);
+            // The allowed date cannot be zero
+            if (allowedAt == 0) revert TaskInvalidAllowedDate(mode, allowedAt);
+
+            // If the mode is "on-day", the allowed date must be valid for every month, then the allowed day cannot be
+            // larger than 28. But if the mode is "on-last-day", the allowed date day must be the last day of the month
+            if (mode == uint8(Mode.OnDay)) {
+                if (allowedAt.getDay() > 28) revert TaskInvalidAllowedDate(mode, allowedAt);
+            } else if (mode == uint8(Mode.OnLastMonthDay)) {
+                if (allowedAt.getDay() != allowedAt.getDaysInMonth()) revert TaskInvalidAllowedDate(mode, allowedAt);
+            } else {
+                revert TaskInvalidFrequencyMode(mode);
+            }
         }
 
         _mode = Mode(mode);
@@ -240,15 +206,9 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
     }
 
     /**
-     * @dev Tells the allowed date based on a current allowed date considering the current timestamp and a specific day.
-     * It builds a new date using the current timestamp's month and year, following by the specified day, and using
-     * the current allowed date hours, minutes, and seconds.
+     * @dev Tells the corresponding allowed date based on a current timestamp
      */
-    function _getCurrentAllowedDateForMonthlyRelativeFrequency(uint256 allowedAt, uint256 day)
-        private
-        view
-        returns (uint256)
-    {
+    function _getCurrentAllowedDate(uint256 allowedAt, uint256 day) private view returns (uint256) {
         (uint256 year, uint256 month, ) = block.timestamp.timestampToDate();
         return _getAllowedDateFor(allowedAt, year, month, day);
     }
@@ -256,11 +216,7 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
     /**
      * @dev Tells the next allowed date based on a current allowed date considering a number of months to increase
      */
-    function _getNextAllowedDateForMonthlyRelativeFrequency(uint256 allowedAt, uint256 monthsToIncrease)
-        private
-        view
-        returns (uint256)
-    {
+    function _getNextAllowedDate(uint256 allowedAt, uint256 monthsToIncrease) private view returns (uint256) {
         (uint256 year, uint256 month, uint256 day) = allowedAt.timestampToDate();
         uint256 nextMonth = (month + monthsToIncrease) % 12;
         uint256 nextYear = year + ((month + monthsToIncrease) / 12);

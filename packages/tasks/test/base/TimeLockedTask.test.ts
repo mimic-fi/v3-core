@@ -177,52 +177,56 @@ describe('TimeLockedTask', () => {
         const mode = MODE.ON_DAY
 
         context('when a frequency is given', () => {
-          context('when the frequency is lower than or equal to 28', () => {
-            const frequency = 28
+          const frequency = 10
 
-            context('when a window is given', () => {
-              context('when the window is shorter than the frequency', () => {
-                const window = frequency * DAY - 1
+          context('when a window is given', () => {
+            context('when the window is shorter than months of 28 days', () => {
+              const window = frequency * DAY * 28 - 1
 
-                context('when an allowed date is given', () => {
-                  context('when the allowed day matches the frequency', () => {
-                    const allowedAt = new Date(`2023-10-${frequency}`).getTime() / 1000
+              context('when an allowed date is given', () => {
+                context('when the allowed date day is lower than or equal to 28', () => {
+                  const allowedDates = ['2022-06-01', '2023-10-11', '2021-12-21', '2020-02-28']
 
-                    itSetsTheTimeLockProperly(mode, frequency, allowedAt, window)
-                  })
+                  allowedDates.forEach((date) => {
+                    context(`for ${date}`, () => {
+                      const allowedAt = new Date(date).getTime() / 1000
 
-                  context('when the allowed day does not match the frequency', () => {
-                    const allowedAt = new Date(`2023-10-${frequency + 1}`).getTime() / 1000
-
-                    itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
+                      itSetsTheTimeLockProperly(mode, frequency, allowedAt, window)
+                    })
                   })
                 })
 
-                context('when no allowed date is given', () => {
-                  const allowedAt = 0
+                context('when the allowed date day is not greater than 28', () => {
+                  const notAllowedDates = ['2022-08-30', '2032-02-29', '2020-07-31']
 
-                  itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
+                  notAllowedDates.forEach((date) => {
+                    context(`for ${date}`, () => {
+                      const allowedAt = new Date(date).getTime() / 1000
+
+                      itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
+                    })
+                  })
                 })
               })
 
-              context('when the window is larger than the frequency', () => {
-                const window = frequency * DAY + 1
+              context('when no allowed date is given', () => {
+                const allowedAt = 0
 
-                itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
+                itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
               })
             })
 
-            context('when no window is given', () => {
-              const window = 0
+            context('when the window is larger than months of 28 days', () => {
+              const window = frequency * DAY * 28 + 1
 
               itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
             })
           })
 
-          context('when the frequency is greater than 28', () => {
-            const frequency = 29
+          context('when no window is given', () => {
+            const window = 0
 
-            itReverts(mode, frequency, 0, 0, 'TaskInvalidFrequency')
+            itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
           })
         })
 
@@ -237,17 +241,11 @@ describe('TimeLockedTask', () => {
         const mode = MODE.ON_LAST_DAY
 
         context('when a frequency is given', () => {
-          const frequency = 1
-
-          itReverts(mode, frequency, 0, 0, 'TaskInvalidFrequency')
-        })
-
-        context('when no frequency is given', () => {
-          const frequency = 0
+          const frequency = 10
 
           context('when a window is given', () => {
-            context('when the window is shorter than 28 days', () => {
-              const window = 28 * DAY - 1
+            context('when the window is shorter than months of 28 days', () => {
+              const window = 28 * DAY * frequency - 1
 
               context('when an allowed date is given', () => {
                 context('when the allowed date is a last day of a month', () => {
@@ -283,64 +281,6 @@ describe('TimeLockedTask', () => {
             })
 
             context('when the window is larger than 28 days', () => {
-              const window = 28 * DAY + 1
-
-              itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
-            })
-          })
-
-          context('when no window is given', () => {
-            const window = 0
-
-            itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
-          })
-        })
-      })
-
-      context('every-month mode', () => {
-        const mode = MODE.EVERY_X_MONTH
-
-        context('when a frequency is given', () => {
-          const frequency = 3
-
-          context('when a window is given', () => {
-            context('when the window is shorter than months of 28 days', () => {
-              const window = 28 * DAY * frequency - 1
-
-              context('when an allowed date is given', () => {
-                context('when the allowed day is lower than or equal to 28', () => {
-                  const allowedDates = ['2022-06-10', '2023-10-01', '2021-02-28']
-
-                  allowedDates.forEach((date) => {
-                    context(`for ${date}`, () => {
-                      const allowedAt = new Date(date).getTime() / 1000
-
-                      itSetsTheTimeLockProperly(mode, frequency, allowedAt, window)
-                    })
-                  })
-                })
-
-                context('when the allowed day is greater than 28', () => {
-                  const notAllowedDates = ['2022-08-30', '2020-02-29', '2023-10-31', '2023-06-30']
-
-                  notAllowedDates.forEach((date) => {
-                    context(`for ${date}`, () => {
-                      const allowedAt = new Date(date).getTime() / 1000
-
-                      itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
-                    })
-                  })
-                })
-              })
-
-              context('when no allowed date is given', () => {
-                const allowedAt = 0
-
-                itReverts(mode, frequency, allowedAt, window, 'TaskInvalidAllowedDate')
-              })
-            })
-
-            context('when the window is larger than months of 28 days', () => {
               const window = 28 * DAY * frequency + 1
 
               itReverts(mode, frequency, 0, window, 'TaskInvalidAllowedWindow')
@@ -484,88 +424,132 @@ describe('TimeLockedTask', () => {
     context('on-day mode', () => {
       const mode = MODE.ON_DAY
 
-      it('locks the task properly', async () => {
-        // Move to an executable window
-        await setInitialTimeLock(mode, 5, '2028-10-05T01:02:03Z', DAY)
-        await moveToDate('2028-10-05T01:02:03Z')
+      context('with 1 month frequency', () => {
+        const frequency = 1
 
-        // It can be executed immediately
-        await assertItCanBeExecuted('2028-11-05T01:02:03Z')
+        it('locks the task properly', async () => {
+          // Move to an executable window
+          await setInitialTimeLock(mode, frequency, '2028-10-05T01:02:03Z', DAY)
+          await moveToDate('2028-10-05T01:02:03Z')
 
-        // It is locked for at least a month
-        await assertItCannotBeExecuted('2028-11-05T01:02:03Z')
-        await moveToDate('2028-10-20T01:02:03Z')
-        await assertItCannotBeExecuted('2028-11-05T01:02:03Z')
+          // It can be executed immediately
+          await assertItCanBeExecuted('2028-11-05T01:02:03Z')
 
-        // It cannot be executed after the execution window
-        await moveToDate('2028-11-06T01:02:03Z')
-        await assertItCannotBeExecuted('2028-11-05T01:02:03Z')
+          // It is locked for at least a month
+          await assertItCannotBeExecuted('2028-11-05T01:02:03Z')
+          await moveToDate('2028-10-20T01:02:03Z')
+          await assertItCannotBeExecuted('2028-11-05T01:02:03Z')
 
-        // It can be executed one period after
-        await moveToDate('2028-12-05T01:02:03Z')
-        await assertItCanBeExecuted('2029-01-05T01:02:03Z')
+          // It cannot be executed after the execution window
+          await moveToDate('2028-11-06T01:02:03Z')
+          await assertItCannotBeExecuted('2028-11-05T01:02:03Z')
+
+          // It can be executed one period after
+          await moveToDate('2028-12-05T01:02:03Z')
+          await assertItCanBeExecuted('2029-01-05T01:02:03Z')
+        })
+      })
+
+      context('with 2 months frequency', () => {
+        const frequency = 2
+
+        it('locks the task properly', async () => {
+          // Move to an executable window
+          await setInitialTimeLock(mode, frequency, '2032-01-01T10:05:20Z', DAY)
+          await moveToDate('2032-01-01T10:05:20Z')
+
+          // It can be executed immediately
+          await assertItCanBeExecuted('2032-03-01T10:05:20Z')
+
+          // It is locked for at least the number of set months
+          await assertItCannotBeExecuted('2032-03-01T10:05:20Z')
+          await moveToDate('2032-02-01T10:05:20Z')
+          await assertItCannotBeExecuted('2032-03-01T10:05:20Z')
+          await moveToDate('2032-02-28T10:05:20Z')
+          await assertItCannotBeExecuted('2032-03-01T10:05:20Z')
+
+          // It cannot be executed after the execution window
+          await moveToDate('2032-03-02T10:05:21Z')
+          await assertItCannotBeExecuted('2032-03-01T10:05:20Z')
+
+          // It can be executed one period after
+          await moveToDate('2032-05-02T10:05:19Z')
+          await assertItCanBeExecuted('2032-07-01T10:05:20Z')
+
+          // Change time lock to 24 months
+          await setInitialTimeLock(mode, 24, '2033-01-01T05:04:03Z', DAY)
+          await assertItCannotBeExecuted('2033-01-01T05:04:03Z')
+
+          // Move to an executable window
+          await moveToDate('2033-01-01T05:04:03Z')
+          await assertItCanBeExecuted('2035-01-01T05:04:03Z')
+        })
       })
     })
 
     context('on-last-day mode', () => {
       const mode = MODE.ON_LAST_DAY
 
-      it('locks the task properly', async () => {
-        // Move to an executable window
-        await setInitialTimeLock(mode, 0, '2030-10-31T10:32:20Z', DAY)
-        await moveToDate('2030-10-31T10:32:20Z')
+      context('with 1 month frequency', () => {
+        const frequency = 1
 
-        // It can be executed immediately
-        await assertItCanBeExecuted('2030-11-30T10:32:20Z')
+        it('locks the task properly', async () => {
+          // Move to an executable window
+          await setInitialTimeLock(mode, frequency, '2030-10-31T10:32:20Z', DAY)
+          await moveToDate('2030-10-31T10:32:20Z')
 
-        // It is locked for at least a month
-        await assertItCannotBeExecuted('2030-11-30T10:32:20Z')
-        await moveToDate('2030-11-20T10:32:20Z')
-        await assertItCannotBeExecuted('2030-11-30T10:32:20Z')
+          // It can be executed immediately
+          await assertItCanBeExecuted('2030-11-30T10:32:20Z')
 
-        // It cannot be executed after the execution window
-        await moveToDate('2031-01-01T10:32:20Z')
-        await assertItCannotBeExecuted('2030-11-30T10:32:20Z')
+          // It is locked for at least a month
+          await assertItCannotBeExecuted('2030-11-30T10:32:20Z')
+          await moveToDate('2030-11-20T10:32:20Z')
+          await assertItCannotBeExecuted('2030-11-30T10:32:20Z')
 
-        // It can be executed one period after
-        await moveToDate('2031-01-31T10:32:20Z')
-        await assertItCanBeExecuted('2031-02-28T10:32:20Z')
+          // It cannot be executed after the execution window
+          await moveToDate('2031-01-01T10:32:20Z')
+          await assertItCannotBeExecuted('2030-11-30T10:32:20Z')
+
+          // It can be executed one period after
+          await moveToDate('2031-01-31T10:32:20Z')
+          await assertItCanBeExecuted('2031-02-28T10:32:20Z')
+        })
       })
-    })
 
-    context('every-month mode', () => {
-      const mode = MODE.EVERY_X_MONTH
+      context('with 3 months frequency', () => {
+        const frequency = 3
 
-      it('locks the task properly', async () => {
-        // Move to an executable window
-        await setInitialTimeLock(mode, 2, '2032-01-01T10:05:20Z', DAY)
-        await moveToDate('2032-01-01T10:05:20Z')
+        it('locks the task properly', async () => {
+          // Move to an executable window
+          await setInitialTimeLock(mode, frequency, '2032-01-31T10:05:20Z', DAY)
+          await moveToDate('2032-01-31T10:05:20Z')
 
-        // It can be executed immediately
-        await assertItCanBeExecuted('2032-03-01T10:05:20Z')
+          // It can be executed immediately
+          await assertItCanBeExecuted('2032-04-30T10:05:20Z')
 
-        // It is locked for at least the number of set months
-        await assertItCannotBeExecuted('2032-03-01T10:05:20Z')
-        await moveToDate('2032-02-01T10:05:20Z')
-        await assertItCannotBeExecuted('2032-03-01T10:05:20Z')
-        await moveToDate('2032-02-28T10:05:20Z')
-        await assertItCannotBeExecuted('2032-03-01T10:05:20Z')
+          // It is locked for at least the number of set months
+          await assertItCannotBeExecuted('2032-04-30T10:05:20Z')
+          await moveToDate('2032-02-28T10:05:20Z')
+          await assertItCannotBeExecuted('2032-04-30T10:05:20Z')
+          await moveToDate('2032-03-31T10:05:20Z')
+          await assertItCannotBeExecuted('2032-04-30T10:05:20Z')
 
-        // It cannot be executed after the execution window
-        await moveToDate('2032-03-02T10:05:21Z')
-        await assertItCannotBeExecuted('2032-03-01T10:05:20Z')
+          // It cannot be executed after the execution window
+          await moveToDate('2032-05-01T10:05:20Z')
+          await assertItCannotBeExecuted('2032-04-30T10:05:20Z')
 
-        // It can be executed one period after
-        await moveToDate('2032-05-02T10:05:19Z')
-        await assertItCanBeExecuted('2032-07-01T10:05:20Z')
+          // It can be executed one period after
+          await moveToDate('2032-06-30T10:05:20Z')
+          await assertItCanBeExecuted('2032-09-30T10:05:20Z')
 
-        // Change time lock to 24 months
-        await setInitialTimeLock(mode, 24, '2033-01-01T05:04:03Z', DAY)
-        await assertItCannotBeExecuted('2033-01-01T05:04:03Z')
+          // Change time lock to 24 months
+          await setInitialTimeLock(mode, 24, '2033-01-31T05:04:03Z', DAY)
+          await assertItCannotBeExecuted('2033-01-31T05:04:03Z')
 
-        // Move to an executable window
-        await moveToDate('2033-01-01T05:04:03Z')
-        await assertItCanBeExecuted('2035-01-01T05:04:03Z')
+          // Move to an executable window
+          await moveToDate('2033-01-31T05:04:03Z')
+          await assertItCanBeExecuted('2035-01-31T05:04:03Z')
+        })
       })
     })
   })
