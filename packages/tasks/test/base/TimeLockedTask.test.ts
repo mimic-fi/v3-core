@@ -399,19 +399,18 @@ describe('TimeLockedTask', () => {
     async function assertItCannotBeExecuted(currentAllowedTimestamp: string) {
       await expect(task.call()).to.be.revertedWith('TaskTimeLockActive')
 
-      const expectedCurrentAllowedDate = new Date(currentAllowedTimestamp).getTime() / 1000
       const { allowedAt } = await task.getTimeLock()
-      expect(allowedAt).to.be.equal(expectedCurrentAllowedDate)
+      expect(new Date(allowedAt * 1000)).to.be.deep.equal(new Date(currentAllowedTimestamp))
     }
 
     async function assertItCanBeExecuted(nextAllowedTimestamp: string) {
-      const expectedNextAllowedDate = new Date(nextAllowedTimestamp).getTime() / 1000
-
       const tx = await task.call()
-      await assertEvent(tx, 'TimeLockAllowedAtSet', { allowedAt: expectedNextAllowedDate })
 
       const { allowedAt } = await task.getTimeLock()
-      expect(allowedAt).to.be.equal(expectedNextAllowedDate)
+      expect(new Date(allowedAt * 1000)).to.be.deep.equal(new Date(nextAllowedTimestamp))
+
+      const expectedNextAllowedDate = new Date(nextAllowedTimestamp).getTime() / 1000
+      await assertEvent(tx, 'TimeLockAllowedAtSet', { allowedAt: expectedNextAllowedDate })
     }
 
     context('seconds mode', () => {
@@ -426,6 +425,9 @@ describe('TimeLockedTask', () => {
           // It can be executed immediately
           await task.setTimeLock(mode, frequency, allowedAt, window)
           await moveToDate('2025-01-01T10:20:29Z')
+
+          // Note the allowed date is off 1 second, that's correct since there is no initial allowed date,
+          // it simply uses the current timestamp which is mined one second after the previous block.
           await assertItCanBeExecuted('2025-01-01T12:20:30Z')
 
           // It is locked for a period equal to the frequency set
@@ -481,12 +483,10 @@ describe('TimeLockedTask', () => {
 
     context('on-day mode', () => {
       const mode = MODE.ON_DAY
-      const frequency = 5
-      const window = 1 * DAY
 
       it('locks the task properly', async () => {
         // Move to an executable window
-        await setInitialTimeLock(mode, frequency, '2028-10-05T01:02:03Z', window)
+        await setInitialTimeLock(mode, 5, '2028-10-05T01:02:03Z', DAY)
         await moveToDate('2028-10-05T01:02:03Z')
 
         // It can be executed immediately
@@ -509,12 +509,10 @@ describe('TimeLockedTask', () => {
 
     context('on-last-day mode', () => {
       const mode = MODE.ON_LAST_DAY
-      const frequency = 0
-      const window = 1 * DAY
 
       it('locks the task properly', async () => {
         // Move to an executable window
-        await setInitialTimeLock(mode, frequency, '2030-10-31T10:32:20Z', window)
+        await setInitialTimeLock(mode, 0, '2030-10-31T10:32:20Z', DAY)
         await moveToDate('2030-10-31T10:32:20Z')
 
         // It can be executed immediately
@@ -537,12 +535,10 @@ describe('TimeLockedTask', () => {
 
     context('every-month mode', () => {
       const mode = MODE.EVERY_X_MONTH
-      const frequency = 2
-      const window = 1 * DAY
 
       it('locks the task properly', async () => {
         // Move to an executable window
-        await setInitialTimeLock(mode, frequency, '2032-01-01T10:05:20Z', window)
+        await setInitialTimeLock(mode, 2, '2032-01-01T10:05:20Z', DAY)
         await moveToDate('2032-01-01T10:05:20Z')
 
         // It can be executed immediately
@@ -562,6 +558,14 @@ describe('TimeLockedTask', () => {
         // It can be executed one period after
         await moveToDate('2032-05-02T10:05:19Z')
         await assertItCanBeExecuted('2032-07-01T10:05:20Z')
+
+        // Change time lock to 24 months
+        await setInitialTimeLock(mode, 24, '2033-01-01T05:04:03Z', DAY)
+        await assertItCannotBeExecuted('2033-01-01T05:04:03Z')
+
+        // Move to an executable window
+        await moveToDate('2033-01-01T05:04:03Z')
+        await assertItCanBeExecuted('2035-01-01T05:04:03Z')
       })
     })
   })

@@ -263,7 +263,7 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
     {
         (uint256 year, uint256 month, uint256 day) = allowedAt.timestampToDate();
         uint256 nextMonth = (month + monthsToIncrease) % 12;
-        uint256 nextYear = nextMonth > month ? year : (year + 1);
+        uint256 nextYear = year + ((month + monthsToIncrease) / 12);
         uint256 nextDay = _mode == Mode.OnLastMonthDay ? DateTime._getDaysInMonth(nextYear, nextMonth) : day;
         return _getAllowedDateFor(allowedAt, nextYear, nextMonth, nextDay);
     }
