@@ -130,7 +130,7 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
             }
         } else {
             if (block.timestamp >= allowedAt && block.timestamp <= allowedAt + window) {
-                // Check the current timestamp has not passed the allowed at set
+                // Check the current timestamp has not passed the allowed date set
                 _nextAllowedAt = _getNextAllowedDate(allowedAt, frequency);
             } else {
                 // Check the current timestamp is not before the current allowed date
@@ -223,8 +223,9 @@ abstract contract TimeLockedTask is ITimeLockedTask, Authorized {
      */
     function _getNextAllowedDate(uint256 allowedAt, uint256 monthsToIncrease) private view returns (uint256) {
         (uint256 year, uint256 month, uint256 day) = allowedAt.timestampToDate();
-        uint256 nextMonth = (month + monthsToIncrease) % 12;
-        uint256 nextYear = year + ((month + monthsToIncrease) / 12);
+        uint256 increasedMonth = month + monthsToIncrease;
+        uint256 nextMonth = increasedMonth % 12;
+        uint256 nextYear = year + (increasedMonth / 12);
         uint256 nextDay = _mode == Mode.OnLastMonthDay ? DateTime._getDaysInMonth(nextYear, nextMonth) : day;
         return _getAllowedDateFor(allowedAt, nextYear, nextMonth, nextDay);
     }
