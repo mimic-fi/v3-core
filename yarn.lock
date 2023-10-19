@@ -935,6 +935,18 @@
     hardhat "^2.14.1"
     mocha "^6.2.3"
 
+"@mimic-fi/v3-tasks@0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-tasks/-/v3-tasks-0.1.0.tgz#ecd3dd570ec4423758f24e3c34e96d6a452473a9"
+  integrity sha512-Rvj+nUG0SiGjzLm2jXqiK8IoGK/n3OHwvdMxWTU7QHu41Va90VZJbG+V5Rb/+bQMRQ0FWbFG+sge/iZekjRlQw==
+  dependencies:
+    "@mimic-fi/v3-authorizer" "0.1.0"
+    "@mimic-fi/v3-connectors" "0.1.0"
+    "@mimic-fi/v3-helpers" "0.1.0"
+    "@mimic-fi/v3-price-oracle" "0.1.0"
+    "@mimic-fi/v3-smart-vault" "0.1.0"
+    "@openzeppelin/contracts" "4.7.0"
+
 "@noble/hashes@1.2.0", "@noble/hashes@~1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.2.0.tgz#a3150eeb09cc7ab207ebf6d7b9ad311a9bdbed12"
