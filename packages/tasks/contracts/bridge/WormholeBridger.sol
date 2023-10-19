@@ -65,15 +65,11 @@ contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
     /**
      * @dev Execute Wormhole bridger
      */
-    function call(address token, uint256 amount, uint256 slippage)
-        external
-        override
-        authP(authParams(token, amount, slippage))
-    {
+    function call(address token, uint256 amount, uint256 fee) external override authP(authParams(token, amount, fee)) {
         if (amount == 0) amount = getTaskAmount(token);
-        _beforeWormholeBridger(token, amount, slippage);
+        _beforeWormholeBridger(token, amount, fee);
 
-        uint256 minAmountOut = amount.mulUp(FixedPoint.ONE - slippage);
+        uint256 minAmountOut = amount - fee;
         bytes memory connectorData = abi.encodeWithSelector(
             IWormholeConnector.execute.selector,
             getDestinationChain(token),
@@ -84,20 +80,22 @@ contract WormholeBridger is IWormholeBridger, BaseBridgeTask {
         );
 
         ISmartVault(smartVault).execute(connector, connectorData);
-        _afterWormholeBridger(token, amount, slippage);
+        _afterWormholeBridger(token, amount, fee);
     }
 
     /**
      * @dev Before Wormhole bridger hook
      */
-    function _beforeWormholeBridger(address token, uint256 amount, uint256 slippage) internal virtual {
-        _beforeBaseBridgeTask(token, amount, slippage, 0);
+    function _beforeWormholeBridger(address token, uint256 amount, uint256 fee) internal virtual {
+        // Wormhole does not support specifying slippage
+        _beforeBaseBridgeTask(token, amount, 0, fee);
     }
 
     /**
      * @dev After Wormhole bridger hook
      */
-    function _afterWormholeBridger(address token, uint256 amount, uint256 slippage) internal virtual {
-        _afterBaseBridgeTask(token, amount, slippage, 0);
+    function _afterWormholeBridger(address token, uint256 amount, uint256 fee) internal virtual {
+        // Wormhole does not support specifying slippage
+        _afterBaseBridgeTask(token, amount, 0, fee);
     }
 }

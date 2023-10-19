@@ -23,5 +23,5 @@ interface IWormholeBridger is IBaseBridgeTask {
     /**
      * @dev Execute Wormhole bridger task
      */
-    function call(address token, uint256 amountIn, uint256 slippage) external;
+    function call(address token, uint256 amountIn, uint256 fee) external;
 }
