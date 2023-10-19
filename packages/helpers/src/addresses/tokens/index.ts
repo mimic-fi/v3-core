@@ -1,5 +1,6 @@
 export * as arbitrum from './arbitrum'
 export * as avalanche from './avalanche'
+export * as base from './base'
 export * as bsc from './bsc'
 export * as fantom from './fantom'
 export * as gnosis from './gnosis'
