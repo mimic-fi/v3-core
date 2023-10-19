@@ -31,10 +31,10 @@ abstract contract BaseTask is IBaseTask, Authorized {
     address public override smartVault;
 
     // Optional balance connector id for the previous task in the workflow
-    bytes32 public override previousBalanceConnectorId;
+    bytes32 internal previousBalanceConnectorId;
 
     // Optional balance connector id for the next task in the workflow
-    bytes32 public override nextBalanceConnectorId;
+    bytes32 internal nextBalanceConnectorId;
 
     /**
      * @dev Base task config. Only used in the initializer.
@@ -83,6 +83,14 @@ abstract contract BaseTask is IBaseTask, Authorized {
      */
     function getTaskAmount(address token) public view virtual override returns (uint256) {
         return ISmartVault(smartVault).getBalanceConnector(previousBalanceConnectorId, token);
+    }
+
+    /**
+     * @dev Tells the previous and next balance connectors id of the previous task in the workflow
+     */
+    function getBalanceConnectors() external view returns (bytes32 previous, bytes32 next) {
+        previous = previousBalanceConnectorId;
+        next = nextBalanceConnectorId;
     }
 
     /**

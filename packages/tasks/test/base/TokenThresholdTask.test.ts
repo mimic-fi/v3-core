@@ -69,14 +69,14 @@ describe('TokenThresholdTask', () => {
           await task.setDefaultTokenThreshold(token, min, max)
 
           const threshold = await task.defaultTokenThreshold()
-          expect(threshold.token).to.be.equal(token)
+          expect(threshold.thresholdToken).to.be.equal(token)
           expect(threshold.min).to.be.equal(min)
           expect(threshold.max).to.be.equal(max)
         })
 
         it('emits an event', async () => {
           const tx = await task.setDefaultTokenThreshold(token, min, max)
-          assertEvent(tx, 'DefaultThresholdSet', { threshold: { token, min, max } })
+          assertEvent(tx, 'DefaultThresholdSet', { thresholdToken: token, min, max })
         })
       }
 
@@ -151,7 +151,7 @@ describe('TokenThresholdTask', () => {
           await task.setCustomTokenThreshold(token, thresholdToken, min, max)
 
           const threshold = await task.customTokenThreshold(token)
-          expect(threshold.token).to.be.equal(thresholdToken)
+          expect(threshold.thresholdToken).to.be.equal(thresholdToken)
           expect(threshold.min).to.be.equal(min)
           expect(threshold.max).to.be.equal(max)
         })

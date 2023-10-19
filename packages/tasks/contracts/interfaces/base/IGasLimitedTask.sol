@@ -51,66 +51,29 @@ interface IGasLimitedTask is IBaseTask {
     error TaskTxCostLimitPctAboveOne();
 
     /**
-     * @dev Emitted every time the gas price limit is set
+     * @dev Emitted every time the gas limits are set
      */
-    event GasPriceLimitSet(uint256 gasPriceLimit);
+    event GasLimitsSet(uint256 gasPriceLimit, uint256 priorityFeeLimit, uint256 txCostLimit, uint256 txCostLimitPct);
 
     /**
-     * @dev Emitted every time the priority fee limit is set
+     * @dev Tells the gas limits config
      */
-    event PriorityFeeLimitSet(uint256 priorityFeeLimit);
+    function getGasLimits()
+        external
+        view
+        returns (uint256 gasPriceLimit, uint256 priorityFeeLimit, uint256 txCostLimit, uint256 txCostLimitPct);
 
     /**
-     * @dev Emitted every time the transaction cost limit is set
-     */
-    event TxCostLimitSet(uint256 txCostLimit);
-
-    /**
-     * @dev Emitted every time the transaction cost limit percentage is set
-     */
-    event TxCostLimitPctSet(uint256 txCostLimitPct);
-
-    /**
-     * @dev Tells the gas price limit
-     */
-    function gasPriceLimit() external view returns (uint256);
-
-    /**
-     * @dev Tells the priority fee limit
-     */
-    function priorityFeeLimit() external view returns (uint256);
-
-    /**
-     * @dev Tells the transaction cost limit
-     */
-    function txCostLimit() external view returns (uint256);
-
-    /**
-     * @dev Tells the transaction cost limit percentage
-     */
-    function txCostLimitPct() external view returns (uint256);
-
-    /**
-     * @dev Sets the gas price limit
+     * @dev Sets the gas limits config
      * @param newGasPriceLimit New gas price limit to be set
-     */
-    function setGasPriceLimit(uint256 newGasPriceLimit) external;
-
-    /**
-     * @dev Sets the priority fee limit
      * @param newPriorityFeeLimit New priority fee limit to be set
+     * @param newTxCostLimit New tx cost limit to be set
+     * @param newTxCostLimitPct New tx cost percentage limit to be set
      */
-    function setPriorityFeeLimit(uint256 newPriorityFeeLimit) external;
-
-    /**
-     * @dev Sets the transaction cost limit
-     * @param newTxCostLimit New transaction cost limit to be set
-     */
-    function setTxCostLimit(uint256 newTxCostLimit) external;
-
-    /**
-     * @dev Sets the transaction cost limit percentage
-     * @param newTxCostLimitPct New transaction cost limit percentage to be set
-     */
-    function setTxCostLimitPct(uint256 newTxCostLimitPct) external;
+    function setGasLimits(
+        uint256 newGasPriceLimit,
+        uint256 newPriorityFeeLimit,
+        uint256 newTxCostLimit,
+        uint256 newTxCostLimitPct
+    ) external;
 }

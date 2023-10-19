@@ -21,15 +21,6 @@ import './IBaseTask.sol';
  */
 interface ITokenThresholdTask is IBaseTask {
     /**
-     * @dev Threshold defined by a token address and min/max values
-     */
-    struct Threshold {
-        address token;
-        uint256 min;
-        uint256 max;
-    }
-
-    /**
      * @dev The token threshold token is zero
      */
     error TaskThresholdTokenZero();
@@ -57,35 +48,37 @@ interface ITokenThresholdTask is IBaseTask {
     /**
      * @dev Tells the default token threshold
      */
-    function defaultTokenThreshold() external view returns (Threshold memory);
+    function defaultTokenThreshold() external view returns (address thresholdToken, uint256 min, uint256 max);
 
     /**
      * @dev Tells the custom threshold defined for a specific token
      * @param token Address of the token being queried
      */
-    function customTokenThreshold(address token) external view returns (Threshold memory);
+    function customTokenThreshold(address token)
+        external
+        view
+        returns (address thresholdToken, uint256 min, uint256 max);
 
     /**
      * @dev Tells the threshold that should be used for a token
      * @param token Address of the token being queried
      */
-    function getTokenThreshold(address token) external view returns (Threshold memory);
+    function getTokenThreshold(address token) external view returns (address thresholdToken, uint256 min, uint256 max);
 
     /**
      * @dev Sets a new default threshold config
      * @param thresholdToken New threshold token to be set
-     * @param thresholdMin New threshold minimum to be set
-     * @param thresholdMax New threshold maximum to be set
+     * @param min New threshold minimum to be set
+     * @param max New threshold maximum to be set
      */
-    function setDefaultTokenThreshold(address thresholdToken, uint256 thresholdMin, uint256 thresholdMax) external;
+    function setDefaultTokenThreshold(address thresholdToken, uint256 min, uint256 max) external;
 
     /**
      * @dev Sets a custom token threshold
      * @param token Address of the token to set a custom threshold
      * @param thresholdToken New custom threshold token to be set
-     * @param thresholdMin New custom threshold minimum to be set
-     * @param thresholdMax New custom threshold maximum to be set
+     * @param min New custom threshold minimum to be set
+     * @param max New custom threshold maximum to be set
      */
-    function setCustomTokenThreshold(address token, address thresholdToken, uint256 thresholdMin, uint256 thresholdMax)
-        external;
+    function setCustomTokenThreshold(address token, address thresholdToken, uint256 min, uint256 max) external;
 }

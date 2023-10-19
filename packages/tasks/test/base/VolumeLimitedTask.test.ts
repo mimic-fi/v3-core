@@ -69,7 +69,7 @@ describe('VolumeLimitedTask', () => {
             await task.setDefaultVolumeLimit(token, amount, period)
 
             const volumeLimit = await task.defaultVolumeLimit()
-            expect(volumeLimit.token).to.be.equal(token)
+            expect(volumeLimit.limitToken).to.be.equal(token)
             expect(volumeLimit.amount).to.be.equal(amount)
             expect(volumeLimit.period).to.be.equal(period)
             expect(volumeLimit.accrued).to.be.equal(0)
@@ -78,7 +78,7 @@ describe('VolumeLimitedTask', () => {
 
           it('emits an event', async () => {
             const tx = await task.setDefaultVolumeLimit(token, amount, period)
-            await assertEvent(tx, 'DefaultVolumeLimitSet', { token, amount, period })
+            await assertEvent(tx, 'DefaultVolumeLimitSet', { limitToken: token, amount, period })
           })
 
           it('does not affect the custom limit', async () => {
@@ -87,7 +87,7 @@ describe('VolumeLimitedTask', () => {
             await task.setDefaultVolumeLimit(token, amount, period)
 
             const currentCustomLimit = await task.customVolumeLimit(token)
-            expect(currentCustomLimit.token).to.be.equal(previousCustomLimit.token)
+            expect(currentCustomLimit.limitToken).to.be.equal(previousCustomLimit.limitToken)
             expect(currentCustomLimit.amount).to.be.equal(previousCustomLimit.amount)
             expect(currentCustomLimit.period).to.be.equal(previousCustomLimit.period)
             expect(currentCustomLimit.accrued).to.be.equal(previousCustomLimit.accrued)
@@ -222,7 +222,7 @@ describe('VolumeLimitedTask', () => {
             await task.setDefaultVolumeLimit(newToken.address, newAmount, newPeriod)
 
             const volumeLimit = await task.defaultVolumeLimit()
-            expect(volumeLimit.token).to.be.equal(newToken.address)
+            expect(volumeLimit.limitToken).to.be.equal(newToken.address)
             expect(volumeLimit.amount).to.be.equal(newAmount)
             expect(volumeLimit.period).to.be.equal(newPeriod)
             expect(volumeLimit.accrued).to.be.equal(0)
@@ -231,7 +231,11 @@ describe('VolumeLimitedTask', () => {
 
           it('emits an event', async () => {
             const tx = await task.setDefaultVolumeLimit(newToken.address, newAmount, newPeriod)
-            await assertEvent(tx, 'DefaultVolumeLimitSet', { token: newToken, amount: newAmount, period: newPeriod })
+            await assertEvent(tx, 'DefaultVolumeLimitSet', {
+              limitToken: newToken,
+              amount: newAmount,
+              period: newPeriod,
+            })
           })
         })
 
@@ -260,7 +264,7 @@ describe('VolumeLimitedTask', () => {
               await task.setDefaultVolumeLimit(newToken.address, newAmount, newPeriod)
 
               const volumeLimit = await task.defaultVolumeLimit()
-              expect(volumeLimit.token).to.be.equal(newToken.address)
+              expect(volumeLimit.limitToken).to.be.equal(newToken.address)
               expect(volumeLimit.amount).to.be.equal(newAmount)
               expect(volumeLimit.period).to.be.equal(newPeriod)
               expect(volumeLimit.accrued).to.be.equal(previousVolumeLimit.accrued.mul(rate))
@@ -270,7 +274,7 @@ describe('VolumeLimitedTask', () => {
             it('emits an event', async () => {
               const tx = await task.setDefaultVolumeLimit(newToken.address, newAmount, newPeriod)
               await assertEvent(tx, 'DefaultVolumeLimitSet', {
-                token: newToken,
+                limitToken: newToken,
                 amount: newAmount,
                 period: newPeriod,
               })
@@ -286,7 +290,7 @@ describe('VolumeLimitedTask', () => {
               await task.setDefaultVolumeLimit(newToken, newAmount, newPeriod)
 
               const volumeLimit = await task.defaultVolumeLimit()
-              expect(volumeLimit.token).to.be.equal(newToken)
+              expect(volumeLimit.limitToken).to.be.equal(newToken)
               expect(volumeLimit.amount).to.be.equal(newAmount)
               expect(volumeLimit.period).to.be.equal(newPeriod)
               expect(volumeLimit.accrued).to.be.equal(0)
@@ -296,8 +300,8 @@ describe('VolumeLimitedTask', () => {
             it('emits an event', async () => {
               const tx = await task.setDefaultVolumeLimit(newToken, newAmount, newPeriod)
               await assertEvent(tx, 'DefaultVolumeLimitSet', {
+                limitToken: newToken,
                 amount: newAmount,
-                token: newToken,
                 period: newPeriod,
               })
             })
@@ -333,7 +337,7 @@ describe('VolumeLimitedTask', () => {
             await task.setCustomVolumeLimit(token.address, limitToken, amount, period)
 
             const volumeLimit = await task.customVolumeLimit(token.address)
-            expect(volumeLimit.token).to.be.equal(limitToken)
+            expect(volumeLimit.limitToken).to.be.equal(limitToken)
             expect(volumeLimit.amount).to.be.equal(amount)
             expect(volumeLimit.period).to.be.equal(period)
             expect(volumeLimit.accrued).to.be.equal(0)
@@ -486,7 +490,7 @@ describe('VolumeLimitedTask', () => {
             await task.setCustomVolumeLimit(token.address, newLimitToken.address, newAmount, newPeriod)
 
             const volumeLimit = await task.customVolumeLimit(token.address)
-            expect(volumeLimit.token).to.be.equal(newLimitToken.address)
+            expect(volumeLimit.limitToken).to.be.equal(newLimitToken.address)
             expect(volumeLimit.amount).to.be.equal(newAmount)
             expect(volumeLimit.period).to.be.equal(newPeriod)
             expect(volumeLimit.accrued).to.be.equal(0)
@@ -533,7 +537,7 @@ describe('VolumeLimitedTask', () => {
               await task.setCustomVolumeLimit(token.address, newLimitToken.address, newAmount, newPeriod)
 
               const volumeLimit = await task.customVolumeLimit(token.address)
-              expect(volumeLimit.token).to.be.equal(newLimitToken.address)
+              expect(volumeLimit.limitToken).to.be.equal(newLimitToken.address)
               expect(volumeLimit.amount).to.be.equal(newAmount)
               expect(volumeLimit.period).to.be.equal(newPeriod)
               expect(volumeLimit.accrued).to.be.equal(previousVolumeLimit.accrued.mul(rate))
@@ -560,7 +564,7 @@ describe('VolumeLimitedTask', () => {
               await task.setCustomVolumeLimit(token.address, newLimitToken, newAmount, newPeriod)
 
               const volumeLimit = await task.customVolumeLimit(token.address)
-              expect(volumeLimit.token).to.be.equal(newLimitToken)
+              expect(volumeLimit.limitToken).to.be.equal(newLimitToken)
               expect(volumeLimit.amount).to.be.equal(newAmount)
               expect(volumeLimit.period).to.be.equal(newPeriod)
               expect(volumeLimit.accrued).to.be.equal(0)

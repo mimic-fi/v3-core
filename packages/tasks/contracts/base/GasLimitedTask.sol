@@ -30,20 +30,11 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
     // solhint-disable-next-line var-name-mixedcase
     uint256 private __initialGas__;
 
-    // Gas price limit expressed in the native token
-    uint256 public override gasPriceLimit;
-
-    // Priority fee limit expressed in the native token
-    uint256 public override priorityFeeLimit;
-
-    // Total transaction cost limit expressed in the native token
-    uint256 public override txCostLimit;
-
-    // Transaction cost limit percentage
-    uint256 public override txCostLimitPct;
+    // Gas limits config
+    GasLimitConfig internal gasLimits;
 
     /**
-     * @dev Gas limit config params. Only used in the initializer.
+     * @dev Gas limits config
      * @param gasPriceLimit Gas price limit expressed in the native token
      * @param priorityFeeLimit Priority fee limit expressed in the native token
      * @param txCostLimit Transaction cost limit to be set
@@ -69,42 +60,34 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
      * @param config Gas limited task config
      */
     function __GasLimitedTask_init_unchained(GasLimitConfig memory config) internal onlyInitializing {
-        _setGasPriceLimit(config.gasPriceLimit);
-        _setPriorityFeeLimit(config.priorityFeeLimit);
-        _setTxCostLimit(config.txCostLimit);
-        _setTxCostLimitPct(config.txCostLimitPct);
+        _setGasLimits(config.gasPriceLimit, config.priorityFeeLimit, config.txCostLimit, config.txCostLimitPct);
     }
 
     /**
-     * @dev Sets the gas price limit
+     * @dev Tells the gas limits config
+     */
+    function getGasLimits()
+        external
+        view
+        returns (uint256 gasPriceLimit, uint256 priorityFeeLimit, uint256 txCostLimit, uint256 txCostLimitPct)
+    {
+        return (gasLimits.gasPriceLimit, gasLimits.priorityFeeLimit, gasLimits.txCostLimit, gasLimits.txCostLimitPct);
+    }
+
+    /**
+     * @dev Sets the gas limits config
      * @param newGasPriceLimit New gas price limit to be set
-     */
-    function setGasPriceLimit(uint256 newGasPriceLimit) external override authP(authParams(newGasPriceLimit)) {
-        _setGasPriceLimit(newGasPriceLimit);
-    }
-
-    /**
-     * @dev Sets the priority fee limit
      * @param newPriorityFeeLimit New priority fee limit to be set
+     * @param newTxCostLimit New tx cost limit to be set
+     * @param newTxCostLimitPct New tx cost percentage limit to be set
      */
-    function setPriorityFeeLimit(uint256 newPriorityFeeLimit) external override authP(authParams(newPriorityFeeLimit)) {
-        _setPriorityFeeLimit(newPriorityFeeLimit);
-    }
-
-    /**
-     * @dev Sets the transaction cost limit
-     * @param newTxCostLimit New transaction cost limit to be set
-     */
-    function setTxCostLimit(uint256 newTxCostLimit) external override authP(authParams(newTxCostLimit)) {
-        _setTxCostLimit(newTxCostLimit);
-    }
-
-    /**
-     * @dev Sets the transaction cost limit percentage
-     * @param newTxCostLimitPct New transaction cost limit percentage to be set
-     */
-    function setTxCostLimitPct(uint256 newTxCostLimitPct) external override authP(authParams(newTxCostLimitPct)) {
-        _setTxCostLimitPct(newTxCostLimitPct);
+    function setGasLimits(
+        uint256 newGasPriceLimit,
+        uint256 newPriorityFeeLimit,
+        uint256 newTxCostLimit,
+        uint256 newTxCostLimitPct
+    ) external override authP(authParams(newGasPriceLimit, newPriorityFeeLimit, newTxCostLimit, newTxCostLimitPct)) {
+        _setGasLimits(newGasPriceLimit, newPriorityFeeLimit, newTxCostLimit, newTxCostLimitPct);
     }
 
     /**
@@ -117,12 +100,13 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
      */
     function _beforeGasLimitedTask(address, uint256) internal virtual {
         __initialGas__ = gasleft();
-        bool isGasPriceAllowed = gasPriceLimit == 0 || tx.gasprice <= gasPriceLimit;
-        if (!isGasPriceAllowed) revert TaskGasPriceLimitExceeded(tx.gasprice, gasPriceLimit);
+        GasLimitConfig memory config = gasLimits;
+        bool isGasPriceAllowed = config.gasPriceLimit == 0 || tx.gasprice <= config.gasPriceLimit;
+        if (!isGasPriceAllowed) revert TaskGasPriceLimitExceeded(tx.gasprice, config.gasPriceLimit);
 
         uint256 priorityFee = tx.gasprice - block.basefee;
-        bool isPriorityFeeAllowed = priorityFeeLimit == 0 || priorityFee <= priorityFeeLimit;
-        if (!isPriorityFeeAllowed) revert TaskPriorityFeeLimitExceeded(priorityFee, priorityFeeLimit);
+        bool isPriorityFeeAllowed = config.priorityFeeLimit == 0 || priorityFee <= config.priorityFeeLimit;
+        if (!isPriorityFeeAllowed) revert TaskPriorityFeeLimitExceeded(priorityFee, config.priorityFeeLimit);
     }
 
     /**
@@ -131,53 +115,40 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
     function _afterGasLimitedTask(address token, uint256 amount) internal virtual {
         if (__initialGas__ == 0) revert TaskGasNotInitialized();
 
+        GasLimitConfig memory config = gasLimits;
         uint256 totalGas = __initialGas__ - gasleft();
         uint256 totalCost = totalGas * tx.gasprice;
-        if (txCostLimit > 0 && totalCost > txCostLimit) revert TaskTxCostLimitExceeded(totalCost, txCostLimit);
+        bool isTxCostAllowed = config.txCostLimit == 0 || totalCost <= config.txCostLimit;
+        if (!isTxCostAllowed) revert TaskTxCostLimitExceeded(totalCost, config.txCostLimit);
         delete __initialGas__;
 
-        if (txCostLimitPct > 0 && amount > 0) {
+        if (config.txCostLimitPct > 0 && amount > 0) {
             uint256 price = _getPrice(ISmartVault(this.smartVault()).wrappedNativeToken(), token);
             uint256 totalCostInToken = totalCost.mulUp(price);
             uint256 txCostPct = totalCostInToken.divUp(amount);
-            if (txCostPct > txCostLimitPct) revert TaskTxCostLimitPctExceeded(txCostPct, txCostLimitPct);
+            if (txCostPct > config.txCostLimitPct) revert TaskTxCostLimitPctExceeded(txCostPct, config.txCostLimitPct);
         }
     }
 
     /**
-     * @dev Sets the gas price limit
+     * @dev Sets the gas limits config
      * @param newGasPriceLimit New gas price limit to be set
-     */
-    function _setGasPriceLimit(uint256 newGasPriceLimit) internal {
-        gasPriceLimit = newGasPriceLimit;
-        emit GasPriceLimitSet(newGasPriceLimit);
-    }
-
-    /**
-     * @dev Sets the priority fee limit
      * @param newPriorityFeeLimit New priority fee limit to be set
+     * @param newTxCostLimit New tx cost limit to be set
+     * @param newTxCostLimitPct New tx cost percentage limit to be set
      */
-    function _setPriorityFeeLimit(uint256 newPriorityFeeLimit) internal {
-        priorityFeeLimit = newPriorityFeeLimit;
-        emit PriorityFeeLimitSet(newPriorityFeeLimit);
-    }
-
-    /**
-     * @dev Sets the transaction cost limit
-     * @param newTxCostLimit New transaction cost limit to be set
-     */
-    function _setTxCostLimit(uint256 newTxCostLimit) internal {
-        txCostLimit = newTxCostLimit;
-        emit TxCostLimitSet(newTxCostLimit);
-    }
-
-    /**
-     * @dev Sets the transaction cost limit percentage
-     * @param newTxCostLimitPct New transaction cost limit percentage to be set
-     */
-    function _setTxCostLimitPct(uint256 newTxCostLimitPct) internal {
+    function _setGasLimits(
+        uint256 newGasPriceLimit,
+        uint256 newPriorityFeeLimit,
+        uint256 newTxCostLimit,
+        uint256 newTxCostLimitPct
+    ) internal {
         if (newTxCostLimitPct > FixedPoint.ONE) revert TaskTxCostLimitPctAboveOne();
-        txCostLimitPct = newTxCostLimitPct;
-        emit TxCostLimitPctSet(newTxCostLimitPct);
+
+        gasLimits.gasPriceLimit = newGasPriceLimit;
+        gasLimits.priorityFeeLimit = newPriorityFeeLimit;
+        gasLimits.txCostLimit = newTxCostLimit;
+        gasLimits.txCostLimitPct = newTxCostLimitPct;
+        emit GasLimitsSet(newGasPriceLimit, newPriorityFeeLimit, newTxCostLimit, newTxCostLimitPct);
     }
 }
