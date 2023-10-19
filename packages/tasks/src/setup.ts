@@ -80,9 +80,10 @@ export type TaskConfig = {
     txCostLimitPct: BigNumberish
   }
   timeLockConfig: {
-    delay: BigNumberish
-    nextExecutionTimestamp: BigNumberish
-    executionPeriod: BigNumberish
+    mode: BigNumberish
+    frequency: BigNumberish
+    allowedAt: BigNumberish
+    window: BigNumberish
   }
   tokenIndexConfig: {
     acceptanceType: BigNumberish
@@ -128,9 +129,10 @@ export function buildEmptyTaskConfig(owner: SignerWithAddress, smartVault: Contr
       txCostLimitPct: 0,
     },
     timeLockConfig: {
-      delay: 0,
-      nextExecutionTimestamp: 0,
-      executionPeriod: 0,
+      mode: 0,
+      frequency: 0,
+      allowedAt: 0,
+      window: 0,
     },
     tokenIndexConfig: {
       acceptanceType: 0,

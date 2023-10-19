@@ -21,65 +21,51 @@ import './IBaseTask.sol';
  */
 interface ITimeLockedTask is IBaseTask {
     /**
-     * @dev The time-lock has not expired
+     * @dev The time lock frequency mode requested is invalid
      */
-    error TaskTimeLockNotExpired(uint256 expiration, uint256 currentTimestamp);
+    error TaskInvalidFrequencyMode(uint8 mode);
 
     /**
-     * @dev The execution period has expired
+     * @dev The time lock frequency is not valid
      */
-    error TaskTimeLockWaitNextPeriod(uint256 offset, uint256 executionPeriod);
+    error TaskInvalidFrequency(uint8 mode, uint256 frequency);
 
     /**
-     * @dev The execution period is greater than the time-lock delay
+     * @dev The time lock allowed date is not valid
      */
-    error TaskExecutionPeriodGtDelay(uint256 executionPeriod, uint256 delay);
+    error TaskInvalidAllowedDate(uint8 mode, uint256 date);
 
     /**
-     * @dev Emitted every time a new time-lock delay is set
+     * @dev The time lock allowed window is not valid
      */
-    event TimeLockDelaySet(uint256 delay);
+    error TaskInvalidAllowedWindow(uint8 mode, uint256 window);
+
+    /**
+     * @dev The time lock is still active
+     */
+    error TaskTimeLockActive(uint256 currentTimestamp, uint256 expiration);
+
+    /**
+     * @dev Emitted every time a new time lock is set
+     */
+    event TimeLockSet(uint8 mode, uint256 frequency, uint256 allowedAt, uint256 window);
 
     /**
      * @dev Emitted every time a new expiration timestamp is set
      */
-    event TimeLockExpirationSet(uint256 expiration);
+    event TimeLockAllowedAtSet(uint256 allowedAt);
 
     /**
-     * @dev Emitted every time a new execution period is set
+     * @dev Tells all the time-lock related information
      */
-    event TimeLockExecutionPeriodSet(uint256 period);
+    function getTimeLock() external view returns (uint8 mode, uint256 frequency, uint256 allowedAt, uint256 window);
 
     /**
-     * @dev Tells the time-lock delay in seconds
+     * @dev Sets the time-lock
+     * @param mode Time lock mode
+     * @param frequency Time lock frequency
+     * @param allowedAt Future timestamp since when the task can be executed
+     * @param window Period in seconds during when a time-locked task can be executed since the allowed timestamp
      */
-    function timeLockDelay() external view returns (uint256);
-
-    /**
-     * @dev Tells the time-lock expiration timestamp
-     */
-    function timeLockExpiration() external view returns (uint256);
-
-    /**
-     * @dev Tells the time-lock execution period
-     */
-    function timeLockExecutionPeriod() external view returns (uint256);
-
-    /**
-     * @dev Sets the time-lock delay
-     * @param delay New delay to be set
-     */
-    function setTimeLockDelay(uint256 delay) external;
-
-    /**
-     * @dev Sets the time-lock expiration timestamp
-     * @param expiration New expiration timestamp to be set
-     */
-    function setTimeLockExpiration(uint256 expiration) external;
-
-    /**
-     * @dev Sets the time-lock execution period
-     * @param period New execution period to be set
-     */
-    function setTimeLockExecutionPeriod(uint256 period) external;
+    function setTimeLock(uint8 mode, uint256 frequency, uint256 allowedAt, uint256 window) external;
 }
