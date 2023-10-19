@@ -5,12 +5,12 @@ import { Contract } from 'ethers'
 
 /* eslint-disable no-secrets/no-secrets */
 
-const USDC = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
+const USDCe = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'
 const POOL = '0x7f90122BF0700F9E7e1F688fe926940E8839F353'
 
 const WHALE = '0x62383739d68dd0f844103db8dfb05a7eded5bbe6'
 
-describe('Curve2CrvConnector - USDC', function () {
+describe('Curve2CrvConnector - USDCe', function () {
   let whale: SignerWithAddress
   let connector: Contract, pool: Contract, usdc: Contract
 
@@ -23,7 +23,7 @@ describe('Curve2CrvConnector - USDC', function () {
 
   before('deploy connector', async () => {
     connector = await deploy('Curve2CrvConnector')
-    usdc = await instanceAt('IERC20', USDC)
+    usdc = await instanceAt('IERC20', USDCe)
     pool = await instanceAt('I2CrvPool', POOL)
   })
 
@@ -33,7 +33,7 @@ describe('Curve2CrvConnector - USDC', function () {
     const previousUsdcBalance = await usdc.balanceOf(connector.address)
     const previousPoolBalance = await pool.balanceOf(connector.address)
 
-    await connector.join(POOL, USDC, JOIN_AMOUNT, SLIPPAGE)
+    await connector.join(POOL, USDCe, JOIN_AMOUNT, SLIPPAGE)
 
     const currentUsdcBalance = await usdc.balanceOf(connector.address)
     expect(currentUsdcBalance).to.be.equal(previousUsdcBalance.sub(JOIN_AMOUNT))
@@ -49,7 +49,7 @@ describe('Curve2CrvConnector - USDC', function () {
     const previousPoolBalance = await pool.balanceOf(connector.address)
 
     const amountIn = previousPoolBalance.div(2)
-    await connector.exit(POOL, amountIn, USDC, SLIPPAGE)
+    await connector.exit(POOL, amountIn, USDCe, SLIPPAGE)
 
     const currentPoolBalance = await pool.balanceOf(connector.address)
     expect(currentPoolBalance).to.be.equal(previousPoolBalance.sub(amountIn))
