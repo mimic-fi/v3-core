@@ -79,6 +79,7 @@ contract BalancerBPTExiter is IBalancerBPTExiter, Task {
      * @param amount Amount of Balancer pool tokens to exit
      */
     function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        if (amount == 0) amount = getTaskAmount(token);
         _beforeBalancerBPTExiter(token, amount);
 
         (bytes memory data, IERC20[] memory tokensOut, uint256[] memory minAmountsOut) = _buildSwapCall(token, amount);
@@ -126,14 +127,18 @@ contract BalancerBPTExiter is IBalancerBPTExiter, Task {
         try IBalancerLinearPool(pool).getMainToken() returns (address main) {
             uint256 minAmountOut;
             (data, minAmountOut) = _buildLinearPoolSwap(pool, amount, main);
+            tokensOut = new IERC20[](1);
             tokensOut[0] = IERC20(main);
+            minAmountsOut = new uint256[](1);
             minAmountsOut[0] = minAmountOut;
         } catch {
             try IBalancerBoostedPool(pool).getBptIndex() returns (uint256 bptIndex) {
                 address underlying;
                 uint256 minAmountOut;
                 (data, underlying, minAmountOut) = _buildBoostedPoolSwap(pool, amount, bptIndex);
+                tokensOut = new IERC20[](1);
                 tokensOut[0] = IERC20(underlying);
+                minAmountsOut = new uint256[](1);
                 minAmountsOut[0] = minAmountOut;
             } catch {
                 return _buildNormalPoolExit(pool, amount);
@@ -268,7 +273,8 @@ contract BalancerBPTExiter is IBalancerBPTExiter, Task {
      * @dev Tells the balances of a list of tokens
      */
     function _getBalances(IERC20[] memory tokens) private view returns (uint256[] memory balances) {
-        for (uint256 i = 0; i < tokens.length; i++) balances[i] = tokens[i].balanceOf(address(this));
+        balances = new uint256[](tokens.length);
+        for (uint256 i = 0; i < tokens.length; i++) balances[i] = tokens[i].balanceOf(smartVault);
     }
 
     /**
@@ -280,8 +286,9 @@ contract BalancerBPTExiter is IBalancerBPTExiter, Task {
         view
         returns (uint256[] memory amountsOut)
     {
+        amountsOut = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
-            uint256 postBalance = tokens[i].balanceOf(address(this));
+            uint256 postBalance = tokens[i].balanceOf(smartVault);
             uint256 amountOut = postBalance - preBalances[i];
             if (amountOut < minAmountsOut[i]) revert TaskBadAmountOut(amountOut, minAmountsOut[i]);
             amountsOut[i] = amountOut;
