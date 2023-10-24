@@ -125,21 +125,10 @@ contract BalancerBPTExiter is IBalancerBPTExiter, Task {
         returns (bytes memory data, IERC20[] memory tokensOut, uint256[] memory minAmountsOut)
     {
         try IBalancerLinearPool(pool).getMainToken() returns (address main) {
-            uint256 minAmountOut;
-            (data, minAmountOut) = _buildLinearPoolSwap(pool, amount, main);
-            tokensOut = new IERC20[](1);
-            tokensOut[0] = IERC20(main);
-            minAmountsOut = new uint256[](1);
-            minAmountsOut[0] = minAmountOut;
+            return _buildLinearPoolSwap(pool, amount, main);
         } catch {
             try IBalancerBoostedPool(pool).getBptIndex() returns (uint256 bptIndex) {
-                address underlying;
-                uint256 minAmountOut;
-                (data, underlying, minAmountOut) = _buildBoostedPoolSwap(pool, amount, bptIndex);
-                tokensOut = new IERC20[](1);
-                tokensOut[0] = IERC20(underlying);
-                minAmountsOut = new uint256[](1);
-                minAmountsOut[0] = minAmountOut;
+                return _buildBoostedPoolSwap(pool, amount, bptIndex);
             } catch {
                 return _buildNormalPoolExit(pool, amount);
             }
@@ -189,12 +178,12 @@ contract BalancerBPTExiter is IBalancerBPTExiter, Task {
     function _buildLinearPoolSwap(address pool, uint256 amount, address main)
         private
         view
-        returns (bytes memory data, uint256 minAmountOut)
+        returns (bytes memory data, IERC20[] memory tokensOut, uint256[] memory minAmountsOut)
     {
         // Compute minimum amount out in the main token
         uint256 rate = IBalancerLinearPool(pool).getRate();
         uint256 decimals = IERC20Metadata(main).decimals();
-        minAmountOut = _getMinAmountOut(rate, decimals);
+        uint256 minAmountOut = _getMinAmountOut(rate, decimals);
 
         // Swap from linear to main token
         IBalancerVault.SingleSwap memory request = IBalancerVault.SingleSwap({
@@ -215,6 +204,10 @@ contract BalancerBPTExiter is IBalancerBPTExiter, Task {
         });
 
         data = abi.encodeWithSelector(IBalancerVault.swap.selector, request, funds, minAmountOut, block.timestamp);
+        tokensOut = new IERC20[](1);
+        tokensOut[0] = IERC20(main);
+        minAmountsOut = new uint256[](1);
+        minAmountsOut[0] = minAmountOut;
     }
 
     /**
@@ -227,17 +220,17 @@ contract BalancerBPTExiter is IBalancerBPTExiter, Task {
     function _buildBoostedPoolSwap(address pool, uint256 amount, uint256 bptIndex)
         private
         view
-        returns (bytes memory data, address underlying, uint256 minAmountOut)
+        returns (bytes memory data, IERC20[] memory tokensOut, uint256[] memory minAmountsOut)
     {
         // Pick the first underlying token of the boosted pool
         bytes32 poolId = IBalancerPool(pool).getPoolId();
         (IERC20[] memory tokens, , ) = IBalancerVault(balancerVault).getPoolTokens(poolId);
-        underlying = address(bptIndex == 0 ? tokens[1] : tokens[0]);
+        address underlying = address(bptIndex == 0 ? tokens[1] : tokens[0]);
 
         // Compute minimum amount out in the underlying token
         uint256 rate = IBalancerBoostedPool(pool).getRate();
         uint256 decimals = IERC20Metadata(underlying).decimals();
-        minAmountOut = _getMinAmountOut(rate, decimals);
+        uint256 minAmountOut = _getMinAmountOut(rate, decimals);
 
         // Swap from BPT to underlying token
         IBalancerVault.SingleSwap memory request = IBalancerVault.SingleSwap({
@@ -258,6 +251,10 @@ contract BalancerBPTExiter is IBalancerBPTExiter, Task {
         });
 
         data = abi.encodeWithSelector(IBalancerVault.swap.selector, request, funds, minAmountOut, block.timestamp);
+        tokensOut = new IERC20[](1);
+        tokensOut[0] = IERC20(underlying);
+        minAmountsOut = new uint256[](1);
+        minAmountsOut[0] = minAmountOut;
     }
 
     /**
@@ -288,8 +285,10 @@ contract BalancerBPTExiter is IBalancerBPTExiter, Task {
     {
         amountsOut = new uint256[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 preBalance = preBalances[i];
             uint256 postBalance = tokens[i].balanceOf(smartVault);
-            uint256 amountOut = postBalance - preBalances[i];
+            if (postBalance < preBalance) revert TaskPostBalanceUnexpected(postBalance, preBalance);
+            uint256 amountOut = postBalance - preBalance;
             if (amountOut < minAmountsOut[i]) revert TaskBadAmountOut(amountOut, minAmountsOut[i]);
             amountsOut[i] = amountOut;
         }

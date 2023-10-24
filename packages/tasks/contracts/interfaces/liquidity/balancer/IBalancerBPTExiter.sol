@@ -31,6 +31,11 @@ interface IBalancerBPTExiter is ITask {
     error TaskAmountZero();
 
     /**
+     * @dev The post balance is lower than the pre balance
+     */
+    error TaskPostBalanceUnexpected(uint256 postBalance, uint256 preBalance);
+
+    /**
      * @dev The amount out is lower than the minimum amount out
      */
     error TaskBadAmountOut(uint256 amountOut, uint256 minAmountOut);

@@ -1,4 +1,14 @@
-import { deployProxy, fp, getSigners, impersonate, instanceAt, toUSDC, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import {
+  assertIndirectEvent,
+  deployProxy,
+  fp,
+  getSigners,
+  impersonate,
+  instanceAt,
+  toUSDC,
+  ZERO_ADDRESS,
+  ZERO_BYTES32,
+} from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
@@ -76,120 +86,178 @@ describe('BalancerBPTExiter', function () {
           })
 
           context('when the threshold has passed', () => {
-            const threshold = fp(10)
+            const threshold = amount
 
-            const setTokenThreshold = async () => {
-              const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
-              await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-              await task.connect(owner).setDefaultTokenThreshold(pool.address, threshold, 0)
+            const setTokenThreshold = () => {
+              beforeEach('set default token threshold', async () => {
+                const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
+                await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
+                await task.connect(owner).setDefaultTokenThreshold(pool.address, threshold, 0)
+              })
             }
 
-            context('normal pools', () => {
-              const itExitsProportionally = () => {
-                const getTokenBalances = async (tokens: string[], account: Contract): Promise<BigNumber[]> => {
-                  return Promise.all(
-                    tokens.map(async (tokenAddress: string) => {
-                      const token = await instanceAt('IERC20', tokenAddress)
-                      return token.balanceOf(account.address)
-                    })
-                  )
+            context('with balance connectors', () => {
+              const requestedAmount = 0
+              const prevConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000001'
+
+              const setBalanceConnectors = () => {
+                beforeEach('set balance connectors', async () => {
+                  const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+                  await authorizer.connect(owner).authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+                  await task.connect(owner).setBalanceConnectors(prevConnectorId, ZERO_BYTES32)
+                })
+
+                beforeEach('authorize task to update balance connectors', async () => {
+                  const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                  await authorizer
+                    .connect(owner)
+                    .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+                })
+
+                beforeEach('assign amount in to previous balance connector', async () => {
+                  const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                  await authorizer
+                    .connect(owner)
+                    .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
+                  await smartVault.connect(owner).updateBalanceConnector(prevConnectorId, pool.address, amount, true)
+                })
+              }
+
+              const itUpdatesTheBalanceConnectorsProperly = () => {
+                it('updates the balance connectors properly', async () => {
+                  const tx = await task.call(pool.address, requestedAmount)
+
+                  await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+                    id: prevConnectorId,
+                    token: pool.address,
+                    amount,
+                    added: false,
+                  })
+                })
+              }
+
+              context('normal pools', () => {
+                const itExitsProportionally = () => {
+                  const getTokenBalances = async (tokens: string[], account: Contract): Promise<BigNumber[]> => {
+                    return Promise.all(
+                      tokens.map(async (tokenAddress: string) => {
+                        const token = await instanceAt('IERC20', tokenAddress)
+                        return token.balanceOf(account.address)
+                      })
+                    )
+                  }
+
+                  it('exits the BPT proportionally', async () => {
+                    const { tokens } = await balancer.getPoolTokens(await pool.getPoolId())
+                    const previousTokenBalances = await getTokenBalances(tokens, smartVault)
+                    const previousBptBalance = await pool.balanceOf(smartVault.address)
+
+                    await task.call(pool.address, requestedAmount)
+
+                    const currentTokenBalances = await getTokenBalances(tokens, smartVault)
+                    currentTokenBalances.forEach((currentBalance, i) =>
+                      expect(currentBalance).to.be.gt(previousTokenBalances[i])
+                    )
+
+                    const currentBptBalance = await pool.balanceOf(smartVault.address)
+                    expect(currentBptBalance).to.be.equal(previousBptBalance.sub(amount))
+                  })
                 }
 
-                it('exits the BPT proportionally', async () => {
-                  const { tokens } = await balancer.getPoolTokens(await pool.getPoolId())
-                  const previousTokenBalances = await getTokenBalances(tokens, smartVault)
-                  const previousBptBalance = await pool.balanceOf(smartVault.address)
+                context('weighted pool', () => {
+                  const POOL = '0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56' // BAL-WETH 80/20
+                  const WHALE = '0x24faf482304ed21f82c86ed5feb0ea313231a808'
 
-                  await task.call(pool.address, amount)
+                  setUpPool('IBalancerPool', POOL, WHALE)
+                  setTokenThreshold()
+                  setBalanceConnectors()
 
-                  const currentTokenBalances = await getTokenBalances(tokens, smartVault)
-                  currentTokenBalances.forEach((currentBalance, i) =>
-                    expect(currentBalance).to.be.gt(previousTokenBalances[i])
-                  )
-
-                  const currentBptBalance = await pool.balanceOf(smartVault.address)
-                  expect(currentBptBalance).to.be.equal(previousBptBalance.sub(amount))
+                  itExitsProportionally()
+                  itUpdatesTheBalanceConnectorsProperly()
                 })
-              }
 
-              context('weighted pool', () => {
-                const POOL = '0x5c6ee304399dbdb9c8ef030ab642b10820db8f56' // BAL-WETH 80/20
-                const WHALE = '0x24faf482304ed21f82c86ed5feb0ea313231a808'
+                context('stable pool', () => {
+                  const POOL = '0x06Df3b2bbB68adc8B0e302443692037ED9f91b42' // staBAL3
+                  const WHALE = '0xb49d12163334f13c2a1619b6b73659fe6e849e30'
 
-                setUpPool('IBalancerPool', POOL, WHALE)
-                setTokenThreshold()
-                itExitsProportionally()
-              })
+                  setUpPool('IBalancerPool', POOL, WHALE)
+                  setTokenThreshold()
+                  setBalanceConnectors()
 
-              context('stable pool', () => {
-                const POOL = '0x06df3b2bbb68adc8b0e302443692037ed9f91b42' // staBAL3
-                const WHALE = '0xb49d12163334f13c2a1619b6b73659fe6e849e30'
-
-                setUpPool('IBalancerPool', POOL, WHALE)
-                setTokenThreshold()
-                itExitsProportionally()
-              })
-            })
-
-            context('boosted pools', () => {
-              const itSwapsForTheFirstUnderlyingToken = () => {
-                it('swaps to the first underlying token', async () => {
-                  const bptIndex = await pool.getBptIndex()
-                  const { tokens } = await balancer.getPoolTokens(await pool.getPoolId())
-                  const underlying = await instanceAt('IBalancerBoostedPool', tokens[bptIndex.eq(0) ? 1 : 0])
-
-                  const previousBptBalance = await pool.balanceOf(smartVault.address)
-                  const previousUnderlyingBalance = await underlying.balanceOf(smartVault.address)
-
-                  await task.call(pool.address, amount)
-
-                  const currentBptBalance = await pool.balanceOf(smartVault.address)
-                  expect(currentBptBalance).to.be.equal(previousBptBalance.sub(amount))
-
-                  const currentUnderlyingBalance = await underlying.balanceOf(smartVault.address)
-                  expect(currentUnderlyingBalance).to.be.gt(previousUnderlyingBalance)
-                })
-              }
-
-              context('linear pool', () => {
-                const POOL = '0x2BBf681cC4eb09218BEe85EA2a5d3D13Fa40fC0C' // bb-a-USDT
-                const WHALE = '0xc578d755cd56255d3ff6e92e1b6371ba945e3984'
-
-                setUpPool('IBalancerLinearPool', POOL, WHALE)
-                setTokenThreshold()
-
-                it('swaps for the first main token', async () => {
-                  const mainToken = await instanceAt('IERC20', pool.getMainToken())
-
-                  const previousBptBalance = await pool.balanceOf(smartVault.address)
-                  const previousMainTokenBalance = await mainToken.balanceOf(smartVault.address)
-
-                  await task.call(pool.address, amount)
-
-                  const currentBptBalance = await pool.balanceOf(smartVault.address)
-                  expect(currentBptBalance).to.be.equal(previousBptBalance.sub(amount))
-
-                  const currentMainTokenBalance = await mainToken.balanceOf(smartVault.address)
-                  expect(currentMainTokenBalance).to.be.gt(previousMainTokenBalance)
+                  itExitsProportionally()
+                  itUpdatesTheBalanceConnectorsProperly()
                 })
               })
 
-              context('phantom pool', () => {
-                const POOL = '0x7b50775383d3d6f0215a8f290f2c9e2eebbeceb2' // bb-a-USDT bb-a-DAI bb-a-USDC
-                const WHALE = '0x575daf04615aef7272b388e3d7fac8adf1974173'
+              context('boosted pools', () => {
+                const itSwapsForTheFirstUnderlyingToken = () => {
+                  it('swaps to the first underlying token', async () => {
+                    const bptIndex = await pool.getBptIndex()
+                    const { tokens } = await balancer.getPoolTokens(await pool.getPoolId())
+                    const underlying = await instanceAt('IBalancerBoostedPool', tokens[bptIndex.eq(0) ? 1 : 0])
 
-                setUpPool('IBalancerBoostedPool', POOL, WHALE)
-                setTokenThreshold()
-                itSwapsForTheFirstUnderlyingToken()
-              })
+                    const previousBptBalance = await pool.balanceOf(smartVault.address)
+                    const previousUnderlyingBalance = await underlying.balanceOf(smartVault.address)
 
-              context('composable pool', () => {
-                const POOL = '0xa13a9247ea42d743238089903570127dda72fe44' // bb-a-USD
-                const WHALE = '0x43b650399f2e4d6f03503f44042faba8f7d73470'
+                    await task.call(pool.address, requestedAmount)
 
-                setUpPool('IBalancerBoostedPool', POOL, WHALE)
-                setTokenThreshold()
-                itSwapsForTheFirstUnderlyingToken()
+                    const currentBptBalance = await pool.balanceOf(smartVault.address)
+                    expect(currentBptBalance).to.be.equal(previousBptBalance.sub(amount))
+
+                    const currentUnderlyingBalance = await underlying.balanceOf(smartVault.address)
+                    expect(currentUnderlyingBalance).to.be.gt(previousUnderlyingBalance)
+                  })
+                }
+
+                context('linear pool', () => {
+                  const POOL = '0x2BBf681cC4eb09218BEe85EA2a5d3D13Fa40fC0C' // bb-a-USDT
+                  const WHALE = '0xc578d755cd56255d3ff6e92e1b6371ba945e3984'
+
+                  setUpPool('IBalancerLinearPool', POOL, WHALE)
+                  setTokenThreshold()
+                  setBalanceConnectors()
+
+                  it('swaps for the first main token', async () => {
+                    const mainToken = await instanceAt('IERC20', pool.getMainToken())
+
+                    const previousBptBalance = await pool.balanceOf(smartVault.address)
+                    const previousMainTokenBalance = await mainToken.balanceOf(smartVault.address)
+
+                    await task.call(pool.address, requestedAmount)
+
+                    const currentBptBalance = await pool.balanceOf(smartVault.address)
+                    expect(currentBptBalance).to.be.equal(previousBptBalance.sub(amount))
+
+                    const currentMainTokenBalance = await mainToken.balanceOf(smartVault.address)
+                    expect(currentMainTokenBalance).to.be.gt(previousMainTokenBalance)
+                  })
+
+                  itUpdatesTheBalanceConnectorsProperly()
+                })
+
+                context('phantom pool', () => {
+                  const POOL = '0x7B50775383d3D6f0215A8F290f2C9e2eEBBEceb2' // bb-a-USDT bb-a-DAI bb-a-USDC
+                  const WHALE = '0x575daf04615aef7272b388e3d7fac8adf1974173'
+
+                  setUpPool('IBalancerBoostedPool', POOL, WHALE)
+                  setTokenThreshold()
+                  setBalanceConnectors()
+
+                  itSwapsForTheFirstUnderlyingToken()
+                  itUpdatesTheBalanceConnectorsProperly()
+                })
+
+                context('composable pool', () => {
+                  const POOL = '0xA13a9247ea42D743238089903570127DdA72fE44' // bb-a-USD
+                  const WHALE = '0x43b650399f2e4d6f03503f44042faba8f7d73470'
+
+                  setUpPool('IBalancerBoostedPool', POOL, WHALE)
+                  setTokenThreshold()
+                  setBalanceConnectors()
+
+                  itSwapsForTheFirstUnderlyingToken()
+                  itUpdatesTheBalanceConnectorsProperly()
+                })
               })
             })
           })
