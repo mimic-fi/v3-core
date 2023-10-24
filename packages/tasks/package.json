@@ -18,6 +18,7 @@
     "lint:solidity": "solhint 'contracts/**/*.sol' --config ../../node_modules/solhint-config-mimic/index.js",
     "lint:typescript": "eslint . --ext .ts",
     "test": "hardhat test",
+    "test:mainnet": "yarn test --fork mainnet --block-number 17525323 --chain-id 1",
     "prepare": "yarn build"
   },
   "dependencies": {
