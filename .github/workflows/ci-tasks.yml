@@ -24,19 +24,7 @@ jobs:
   #     - name: Lint
   #       run: yarn workspace @mimic-fi/v3-tasks lint
 
-  # test:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v3
-  #     - name: Set up environment
-  #       uses: ./.github/actions/setup
-  #     - name: Build
-  #       run: yarn build
-  #     - name: Test
-  #       run: yarn workspace @mimic-fi/v3-tasks test
-  
-  gas:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,7 +33,9 @@ jobs:
         uses: ./.github/actions/setup
       - name: Build
         run: yarn build
+      - name: Test
+        run: REPORT_GAS=true yarn workspace @mimic-fi/v3-tasks test
       - name: Gas Report
         env:
-          CC_SECRET: ${{ secrets.CODECHECKS_SECRET }}  
-        run: CI=true yarn workspace @mimic-fi/v3-tasks codechecks
+          CC_SECRET: ${{ secrets.CODECHECKS_SECRET }}
+        run: yarn workspace @mimic-fi/v3-tasks codechecks
