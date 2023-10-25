@@ -2,6 +2,7 @@ import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import '@mimic-fi/v3-helpers/dist/tests'
 import 'hardhat-local-networks-config-plugin'
+import 'hardhat-gas-reporter'
 
 import { homedir } from 'os'
 import path from 'path'
@@ -16,5 +17,11 @@ export default {
         runs: 1000,
       },
     },
+  },
+  gasReporter: {
+    outputFile: 'gasReporterOutput.json',
+    enabled: !!process.env.REPORT_GAS,
+    noColors: true,
+    excludeContracts: ['Mock'],
   },
 }

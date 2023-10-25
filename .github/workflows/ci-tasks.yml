@@ -34,4 +34,8 @@ jobs:
       - name: Build
         run: yarn build
       - name: Test
-        run: yarn workspace @mimic-fi/v3-tasks test
+        run: REPORT_GAS=true yarn workspace @mimic-fi/v3-tasks test
+      - name: Gas Report
+        env:
+          CC_SECRET: ${{ secrets.CODECHECKS_SECRET }}
+        run: yarn workspace @mimic-fi/v3-tasks codechecks
