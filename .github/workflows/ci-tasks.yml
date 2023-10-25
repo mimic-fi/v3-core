@@ -14,15 +14,15 @@ on:
       - packages/tasks/**
 
 jobs:
-  # lint:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v3
-  #     - name: Set up environment
-  #       uses: ./.github/actions/setup
-  #     - name: Lint
-  #       run: yarn workspace @mimic-fi/v3-tasks lint
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up environment
+        uses: ./.github/actions/setup
+      - name: Lint
+        run: yarn workspace @mimic-fi/v3-tasks lint
 
   test:
     runs-on: ubuntu-latest

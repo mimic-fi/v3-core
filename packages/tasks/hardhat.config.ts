@@ -20,6 +20,8 @@ export default {
   },
   gasReporter: {
     outputFile: 'gasReporterOutput.json',
-    enabled: !!process.env.REPORT_GAS
+    enabled: !!process.env.REPORT_GAS,
+    noColors: true,
+    excludeContracts: ['Mock'],
   },
 }

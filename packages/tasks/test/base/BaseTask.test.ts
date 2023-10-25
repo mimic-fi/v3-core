@@ -16,7 +16,7 @@ import { Contract } from 'ethers'
 
 import { deployEnvironment } from '../../src/setup'
 
-describe.only('BaseTask', () => {
+describe('BaseTask', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, owner: SignerWithAddress
 
