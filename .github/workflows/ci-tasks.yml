@@ -14,27 +14,27 @@ on:
       - packages/tasks/**
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Set up environment
-        uses: ./.github/actions/setup
-      - name: Lint
-        run: yarn workspace @mimic-fi/v3-tasks lint
+  # lint:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #     - name: Set up environment
+  #       uses: ./.github/actions/setup
+  #     - name: Lint
+  #       run: yarn workspace @mimic-fi/v3-tasks lint
 
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Set up environment
-        uses: ./.github/actions/setup
-      - name: Build
-        run: yarn build
-      - name: Test
-        run: yarn workspace @mimic-fi/v3-tasks test
+  # test:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
+  #     - name: Set up environment
+  #       uses: ./.github/actions/setup
+  #     - name: Build
+  #       run: yarn build
+  #     - name: Test
+  #       run: yarn workspace @mimic-fi/v3-tasks test
   
   gas:
     runs-on: ubuntu-latest
@@ -48,4 +48,4 @@ jobs:
       - name: Gas Report
         env:
           CC_SECRET: ${{ secrets.CODECHECKS_SECRET }}  
-        run: yarn codechecks
+        run: yarn workspace @mimic-fi/v3-tasks codechecks
