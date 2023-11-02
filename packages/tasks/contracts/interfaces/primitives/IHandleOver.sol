@@ -17,9 +17,9 @@ pragma solidity >=0.8.0;
 import '../ITask.sol';
 
 /**
- * @dev Collector task interface
+ * @dev Hand over task interface
  */
-interface ICollector is ITask {
+interface IHandleOver is ITask {
     /**
      * @dev The token is zero
      */
@@ -33,26 +33,10 @@ interface ICollector is ITask {
     /**
      * @dev The tokens source is zero
      */
-    error TaskTokensSourceZero();
+    error TaskConnectorZero(bytes32 id);
 
     /**
-     * @dev The previous balance connector is not zero
-     */
-    error TaskPreviousConnectorNotZero(bytes32 id);
-
-    /**
-     * @dev Emitted every time the tokens source is set
-     */
-    event TokensSourceSet(address indexed tokensSource);
-
-    /**
-     * @dev Sets the tokens source address
-     * @param tokensSource Address of the tokens source to be set
-     */
-    function setTokensSource(address tokensSource) external;
-
-    /**
-     * @dev Executes the collector task
+     * @dev Executes the hand over task
      */
     function call(address token, uint256 amount) external;
 }
