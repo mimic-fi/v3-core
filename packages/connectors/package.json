@@ -30,6 +30,7 @@
     "@openzeppelin/contracts": "4.9.3"
   },
   "devDependencies": {
+    "@mimic-fi/erc4626-adapter": "https://github.com/mimic-fi/erc4626-adapter#main",
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@nomiclabs/hardhat-waffle": "2.0.3",
     "@types/chai": "^4.3.5",

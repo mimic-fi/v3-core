@@ -929,6 +929,13 @@
     tweetnacl "^1.0.3"
     tweetnacl-util "^0.15.1"
 
+"@mimic-fi/erc4626-adapter@https://github.com/mimic-fi/erc4626-adapter#main":
+  version "0.0.1"
+  resolved "https://github.com/mimic-fi/erc4626-adapter#b08591a1ca3be1ca49e87bf2374c91176d67892a"
+  dependencies:
+    "@mimic-fi/v3-helpers" "0.1.0"
+    "@openzeppelin/contracts" "4.9.3"
+
 "@mimic-fi/v3-authorizer@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@mimic-fi/v3-authorizer/-/v3-authorizer-0.1.0.tgz#10fa3b9c5ac7c3ab95d6c77764376a6707703d09"
