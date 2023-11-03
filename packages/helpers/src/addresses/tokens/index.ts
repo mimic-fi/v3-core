@@ -1,4 +1,5 @@
 export * as arbitrum from './arbitrum'
+export * as aurora from './aurora'
 export * as avalanche from './avalanche'
 export * as base from './base'
 export * as bsc from './bsc'
