@@ -39,10 +39,10 @@ contract ERC4626Connector is IERC4626Connector {
      * @param assets Amount of assets to be deposited
      */
     function join(uint256 assets) external override returns (address token, uint256 depositedShares) {
-        token = getToken();
+        token = erc4626;
         if (assets == 0) return (token, 0);
         uint256 shares = IERC4626(erc4626).convertToShares(assets);
-        ERC20Helpers.approve(token, erc4626, assets);
+        ERC20Helpers.approve(getToken(), erc4626, assets);
         depositedShares = IERC4626(erc4626).deposit(assets, address(this));
         if (depositedShares < shares) revert ERC4626InvalidDeposit(depositedShares, shares);
     }
