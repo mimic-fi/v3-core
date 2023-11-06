@@ -38,25 +38,25 @@ contract ERC4626Connector is IERC4626Connector {
      * @dev Deposits assets to the underlying ERC4626
      * @param assets Amount of assets to be deposited
      */
-    function join(uint256 assets) external override returns (address token, uint256 deposited) {
+    function join(uint256 assets) external override returns (address token, uint256 depositedShares) {
         token = getToken();
         if (assets == 0) return (token, 0);
+        uint256 shares = IERC4626(erc4626).convertToShares(assets);
         ERC20Helpers.approve(token, erc4626, assets);
-        uint256 shares = IERC4626(erc4626).deposit(assets, address(this));
-        deposited = IERC4626(erc4626).convertToAssets(shares);
-        if (deposited < assets) revert ERC4626InvalidDeposit(deposited, assets);
+        depositedShares = IERC4626(erc4626).deposit(assets, address(this));
+        if (depositedShares < shares) revert ERC4626InvalidDeposit(depositedShares, shares);
     }
 
     /**
      * @dev Withdtaws assets from the underlying ERC4626
      * @param shares Amount of shares to be redeemed
      */
-    function exit(uint256 shares) external override returns (address token, uint256 redeemed) {
+    function exit(uint256 shares) external override returns (address token, uint256 redeemedAssets) {
         token = getToken();
         if (shares == 0) return (token, 0);
-        uint256 assets = IERC4626(erc4626).redeem(shares, address(this), address(this));
-        redeemed = IERC4626(erc4626).convertToShares(assets);
-        if (redeemed < shares) revert ERC4626InvalidRedeem(redeemed, shares);
+        uint256 assets = IERC4626(erc4626).convertToAssets(shares);
+        redeemedAssets = IERC4626(erc4626).redeem(shares, address(this), address(this));
+        if (redeemedAssets < assets) revert ERC4626InvalidRedeem(redeemedAssets, assets);
     }
 
     /**

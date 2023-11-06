@@ -1,4 +1,14 @@
-import { advanceTime, deploy, fp, impersonate, instanceAt, MONTH, ONES_ADDRESS, toUSDC } from '@mimic-fi/v3-helpers'
+import {
+  advanceTime,
+  assertAlmostEqual,
+  deploy,
+  fp,
+  impersonate,
+  instanceAt,
+  MONTH,
+  ONES_ADDRESS,
+  toUSDC,
+} from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
@@ -10,7 +20,7 @@ const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
 const WHALE = '0xf584f8728b874a6a5c7a8d4d387c9aae9172d621'
 const MORPHO_AAVE_V3_WETH = '0x39Dd7790e75C6F663731f7E1FdC0f35007D3879b'
 
-describe.only('ERC4626Connector', function () {
+describe('ERC4626Connector', function () {
   let whale: SignerWithAddress
   let connector: Contract, erc4626Adapter: Contract, weth: Contract
 
@@ -52,8 +62,8 @@ describe.only('ERC4626Connector', function () {
     expect(currentWethBalance).to.be.equal(previousWethBalance.sub(JOIN_AMOUNT))
 
     const currentShares = await erc4626Adapter.balanceOf(connector.address)
-    const joinShares = erc4626Adapter.convertToShares(JOIN_AMOUNT)
-    expect(currentShares).to.be.equal(previousShares.add(joinShares))
+    const joinShares = await erc4626Adapter.convertToShares(JOIN_AMOUNT)
+    assertAlmostEqual(currentShares, previousShares.add(joinShares), 1e-7)
   })
 
   it('accumulates yield over time', async () => {

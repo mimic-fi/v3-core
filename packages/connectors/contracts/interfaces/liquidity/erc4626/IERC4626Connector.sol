@@ -37,11 +37,11 @@ interface IERC4626Connector {
      * @dev Deposits assets to the underlying ERC4626
      * @param assets Amount of assets to be deposited
      */
-    function join(uint256 assets) external returns (address token, uint256 deposited);
+    function join(uint256 assets) external returns (address token, uint256 depositedShares);
 
     /**
      * @dev Withdtaws assets from the underlying ERC4626
      * @param shares Amount of shares to be redeemed
      */
-    function exit(uint256 shares) external returns (address token, uint256 redeemed);
+    function exit(uint256 shares) external returns (address token, uint256 redeemedAssets);
 }
