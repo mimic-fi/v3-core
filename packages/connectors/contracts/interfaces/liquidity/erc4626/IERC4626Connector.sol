@@ -15,32 +15,32 @@
 pragma solidity >=0.8.0;
 
 /**
- * @title ERC4626 adapter connector interface
+ * @title ERC4626 connector interface
  */
-interface IERC4626AdapterConnector {
+interface IERC4626Connector {
     /**
      * @dev The amount deposited is lower than the expected amount
      */
-    error ERC4626AdapterInvalidDeposit(uint256 actual, uint256 expected);
+    error ERC4626InvalidDeposit(uint256 actual, uint256 expected);
 
     /**
      * @dev The amount redeemed is lower than the expected amount
      */
-    error ERC4626AdapterInvalidRedeem(uint256 actual, uint256 expected);
+    error ERC4626InvalidRedeem(uint256 actual, uint256 expected);
 
     /**
-     * @dev Tells the reference to the ERC4626Adapter
+     * @dev Tells the reference to the underlying ERC4626
      */
-    function adapter() external view returns (address);
+    function erc4626() external view returns (address);
 
     /**
-     * @dev Deposits assets to the ERC4626 adapter
+     * @dev Deposits assets to the underlying ERC4626
      * @param assets Amount of assets to be deposited
      */
     function join(uint256 assets) external returns (address token, uint256 deposited);
 
     /**
-     * @dev Withdtaws assets from the ERC4626 adapter
+     * @dev Withdtaws assets from the underlying ERC4626
      * @param shares Amount of shares to be redeemed
      */
     function exit(uint256 shares) external returns (address token, uint256 redeemed);

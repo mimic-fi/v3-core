@@ -10,7 +10,7 @@ const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
 const WHALE = '0xf584f8728b874a6a5c7a8d4d387c9aae9172d621'
 const MORPHO_AAVE_V3_WETH = '0x39Dd7790e75C6F663731f7E1FdC0f35007D3879b'
 
-describe('ERC4626AdapterConnector', function () {
+describe.only('ERC4626Connector', function () {
   let whale: SignerWithAddress
   let connector: Contract, erc4626Adapter: Contract, weth: Contract
 
@@ -32,12 +32,12 @@ describe('ERC4626AdapterConnector', function () {
   })
 
   before('deploy connector', async () => {
-    connector = await deploy('ERC4626AdapterConnector', [erc4626Adapter.address])
+    connector = await deploy('ERC4626Connector', [erc4626Adapter.address])
     weth = await instanceAt('IERC20', WETH)
   })
 
   it('deploys the connector correctly', async () => {
-    expect(await connector.adapter()).to.be.equal(erc4626Adapter.address)
+    expect(await connector.erc4626()).to.be.equal(erc4626Adapter.address)
   })
 
   it('joins the connector', async () => {
@@ -46,7 +46,7 @@ describe('ERC4626AdapterConnector', function () {
     const previousWethBalance = await weth.balanceOf(connector.address)
     const previousShares = await erc4626Adapter.balanceOf(connector.address)
 
-    await connector.connect(whale).join(JOIN_AMOUNT)
+    await connector.join(JOIN_AMOUNT)
 
     const currentWethBalance = await weth.balanceOf(connector.address)
     expect(currentWethBalance).to.be.equal(previousWethBalance.sub(JOIN_AMOUNT))
