@@ -42,56 +42,66 @@ describe('ERC4626Connector', function () {
   })
 
   before('deploy connector', async () => {
-    connector = await deploy('ERC4626Connector', [erc4626Adapter.address])
+    connector = await deploy('ERC4626Connector', [])
     weth = await instanceAt('IERC20', WETH)
   })
 
-  it('deploys the connector correctly', async () => {
-    expect(await connector.erc4626()).to.be.equal(erc4626Adapter.address)
+  context('when the token in is the underlying token', () => {
+    it('joins the connector', async () => {
+      const tokenIn = weth.address
+
+      await weth.connect(whale).transfer(connector.address, JOIN_AMOUNT)
+
+      const previousWethBalance = await weth.balanceOf(connector.address)
+      const previousShares = await erc4626Adapter.balanceOf(connector.address)
+
+      await connector.join(erc4626Adapter.address, tokenIn, JOIN_AMOUNT)
+
+      const currentWethBalance = await weth.balanceOf(connector.address)
+      expect(currentWethBalance).to.be.equal(previousWethBalance.sub(JOIN_AMOUNT))
+
+      const currentShares = await erc4626Adapter.balanceOf(connector.address)
+      const joinShares = await erc4626Adapter.convertToShares(JOIN_AMOUNT)
+      assertAlmostEqual(currentShares, previousShares.add(joinShares), 1e-7)
+    })
+
+    it('accumulates yield over time', async () => {
+      const previousShares = await erc4626Adapter.balanceOf(connector.address)
+      const previousAssets = await erc4626Adapter.convertToAssets(previousShares)
+
+      await advanceTime(MONTH)
+
+      const currentShares = await erc4626Adapter.balanceOf(connector.address)
+      const currentAssets = await erc4626Adapter.convertToAssets(currentShares)
+
+      expect(currentShares).to.be.equal(previousShares)
+      expect(currentAssets).to.be.gt(previousAssets)
+    })
+
+    it('exits with a 50%', async () => {
+      const previousWethBalance = await weth.balanceOf(connector.address)
+      const previousShares = await erc4626Adapter.balanceOf(connector.address)
+      const previousAssets = await erc4626Adapter.convertToAssets(previousShares)
+
+      const exitShares = previousShares.div(2)
+      const exitAssets = previousAssets.div(2)
+      await connector.exit(erc4626Adapter.address, exitShares)
+
+      const currentWethBalance = await weth.balanceOf(connector.address)
+      expect(currentWethBalance).to.be.equal(previousWethBalance.add(exitAssets))
+
+      const sharesAfterExit = await erc4626Adapter.balanceOf(connector.address)
+      expect(sharesAfterExit).to.be.equal(previousShares.sub(exitShares))
+    })
   })
 
-  it('joins the connector', async () => {
-    await weth.connect(whale).transfer(connector.address, JOIN_AMOUNT)
+  context('when the token in is not the underlying token', () => {
+    const tokenIn = ONES_ADDRESS
 
-    const previousWethBalance = await weth.balanceOf(connector.address)
-    const previousShares = await erc4626Adapter.balanceOf(connector.address)
-
-    await connector.join(JOIN_AMOUNT)
-
-    const currentWethBalance = await weth.balanceOf(connector.address)
-    expect(currentWethBalance).to.be.equal(previousWethBalance.sub(JOIN_AMOUNT))
-
-    const currentShares = await erc4626Adapter.balanceOf(connector.address)
-    const joinShares = await erc4626Adapter.convertToShares(JOIN_AMOUNT)
-    assertAlmostEqual(currentShares, previousShares.add(joinShares), 1e-7)
-  })
-
-  it('accumulates yield over time', async () => {
-    const previousShares = await erc4626Adapter.balanceOf(connector.address)
-    const previousAssets = await erc4626Adapter.convertToAssets(previousShares)
-
-    await advanceTime(MONTH)
-
-    const currentShares = await erc4626Adapter.balanceOf(connector.address)
-    const currentAssets = await erc4626Adapter.convertToAssets(currentShares)
-
-    expect(currentShares).to.be.equal(previousShares)
-    expect(currentAssets).to.be.gt(previousAssets)
-  })
-
-  it('exits with a 50%', async () => {
-    const previousWethBalance = await weth.balanceOf(connector.address)
-    const previousShares = await erc4626Adapter.balanceOf(connector.address)
-    const previousAssets = await erc4626Adapter.convertToAssets(previousShares)
-
-    const exitShares = previousShares.div(2)
-    const exitAssets = previousAssets.div(2)
-    await connector.exit(exitShares)
-
-    const currentWethBalance = await weth.balanceOf(connector.address)
-    expect(currentWethBalance).to.be.equal(previousWethBalance.add(exitAssets))
-
-    const sharesAfterExit = await erc4626Adapter.balanceOf(connector.address)
-    expect(sharesAfterExit).to.be.equal(previousShares.sub(exitShares))
+    it('reverts', async () => {
+      await expect(connector.join(erc4626Adapter.address, tokenIn, JOIN_AMOUNT)).to.be.revertedWith(
+        'ERC4626InvalidToken'
+      )
+    })
   })
 })

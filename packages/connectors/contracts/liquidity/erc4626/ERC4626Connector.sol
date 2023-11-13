@@ -24,35 +24,35 @@ import '../../interfaces/liquidity/erc4626/IERC4626Connector.sol';
  * @title ERC4626Connector
  */
 contract ERC4626Connector is IERC4626Connector {
-    // Reference to the underlying ERC4626
-    address public immutable override erc4626;
-
     /**
-     * @dev Creates a new ERC4626 connector
-     */
-    constructor(address _erc4626) {
-        erc4626 = _erc4626;
-    }
-
-    /**
-     * @dev Deposits assets to the underlying ERC4626
+     * @dev Deposits assets to an ERC4626
+     * @param erc4626 Address of the ERC4626 to join
+     * @param tokenIn Address of the token to join the ERC4626
      * @param assets Amount of assets to be deposited
      */
-    function join(uint256 assets) external override returns (address token, uint256 depositedShares) {
-        token = erc4626;
-        if (assets == 0) return (token, 0);
+    function join(address erc4626, address tokenIn, uint256 assets)
+        external
+        override
+        returns (address tokenOut, uint256 depositedShares)
+    {
+        tokenOut = erc4626;
+        if (assets == 0) return (tokenOut, 0);
+        address expectedTokenIn = getToken(erc4626);
+        if (tokenIn != expectedTokenIn) revert ERC4626InvalidToken(tokenIn, expectedTokenIn);
+
         uint256 shares = IERC4626(erc4626).convertToShares(assets);
-        ERC20Helpers.approve(getToken(), erc4626, assets);
+        ERC20Helpers.approve(tokenIn, erc4626, assets);
         depositedShares = IERC4626(erc4626).deposit(assets, address(this));
         if (depositedShares < shares) revert ERC4626InvalidDeposit(depositedShares, shares);
     }
 
     /**
-     * @dev Withdtaws assets from the underlying ERC4626
+     * @dev Withdtaws assets from an ERC4626
+     * @param erc4626 Address of the ERC4626 to exit
      * @param shares Amount of shares to be redeemed
      */
-    function exit(uint256 shares) external override returns (address token, uint256 redeemedAssets) {
-        token = getToken();
+    function exit(address erc4626, uint256 shares) external override returns (address token, uint256 redeemedAssets) {
+        token = getToken(erc4626);
         if (shares == 0) return (token, 0);
         uint256 assets = IERC4626(erc4626).convertToAssets(shares);
         redeemedAssets = IERC4626(erc4626).redeem(shares, address(this), address(this));
@@ -60,9 +60,9 @@ contract ERC4626Connector is IERC4626Connector {
     }
 
     /**
-     * @dev Tells the underlying token of the ERC4626
+     * @dev Tells the underlying token of an ERC4626
      */
-    function getToken() internal view returns (address) {
+    function getToken(address erc4626) internal view returns (address) {
         return IERC4626(erc4626).asset();
     }
 }
