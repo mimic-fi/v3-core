@@ -26,27 +26,36 @@ interface IERC4626Connector {
     /**
      * @dev The amount deposited is lower than the expected amount
      */
-    error ERC4626InvalidDeposit(uint256 actual, uint256 expected);
+    error ERC4626BadSharesOut(uint256 shares, uint256 minSharesOut);
 
     /**
      * @dev The amount redeemed is lower than the expected amount
      */
-    error ERC4626InvalidRedeem(uint256 actual, uint256 expected);
+    error ERC4626BadAssetsOut(uint256 assets, uint256 minAssetsOut);
+
+    /**
+     * @dev Tells the underlying token of an ERC4626
+     */
+    function getToken(address erc4626) external view returns (address);
 
     /**
      * @dev Deposits assets to the underlying ERC4626
      * @param erc4626 Address of the ERC4626 to join
      * @param tokenIn Address of the token to join the ERC4626
      * @param assets Amount of assets to be deposited
+     * @param minSharesOut Minimum amount of shares willing to receive
      */
-    function join(address erc4626, address tokenIn, uint256 assets)
+    function join(address erc4626, address tokenIn, uint256 assets, uint256 minSharesOut)
         external
-        returns (address tokenOut, uint256 depositedShares);
+        returns (address tokenOut, uint256 shares);
 
     /**
      * @dev Withdtaws assets from the underlying ERC4626
      * @param erc4626 Address of the ERC4626 to exit
      * @param shares Amount of shares to be redeemed
+     * @param minAssetsOut Minimum amount of assets willing to receive
      */
-    function exit(address erc4626, uint256 shares) external returns (address token, uint256 redeemedAssets);
+    function exit(address erc4626, uint256 shares, uint256 minAssetsOut)
+        external
+        returns (address token, uint256 assets);
 }

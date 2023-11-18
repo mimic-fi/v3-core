@@ -65,7 +65,11 @@ export function itBehavesLikeWormholeConnector(
         })
 
         context('when minAmountOut is greater than amount minus relayerFee', () => {
-          const minAmountOut = amount.add(1)
+          let minAmountOut: BigNumber
+
+          beforeEach('set min amount out', async () => {
+            minAmountOut = amount.add(1)
+          })
 
           it('reverts', async function () {
             await expect(

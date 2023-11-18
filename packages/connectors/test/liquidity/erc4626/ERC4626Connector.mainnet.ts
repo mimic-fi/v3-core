@@ -15,12 +15,12 @@ import { Contract } from 'ethers'
 
 /* eslint-disable no-secrets/no-secrets */
 
-const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
 
 const WHALE = '0xf584f8728b874a6a5c7a8d4d387c9aae9172d621'
 const MORPHO_AAVE_V3_WETH = '0x39Dd7790e75C6F663731f7E1FdC0f35007D3879b'
 
-describe('ERC4626Connector', function () {
+describe('ERC4626Connector', () => {
   let whale: SignerWithAddress
   let connector: Contract, erc4626Adapter: Contract, weth: Contract
 
@@ -46,6 +46,10 @@ describe('ERC4626Connector', function () {
     weth = await instanceAt('IERC20', WETH)
   })
 
+  it('returns the underlying asset', async () => {
+    expect(await connector.getToken(erc4626Adapter.address)).to.be.equal(WETH)
+  })
+
   context('when the token in is the underlying token', () => {
     it('joins the connector', async () => {
       const tokenIn = weth.address
@@ -55,7 +59,7 @@ describe('ERC4626Connector', function () {
       const previousWethBalance = await weth.balanceOf(connector.address)
       const previousShares = await erc4626Adapter.balanceOf(connector.address)
 
-      await connector.join(erc4626Adapter.address, tokenIn, JOIN_AMOUNT)
+      await connector.join(erc4626Adapter.address, tokenIn, JOIN_AMOUNT, 0)
 
       const currentWethBalance = await weth.balanceOf(connector.address)
       expect(currentWethBalance).to.be.equal(previousWethBalance.sub(JOIN_AMOUNT))
@@ -85,7 +89,7 @@ describe('ERC4626Connector', function () {
 
       const exitShares = previousShares.div(2)
       const exitAssets = previousAssets.div(2)
-      await connector.exit(erc4626Adapter.address, exitShares)
+      await connector.exit(erc4626Adapter.address, exitShares, 0)
 
       const currentWethBalance = await weth.balanceOf(connector.address)
       expect(currentWethBalance).to.be.equal(previousWethBalance.add(exitAssets))
@@ -99,7 +103,7 @@ describe('ERC4626Connector', function () {
     const tokenIn = ONES_ADDRESS
 
     it('reverts', async () => {
-      await expect(connector.join(erc4626Adapter.address, tokenIn, JOIN_AMOUNT)).to.be.revertedWith(
+      await expect(connector.join(erc4626Adapter.address, tokenIn, JOIN_AMOUNT, 0)).to.be.revertedWith(
         'ERC4626InvalidToken'
       )
     })
