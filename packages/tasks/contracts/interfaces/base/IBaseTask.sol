@@ -51,7 +51,7 @@ interface IBaseTask is IAuthorized {
 
     /**
      * @dev Tells the address from where the token amounts to execute this task are fetched.
-     * This address must the the Smart Vault in case the previous balance connector is set.
+     * This address must be the Smart Vault in case the previous balance connector is set.
      */
     function getTokensSource() external view returns (address);
 
