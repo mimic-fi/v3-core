@@ -50,4 +50,15 @@ library Arrays {
             result[i + 1] = b[i];
         }
     }
+
+    /**
+     * @dev Builds an array of bytes32 based on the given ones
+     */
+    function from(bytes32 a, bytes32[] memory b) internal pure returns (bytes32[] memory result) {
+        result = new bytes32[](b.length + 1);
+        result[0] = a;
+        for (uint256 i = 0; i < b.length; i++) {
+            result[i + 1] = b[i];
+        }
+    }
 }
