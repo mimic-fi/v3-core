@@ -19,14 +19,14 @@ import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-connectors/contracts/swap/balancer/IBalancerV2Vault.sol';
 import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IBalancerV2Connector.sol';
 
-import './BalancerV2Swapper.sol';
+import './BalancerV2BptSwapper.sol';
 import '../interfaces/liquidity/balancer/IBalancerBoostedPool.sol';
 
 /**
  * @title Balancer v2 boosted swapper task
- * @dev Task that extends the Balancer v2 swapper task specially for boosted pools
+ * @dev Task that extends the Balancer v2 BPT swapper task specially for boosted pools
  */
-contract BalancerV2BoostedSwapper is BalancerV2Swapper {
+contract BalancerV2BoostedSwapper is BalancerV2BptSwapper {
     /**
      * @dev Tells the token out that should be used for a token. In case there is no token out defined for the
      * requested token, it will use one of the underlying pool tokens.

@@ -19,54 +19,54 @@ import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IBalancerV2Connector.sol';
 
 import './BaseSwapTask.sol';
-import '../interfaces/swap/IBalancerV2Swapper.sol';
+import '../interfaces/swap/IBalancerV2BptSwapper.sol';
 import '../interfaces/liquidity/balancer/IBalancerPool.sol';
 
 /**
- * @title Balancer v2 swapper task
+ * @title Balancer v2 BPT swapper task
  * @dev Task that extends the swapper task to use Balancer v2
  */
-contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
+contract BalancerV2BptSwapper is IBalancerV2BptSwapper, BaseSwapTask {
     using FixedPoint for uint256;
     using BytesHelpers for bytes;
 
     // Execution type for relayers
-    bytes32 public constant override EXECUTION_TYPE = keccak256('BALANCER_V2_SWAPPER');
+    bytes32 public constant override EXECUTION_TYPE = keccak256('BALANCER_V2_BPT_SWAPPER');
 
     /**
-     * @dev Balancer v2 swap config. Only used in the initializer.
+     * @dev Balancer v2 BPT swap config. Only used in the initializer.
      */
-    struct BalancerV2SwapConfig {
+    struct BalancerV2BptSwapConfig {
         BaseSwapConfig baseSwapConfig;
     }
 
     /**
-     * @dev Initializes the Balancer v2 swapper
-     * @param config Balancer v2 swap config
+     * @dev Initializes the Balancer v2 BPT swapper
+     * @param config Balancer v2 BPT swap config
      */
-    function initialize(BalancerV2SwapConfig memory config) external initializer {
-        __BalancerV2Swapper_init(config);
+    function initialize(BalancerV2BptSwapConfig memory config) external initializer {
+        __BalancerV2BptSwapper_init(config);
     }
 
     /**
-     * @dev Initializes the Balancer V2 swapper. It does call upper contracts.
-     * @param config Balancer v2 swap config
+     * @dev Initializes the Balancer v2 BPT swapper. It does call upper contracts.
+     * @param config Balancer v2 BPT swap config
      */
-    function __BalancerV2Swapper_init(BalancerV2SwapConfig memory config) internal onlyInitializing {
+    function __BalancerV2BptSwapper_init(BalancerV2BptSwapConfig memory config) internal onlyInitializing {
         __BaseSwapTask_init(config.baseSwapConfig);
-        __BalancerV2Swapper_init_unchained(config);
+        __BalancerV2BptSwapper_init_unchained(config);
     }
 
     /**
-     * @dev Initializes the Balancer V2 swapper. It does not call upper contracts.
-     * @param config Balancer v2 swap config
+     * @dev Initializes the Balancer v2 BPT swapper. It does not call upper contracts.
+     * @param config Balancer v2 BPT swap config
      */
-    function __BalancerV2Swapper_init_unchained(BalancerV2SwapConfig memory config) internal onlyInitializing {
+    function __BalancerV2BptSwapper_init_unchained(BalancerV2BptSwapConfig memory config) internal onlyInitializing {
         // solhint-disable-previous-line no-empty-blocks
     }
 
     /**
-     * @dev Executes the Balancer v2 swapper task
+     * @dev Executes the Balancer v2 BPT swapper task
      */
     function call(address tokenIn, uint256 amountIn, uint256 slippage)
         external
@@ -74,7 +74,7 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
         authP(authParams(tokenIn, amountIn, slippage))
     {
         if (amountIn == 0) amountIn = getTaskAmount(tokenIn);
-        _beforeBalancerV2Swapper(tokenIn, amountIn, slippage);
+        _beforeBalancerV2BptSwapper(tokenIn, amountIn, slippage);
 
         address tokenOut = getTokenOut(tokenIn);
         uint256 price = _getPrice(tokenIn, tokenOut);
@@ -92,20 +92,20 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
         );
 
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
-        _afterBalancerV2Swapper(tokenIn, amountIn, slippage, tokenOut, result.toUint256());
+        _afterBalancerV2BptSwapper(tokenIn, amountIn, slippage, tokenOut, result.toUint256());
     }
 
     /**
-     * @dev Before Balancer v2 swapper task
+     * @dev Before Balancer v2 BPT swapper task
      */
-    function _beforeBalancerV2Swapper(address token, uint256 amount, uint256 slippage) internal virtual {
+    function _beforeBalancerV2BptSwapper(address token, uint256 amount, uint256 slippage) internal virtual {
         _beforeBaseSwapTask(token, amount, slippage);
     }
 
     /**
-     * @dev After Balancer v2 swapper hook
+     * @dev After Balancer v2 BPT swapper hook
      */
-    function _afterBalancerV2Swapper(
+    function _afterBalancerV2BptSwapper(
         address tokenIn,
         uint256 amountIn,
         uint256 slippage,

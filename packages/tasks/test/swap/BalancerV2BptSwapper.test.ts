@@ -5,7 +5,7 @@ import { Contract } from 'ethers'
 import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
 import { itBehavesLikeBaseSwapTask } from './BaseSwapTask.behavior'
 
-describe('BalancerV2Swapper', () => {
+describe('BalancerV2BptSwapper', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, connector: Contract, owner: SignerWithAddress
 
@@ -24,7 +24,7 @@ describe('BalancerV2Swapper', () => {
 
   beforeEach('deploy task', async () => {
     task = await deployProxy(
-      'BalancerV2Swapper',
+      'BalancerV2BptSwapper',
       [],
       [
         {
@@ -48,6 +48,6 @@ describe('BalancerV2Swapper', () => {
       this.authorizer = authorizer
     })
 
-    itBehavesLikeBaseSwapTask('BALANCER_V2_SWAPPER')
+    itBehavesLikeBaseSwapTask('BALANCER_V2_BPT_SWAPPER')
   })
 })

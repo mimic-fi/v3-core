@@ -18,14 +18,14 @@ import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IBalancerV2Connector.sol';
 
-import './BalancerV2Swapper.sol';
+import './BalancerV2BptSwapper.sol';
 import '../interfaces/liquidity/balancer/IBalancerLinearPool.sol';
 
 /**
  * @title Balancer v2 linear swapper task
- * @dev Task that extends the Balancer v2 swapper task specially for linear pools
+ * @dev Task that extends the Balancer v2 BPT swapper task specially for linear pools
  */
-contract BalancerV2LinearSwapper is BalancerV2Swapper {
+contract BalancerV2LinearSwapper is BalancerV2BptSwapper {
     /**
      * @dev Tells the token out that should be used for a token. In case there is no token out defined for the
      * requested token, it will use the linear pool main token.

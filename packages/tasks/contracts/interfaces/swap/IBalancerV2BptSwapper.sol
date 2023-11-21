@@ -17,9 +17,9 @@ pragma solidity >=0.8.0;
 import './IBaseSwapTask.sol';
 
 /**
- * @dev Balancer v2 swapper task interface
+ * @dev Balancer v2 BPT swapper task interface
  */
-interface IBalancerV2Swapper is IBaseSwapTask {
+interface IBalancerV2BptSwapper is IBaseSwapTask {
     /**
      * @dev Execution function
      */
