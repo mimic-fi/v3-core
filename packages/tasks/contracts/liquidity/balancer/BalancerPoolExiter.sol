@@ -179,7 +179,7 @@ contract BalancerPoolExiter is IBalancerPoolExiter, Task {
         for (uint256 i = 0; i < tokens.length; i++) {
             tokensOut[i] = address(tokens[i]);
             uint256 expectedAmountsOut = balances[i].mulDown(bptRatio);
-            minAmountsOut[i] = expectedAmountsOut.mulUp(FixedPoint.ONE - slippage);
+            minAmountsOut[i] = expectedAmountsOut.mulDown(FixedPoint.ONE - slippage);
         }
     }
 
