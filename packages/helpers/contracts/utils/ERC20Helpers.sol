@@ -25,8 +25,7 @@ import './Denominations.sol';
  */
 library ERC20Helpers {
     function approve(address token, address to, uint256 amount) internal {
-        SafeERC20.safeApprove(IERC20(token), to, 0);
-        SafeERC20.safeApprove(IERC20(token), to, amount);
+        SafeERC20.forceApprove(IERC20(token), to, amount);
     }
 
     function transfer(address token, address to, uint256 amount) internal {
