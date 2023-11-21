@@ -41,22 +41,6 @@ interface IDepositor is ITask {
     error TaskPreviousConnectorNotZero(bytes32 id);
 
     /**
-     * @dev The tokens source to be set is not the contract itself
-     */
-    error TaskDepositorBadTokensSource(address tokensSource);
-
-    /**
-     * @dev Emitted every time the tokens source is set
-     */
-    event TokensSourceSet(address indexed tokensSource);
-
-    /**
-     * @dev Sets the tokens source address
-     * @param tokensSource Address of the tokens source to be set
-     */
-    function setTokensSource(address tokensSource) external;
-
-    /**
      * @dev Executes the withdrawer task
      */
     function call(address token, uint256 amount) external;

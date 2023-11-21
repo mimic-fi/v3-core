@@ -30,14 +30,10 @@ contract Depositor is IDepositor, Task {
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('DEPOSITOR');
 
-    // Address from where the tokens will be pulled
-    address internal _tokensSource;
-
     /**
      * @dev Deposit config. Only used in the initializer.
      */
     struct DepositConfig {
-        address tokensSource;
         TaskConfig taskConfig;
     }
 
@@ -63,14 +59,14 @@ contract Depositor is IDepositor, Task {
      * @param config Deposit config
      */
     function __Depositor_init_unchained(DepositConfig memory config) internal onlyInitializing {
-        _setTokensSource(config.tokensSource);
+        // solhint-disable-previous-line no-empty-blocks
     }
 
     /**
      * @dev Tells the address from where the token amounts to execute this task are fetched
      */
     function getTokensSource() public view virtual override(IBaseTask, BaseTask) returns (address) {
-        return _tokensSource;
+        return address(this);
     }
 
     /**
@@ -79,14 +75,6 @@ contract Depositor is IDepositor, Task {
      */
     function getTaskAmount(address token) public view virtual override(IBaseTask, BaseTask) returns (uint256) {
         return ERC20Helpers.balanceOf(token, getTokensSource());
-    }
-
-    /**
-     * @dev Sets the tokens source address. Sender must be authorized.
-     * @param tokensSource Address of the tokens source to be set
-     */
-    function setTokensSource(address tokensSource) external override authP(authParams(tokensSource)) {
-        _setTokensSource(tokensSource);
     }
 
     /**
@@ -107,7 +95,7 @@ contract Depositor is IDepositor, Task {
             Address.sendValue(payable(smartVault), amount);
         } else {
             ERC20Helpers.approve(token, smartVault, amount);
-            ISmartVault(smartVault).collect(token, _tokensSource, amount);
+            ISmartVault(smartVault).collect(token, getTokensSource(), amount);
         }
 
         _afterDepositor(token, amount);
@@ -138,15 +126,5 @@ contract Depositor is IDepositor, Task {
     function _setBalanceConnectors(bytes32 previous, bytes32 next) internal virtual override {
         if (previous != bytes32(0)) revert TaskPreviousConnectorNotZero(previous);
         super._setBalanceConnectors(previous, next);
-    }
-
-    /**
-     * @dev Sets the source address
-     * @param tokensSource Address of the tokens source to be set
-     */
-    function _setTokensSource(address tokensSource) internal virtual {
-        if (tokensSource != address(this)) revert TaskDepositorBadTokensSource(tokensSource);
-        _tokensSource = tokensSource;
-        emit TokensSourceSet(tokensSource);
     }
 }
