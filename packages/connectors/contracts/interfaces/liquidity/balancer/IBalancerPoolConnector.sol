@@ -39,14 +39,19 @@ interface IBalancerPoolConnector {
     error BalancerPoolConnectorInvalidToken(bytes32 poolId, address token);
 
     /**
+     * @dev The post balance of the token in unexpected
+     */
+    error BalancerPoolConnectorBadTokenInBalance(uint256 postBalance, uint256 preBalance, uint256 amountIn);
+
+    /**
+     * @dev The post balance of the token out is unexpected
+     */
+    error BalancerPoolConnectorBadTokenOutBalance(uint256 postBalance, uint256 preBalance);
+
+    /**
      * @dev The resulting amount out is lower than the expected min amount out
      */
     error BalancerPoolConnectorBadAmountOut(uint256 amountOut, uint256 minAmountOut);
-
-    /**
-     * @dev The post balance is lower than the pre balance
-     */
-    error BalancerPoolConnectorPostBalanceUnexpected(uint256 postBalance, uint256 preBalance);
 
     /**
      * @dev Tells the reference to Balancer v2 vault

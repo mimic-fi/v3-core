@@ -34,7 +34,7 @@ contract BalancerPoolConnector is IBalancerPoolConnector {
     uint256 private constant JOIN_POOL_EXACT_TOKENS_IN_FOR_BPT_OUT = 1;
 
     // ID of the action type used internally by Balancer in order to exit a Balancer pool
-    uint256 private constant EXACT_BPT_IN_FOR_TOKENS_OUT = 1;
+    uint256 private constant EXIT_POOL_EXACT_BPT_IN_FOR_TOKENS_OUT = 1;
 
     // Reference to Balancer V2 vault
     address public immutable override balancerV2Vault;
@@ -61,8 +61,11 @@ contract BalancerPoolConnector is IBalancerPoolConnector {
     {
         // Validate pool tokens
         (address pool, ) = IBalancerV2Vault(balancerV2Vault).getPool(poolId);
-        uint256 preBalance = IERC20(pool).balanceOf(address(this));
         (IERC20[] memory assets, uint256[] memory amountsIn) = _buildAmountsIn(poolId, tokenIn, amountIn);
+
+        // Track pre balances
+        uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
+        uint256 preBalanceOut = IERC20(pool).balanceOf(address(this));
 
         // Build join request
         IBalancerV2Vault.JoinPoolRequest memory request = IBalancerV2Vault.JoinPoolRequest({
@@ -76,10 +79,18 @@ contract BalancerPoolConnector is IBalancerPoolConnector {
         ERC20Helpers.approve(tokenIn, balancerV2Vault, amountIn);
         IBalancerV2Vault(balancerV2Vault).joinPool(poolId, address(this), payable(address(this)), request);
 
+        // Validate amount in
+        uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
+        bool isBadTokenInBalance = postBalanceIn < preBalanceIn - amountIn;
+        if (isBadTokenInBalance) revert BalancerPoolConnectorBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+
         // Validate amount out
-        uint256 postBalance = IERC20(pool).balanceOf(address(this));
-        if (postBalance < preBalance) revert BalancerPoolConnectorPostBalanceUnexpected(postBalance, preBalance);
-        amountOut = postBalance - preBalance;
+        uint256 postBalanceOut = IERC20(pool).balanceOf(address(this));
+        bool isBadTokenOutBalance = postBalanceOut < preBalanceOut;
+        if (isBadTokenOutBalance) revert BalancerPoolConnectorBadTokenOutBalance(postBalanceOut, preBalanceOut);
+
+        // Validate min amount out
+        amountOut = postBalanceOut - preBalanceOut;
         if (amountOut < minAmountOut) revert BalancerPoolConnectorBadAmountOut(amountOut, minAmountOut);
     }
 
@@ -98,17 +109,18 @@ contract BalancerPoolConnector is IBalancerPoolConnector {
         // Validate pool
         bytes32 poolId = IBalancerPool(tokenIn).getPoolId();
         (address pool, ) = IBalancerV2Vault(balancerV2Vault).getPool(poolId);
+        uint256 preBalanceIn = IERC20(pool).balanceOf(address(this));
         if (pool != tokenIn) revert BalancerPoolConnectorInvalidPoolId(poolId, tokenIn);
 
         // Validate pool tokens
         if (tokensOut.length != minAmountsOut.length) revert BalancerPoolConnectorInvalidInputLength();
-        (IERC20[] memory assets, uint256[] memory preBalances) = _getBalancesAndValidate(poolId, tokensOut);
+        (IERC20[] memory assets, uint256[] memory preBalancesOut) = _getBalancesAndValidate(poolId, tokensOut);
 
         // Build exit request
         IBalancerV2Vault.ExitPoolRequest memory request = IBalancerV2Vault.ExitPoolRequest({
             assets: assets,
             minAmountsOut: minAmountsOut,
-            userData: abi.encodePacked(EXACT_BPT_IN_FOR_TOKENS_OUT, amountIn),
+            userData: abi.encodePacked(EXIT_POOL_EXACT_BPT_IN_FOR_TOKENS_OUT, amountIn),
             toInternalBalance: false
         });
 
@@ -116,14 +128,21 @@ contract BalancerPoolConnector is IBalancerPoolConnector {
         ERC20Helpers.approve(tokenIn, balancerV2Vault, amountIn);
         IBalancerV2Vault(balancerV2Vault).exitPool(poolId, address(this), payable(address(this)), request);
 
-        // Validate amounts out
+        // Validate amount in
+        uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
+        bool isBadTokenInBalance = postBalanceIn < preBalanceIn - amountIn;
+        if (isBadTokenInBalance) revert BalancerPoolConnectorBadTokenInBalance(postBalanceIn, preBalanceIn, amountIn);
+
         amountsOut = new uint256[](tokensOut.length);
         for (uint256 i = 0; i < tokensOut.length; i++) {
-            uint256 preBalance = preBalances[i];
-            uint256 postBalance = IERC20(tokensOut[i]).balanceOf(address(this));
-            if (postBalance < preBalance) revert BalancerPoolConnectorPostBalanceUnexpected(postBalance, preBalance);
+            // Validate amounts out
+            uint256 preBalanceOut = preBalancesOut[i];
+            uint256 postBalanceOut = IERC20(tokensOut[i]).balanceOf(address(this));
+            bool isBadTokenOutBalance = postBalanceOut < preBalanceOut;
+            if (isBadTokenOutBalance) revert BalancerPoolConnectorBadTokenOutBalance(postBalanceOut, preBalanceOut);
 
-            uint256 amountOut = postBalance - preBalance;
+            // Validate min amount out
+            uint256 amountOut = postBalanceOut - preBalanceOut;
             if (amountOut < minAmountsOut[i]) revert BalancerPoolConnectorBadAmountOut(amountOut, minAmountsOut[i]);
             amountsOut[i] = amountOut;
         }
@@ -142,9 +161,10 @@ contract BalancerPoolConnector is IBalancerPoolConnector {
 
         bool isTokenInValid = false;
         for (uint256 i = 0; i < assets.length; i++) {
-            if (!isTokenInValid && address(assets[i]) == tokenIn) {
+            if (address(assets[i]) == tokenIn) {
                 isTokenInValid = true;
                 amountsIn[i] = amountIn;
+                break;
             }
         }
 
