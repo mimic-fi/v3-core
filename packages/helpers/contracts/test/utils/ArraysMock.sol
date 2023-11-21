@@ -28,4 +28,8 @@ library ArraysMock {
     function from3(uint24 a, uint24[] memory b) external pure returns (uint24[] memory result) {
         return Arrays.from(a, b);
     }
+
+    function from4(bytes32 a, bytes32[] memory b) external pure returns (bytes32[] memory result) {
+        return Arrays.from(a, b);
+    }
 }

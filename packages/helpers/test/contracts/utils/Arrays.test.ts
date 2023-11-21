@@ -10,7 +10,7 @@ describe('Arrays', () => {
     library = await deploy('ArraysMock')
   })
 
-  describe('from', () => {
+  describe('from (addresses)', () => {
     const ADDR_1 = '0x0000000000000000000000000000000000000001'
     const ADDR_2 = '0x0000000000000000000000000000000000000002'
     const ADDR_3 = '0x0000000000000000000000000000000000000003'
@@ -35,7 +35,7 @@ describe('Arrays', () => {
     })
   })
 
-  describe('from', () => {
+  describe('from (integers)', () => {
     it('concatenates correctly', async () => {
       const result = await library.from3(1, [])
 
@@ -58,6 +58,21 @@ describe('Arrays', () => {
       expect(result[0]).to.be.equal(1)
       expect(result[1]).to.be.equal(2)
       expect(result[2]).to.be.equal(3)
+    })
+  })
+
+  describe('from (bytes32)', () => {
+    const VALUE_1 = '0x0000000000000000000000000000000000000000000000000000000000000001'
+    const VALUE_2 = '0x0000000000000000000000000000000000000000000000000000000000000002'
+    const VALUE_3 = '0x0000000000000000000000000000000000000000000000000000000000000003'
+
+    it('concatenates two addresses correctly', async () => {
+      const result = await library.from4(VALUE_1, [VALUE_2, VALUE_3])
+
+      expect(result.length).to.be.equal(3)
+      expect(result[0]).to.be.equal(VALUE_1)
+      expect(result[1]).to.be.equal(VALUE_2)
+      expect(result[2]).to.be.equal(VALUE_3)
     })
   })
 })
