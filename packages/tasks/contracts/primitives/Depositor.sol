@@ -14,45 +14,117 @@
 
 pragma solidity ^0.8.0;
 
+import '@openzeppelin/contracts/utils/Address.sol';
+
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
 
-import './Collector.sol';
-import '../interfaces/primitives/ICollector.sol';
+import '../Task.sol';
+import '../interfaces/primitives/IDepositor.sol';
 
 /**
  * @title Depositor
- * @dev Task that extends the Collector task to be the source from where funds can be pulled
+ * @dev Task that can be used as the origin to start any workflow
  */
-contract Depositor is ICollector, Collector {
+contract Depositor is IDepositor, Task {
+    // Execution type for relayers
+    bytes32 public constant override EXECUTION_TYPE = keccak256('DEPOSITOR');
+
     /**
-     * @dev The tokens source to be set is not the contract itself
+     * @dev Deposit config. Only used in the initializer.
      */
-    error TaskDepositorBadTokensSource(address tokensSource);
+    struct DepositConfig {
+        TaskConfig taskConfig;
+    }
+
+    /**
+     * @dev Initializes the depositor
+     * @param config Deposit config
+     */
+    function initialize(DepositConfig memory config) external virtual initializer {
+        __Depositor_init(config);
+    }
+
+    /**
+     * @dev Initializes the depositor. It does call upper contracts initializers.
+     * @param config Deposit config
+     */
+    function __Depositor_init(DepositConfig memory config) internal onlyInitializing {
+        __Task_init(config.taskConfig);
+        __Depositor_init_unchained(config);
+    }
+
+    /**
+     * @dev Initializes the depositor. It does not call upper contracts initializers.
+     * @param config Deposit config
+     */
+    function __Depositor_init_unchained(DepositConfig memory config) internal onlyInitializing {
+        // solhint-disable-previous-line no-empty-blocks
+    }
+
+    /**
+     * @dev Tells the address from where the token amounts to execute this task are fetched
+     */
+    function getTokensSource() public view virtual override(IBaseTask, BaseTask) returns (address) {
+        return address(this);
+    }
+
+    /**
+     * @dev Tells the balance of the depositor for a given token
+     * @param token Address of the token being queried
+     */
+    function getTaskAmount(address token) public view virtual override(IBaseTask, BaseTask) returns (uint256) {
+        return ERC20Helpers.balanceOf(token, getTokensSource());
+    }
 
     /**
      * @dev It allows receiving native token transfers
      */
     receive() external payable {
-        // solhint-disable-previous-line no-empty-blocks
+        if (msg.value == 0) revert TaskValueZero();
     }
 
     /**
-     * @dev Approves the requested amount of tokens to the smart vault in case it's not the native token
+     * @dev Execute Depositor
      */
-    function _beforeCollector(address token, uint256 amount) internal virtual override {
-        super._beforeCollector(token, amount);
-        if (!Denominations.isNativeToken(token)) {
+    function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+        if (amount == 0) amount = getTaskAmount(token);
+        _beforeDepositor(token, amount);
+
+        if (Denominations.isNativeToken(token)) {
+            Address.sendValue(payable(smartVault), amount);
+        } else {
             ERC20Helpers.approve(token, smartVault, amount);
+            ISmartVault(smartVault).collect(token, getTokensSource(), amount);
         }
+
+        _afterDepositor(token, amount);
     }
 
     /**
-     * @dev Sets the tokens source address
-     * @param tokensSource Address of the tokens source to be set
+     * @dev Before depositor hook
      */
-    function _setTokensSource(address tokensSource) internal override {
-        if (tokensSource != address(this)) revert TaskDepositorBadTokensSource(tokensSource);
-        super._setTokensSource(tokensSource);
+    function _beforeDepositor(address token, uint256 amount) internal virtual {
+        _beforeTask(token, amount);
+        if (token == address(0)) revert TaskTokenZero();
+        if (amount == 0) revert TaskAmountZero();
+    }
+
+    /**
+     * @dev After depositor hook
+     */
+    function _afterDepositor(address token, uint256 amount) internal virtual {
+        _increaseBalanceConnector(token, amount);
+        _afterTask(token, amount);
+    }
+
+    /**
+     * @dev Sets the balance connectors. Previous balance connector must be unset.
+     * @param previous Balance connector id of the previous task in the workflow
+     * @param next Balance connector id of the next task in the workflow
+     */
+    function _setBalanceConnectors(bytes32 previous, bytes32 next) internal virtual override {
+        if (previous != bytes32(0)) revert TaskPreviousConnectorNotZero(previous);
+        super._setBalanceConnectors(previous, next);
     }
 }
