@@ -47,7 +47,7 @@ describe('Depositor', () => {
       it('accepts native tokens', async () => {
         await owner.sendTransaction({ to: task.address, value })
 
-        expect(await ethers.provider.getBalance(task.address)).to.be.equal(1)
+        expect(await ethers.provider.getBalance(task.address)).to.be.equal(value)
       })
     })
 
