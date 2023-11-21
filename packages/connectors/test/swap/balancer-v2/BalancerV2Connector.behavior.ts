@@ -44,11 +44,13 @@ export function itBehavesLikeBalancerV2Connector(
         const previousBalance = await weth.balanceOf(this.connector.address)
         await usdc.connect(whale).transfer(this.connector.address, amountIn)
 
-        await this.connector.connect(whale).execute(USDC, WETH, amountIn, 0, WETH_USDC_POOL_ID, hopPoolIds, hopTokens)
+        const minAmountOut = await getExpectedMinAmountOut(this.priceOracle, USDC, WETH, amountIn, SLIPPAGE)
+        await this.connector
+          .connect(whale)
+          .execute(USDC, WETH, amountIn, minAmountOut, WETH_USDC_POOL_ID, hopPoolIds, hopTokens)
 
         const currentBalance = await weth.balanceOf(this.connector.address)
-        const expectedMinAmountOut = await getExpectedMinAmountOut(this.priceOracle, USDC, WETH, amountIn, SLIPPAGE)
-        expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
+        expect(currentBalance.sub(previousBalance)).to.be.at.least(minAmountOut)
       })
     })
 
@@ -59,11 +61,13 @@ export function itBehavesLikeBalancerV2Connector(
         const previousBalance = await usdc.balanceOf(this.connector.address)
         await weth.connect(whale).transfer(this.connector.address, amountIn)
 
-        await this.connector.connect(whale).execute(WETH, USDC, amountIn, 0, WETH_USDC_POOL_ID, hopPoolIds, hopTokens)
+        const minAmountOut = await getExpectedMinAmountOut(this.priceOracle, WETH, USDC, amountIn, SLIPPAGE)
+        await this.connector
+          .connect(whale)
+          .execute(WETH, USDC, amountIn, minAmountOut, WETH_USDC_POOL_ID, hopPoolIds, hopTokens)
 
         const currentBalance = await usdc.balanceOf(this.connector.address)
-        const expectedMinAmountOut = await getExpectedMinAmountOut(this.priceOracle, WETH, USDC, amountIn, SLIPPAGE)
-        expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
+        expect(currentBalance.sub(previousBalance)).to.be.at.least(minAmountOut)
       })
     })
   })
@@ -79,11 +83,13 @@ export function itBehavesLikeBalancerV2Connector(
         const previousBalance = await wbtc.balanceOf(this.connector.address)
         await usdc.connect(whale).transfer(this.connector.address, amountIn)
 
-        await this.connector.connect(whale).execute(USDC, WBTC, amountIn, 0, WETH_USDC_POOL_ID, hopPoolIds, hopTokens)
+        const minAmountOut = await getExpectedMinAmountOut(this.priceOracle, USDC, WBTC, amountIn, SLIPPAGE)
+        await this.connector
+          .connect(whale)
+          .execute(USDC, WBTC, amountIn, minAmountOut, WETH_USDC_POOL_ID, hopPoolIds, hopTokens)
 
         const currentBalance = await wbtc.balanceOf(this.connector.address)
-        const expectedMinAmountOut = await getExpectedMinAmountOut(this.priceOracle, USDC, WBTC, amountIn, SLIPPAGE)
-        expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
+        expect(currentBalance.sub(previousBalance)).to.be.at.least(minAmountOut)
       })
     })
 
@@ -95,11 +101,13 @@ export function itBehavesLikeBalancerV2Connector(
         const previousBalance = await usdc.balanceOf(this.connector.address)
         await wbtc.connect(whale).transfer(this.connector.address, amountIn)
 
-        await this.connector.connect(whale).execute(WBTC, USDC, amountIn, 0, WETH_WBTC_POOL_ID, hopPoolIds, hopTokens)
+        const minAmountOut = await getExpectedMinAmountOut(this.priceOracle, WBTC, USDC, amountIn, SLIPPAGE)
+        await this.connector
+          .connect(whale)
+          .execute(WBTC, USDC, amountIn, minAmountOut, WETH_WBTC_POOL_ID, hopPoolIds, hopTokens)
 
         const currentBalance = await usdc.balanceOf(this.connector.address)
-        const expectedMinAmountOut = await getExpectedMinAmountOut(this.priceOracle, WBTC, USDC, amountIn, SLIPPAGE)
-        expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
+        expect(currentBalance.sub(previousBalance)).to.be.at.least(minAmountOut)
       })
     })
   })

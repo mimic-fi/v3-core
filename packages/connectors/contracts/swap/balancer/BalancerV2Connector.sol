@@ -121,11 +121,8 @@ contract BalancerV2Connector is IBalancerV2Connector {
         bytes32[] memory hopPoolsIds,
         address[] memory hopTokens
     ) private returns (uint256) {
-        // Validate input length
+        // Validate pool IDs. No need to validate hop arrays length as it was validated in the execute function.
         bytes32[] memory poolIds = Arrays.from(poolId, hopPoolsIds);
-        if (poolIds.length != hopTokens.length + 1) revert BalancerV2InputLengthMismatch();
-
-        // Validate pool IDs
         address[] memory tokens = Arrays.from(tokenIn, hopTokens, tokenOut);
         for (uint256 i = 0; i < poolIds.length; i++) {
             _validatePool(poolIds[i], tokens[i], tokens[i + 1]);
