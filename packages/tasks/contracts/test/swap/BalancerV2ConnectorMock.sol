@@ -11,7 +11,7 @@
 
 pragma solidity ^0.8.0;
 
-contract BalancerV2ConnectorMock {
+contract BalancerV2SwapConnectorMock {
     address public immutable balancerV2Vault;
 
     constructor(address _balancerV2Vault) {

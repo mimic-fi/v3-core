@@ -15,8 +15,8 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/swap/hop/IHopL2Amm.sol';
-import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IHopSwapConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/hop/IHopL2Amm.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/hop/IHopSwapConnector.sol';
 
 import './BaseSwapTask.sol';
 import '../interfaces/swap/IHopL2Swapper.sol';

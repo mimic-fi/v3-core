@@ -15,7 +15,7 @@
 pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-connectors/contracts/interfaces/bridge/IConnextConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/connext/IConnextConnector.sol';
 
 import './BaseBridgeTask.sol';
 import '../interfaces/bridge/IConnextBridger.sol';

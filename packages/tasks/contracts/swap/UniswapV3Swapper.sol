@@ -16,7 +16,7 @@ pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IUniswapV3Connector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/uniswap/IUniswapV3Connector.sol';
 
 import './BaseSwapTask.sol';
 import '../interfaces/swap/IUniswapV3Swapper.sol';

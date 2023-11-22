@@ -14,8 +14,8 @@
 
 pragma solidity ^0.8.0;
 
-import '@mimic-fi/v3-connectors/contracts/interfaces/bridge/IHopConnector.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/hop/IHopBridgeConnector.sol';
 
 import './BaseBridgeTask.sol';
 import '../interfaces/bridge/IHopBridger.sol';
@@ -131,7 +131,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
         uint256 amountAfterFees = amount - fee;
         uint256 minAmountOut = amountAfterFees.mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
-            IHopConnector.execute.selector,
+            IHopBridgeConnector.execute.selector,
             getDestinationChain(token),
             token,
             amount,

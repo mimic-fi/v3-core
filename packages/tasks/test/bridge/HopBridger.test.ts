@@ -33,7 +33,7 @@ describe('HopBridger', () => {
   })
 
   before('deploy connector', async () => {
-    connector = await deploy('HopConnectorMock')
+    connector = await deploy('HopBridgeConnectorMock')
     const overrideConnectorCheckRole = smartVault.interface.getSighash('overrideConnectorCheck')
     await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideConnectorCheckRole, [])
     await smartVault.connect(owner).overrideConnectorCheck(connector.address, true)
