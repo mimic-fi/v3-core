@@ -24,7 +24,7 @@ const BALANCER_VAULT = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
 const POOL_staBAL3 = '0x06Df3b2bbB68adc8B0e302443692037ED9f91b42' // staBAL3
 const POOL_BAL_WETH = '0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56' // BAL-WETH 80/20
 
-describe('BalancerPoolExiter', function () {
+describe('BalancerV2PoolExiter', function () {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, connector: Contract, owner: SignerWithAddress
 
@@ -43,7 +43,7 @@ describe('BalancerPoolExiter', function () {
 
   beforeEach('deploy task', async () => {
     task = await deployProxy(
-      'BalancerPoolExiter',
+      'BalancerV2PoolExiter',
       [],
       [
         {

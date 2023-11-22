@@ -17,9 +17,9 @@ pragma solidity >=0.8.0;
 import '../../ITask.sol';
 
 /**
- * @dev Base Curve task interface
+ * @dev Balancer V2 pool exit task interface
  */
-interface IBalancerPoolExiter is ITask {
+interface IBalancerV2PoolExiter is ITask {
     /**
      * @dev The token is zero
      */
@@ -101,7 +101,7 @@ interface IBalancerPoolExiter is ITask {
     function setCustomMaxSlippage(address token, uint256 maxSlippage) external;
 
     /**
-     * @dev Execute Balancer pool exiter
+     * @dev Execute Balancer v2 pool exiter
      * @param tokenIn Address of the Balancer pool token to exit
      * @param amountIn Amount of Balancer pool tokens to exit
      * @param slippage Slippage to be applied

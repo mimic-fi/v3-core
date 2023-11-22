@@ -22,13 +22,13 @@ import '@mimic-fi/v3-connectors/contracts/interfaces/balancer/IBalancerV2PoolCon
 
 import '../../Task.sol';
 import '../../interfaces/liquidity/balancer/IBalancerPool.sol';
-import '../../interfaces/liquidity/balancer/IBalancerPoolExiter.sol';
+import '../../interfaces/liquidity/balancer/IBalancerV2PoolExiter.sol';
 
 /**
- * @title Balancer pool exiter
+ * @title Balancer v2 pool exiter
  * @dev Task that offers the components to exit Balancer pools
  */
-contract BalancerPoolExiter is IBalancerPoolExiter, Task {
+contract BalancerV2PoolExiter is IBalancerV2PoolExiter, Task {
     using FixedPoint for uint256;
 
     // Execution type for relayers
@@ -62,27 +62,27 @@ contract BalancerPoolExiter is IBalancerPoolExiter, Task {
     }
 
     /**
-     * @dev Initializes a Balancer pool exiter
+     * @dev Initializes a Balancer v2 pool exiter
      * @param config Balancer pool exit config
      */
     function initialize(BalancerPoolExitConfig memory config) external virtual initializer {
-        __BalancerPoolExiter_init(config);
+        __BalancerV2PoolExiter_init(config);
     }
 
     /**
-     * @dev Initializes the Balancer pool exiter. It does call upper contracts initializers.
+     * @dev Initializes the Balancer v2 pool exiter. It does call upper contracts initializers.
      * @param config Balancer pool exit config
      */
-    function __BalancerPoolExiter_init(BalancerPoolExitConfig memory config) internal onlyInitializing {
+    function __BalancerV2PoolExiter_init(BalancerPoolExitConfig memory config) internal onlyInitializing {
         __Task_init(config.taskConfig);
-        __BalancerPoolExiter_init_unchained(config);
+        __BalancerV2PoolExiter_init_unchained(config);
     }
 
     /**
-     * @dev Initializes the Balancer pool exiter. It does not call upper contracts initializers.
+     * @dev Initializes the Balancer v2 pool exiter. It does not call upper contracts initializers.
      * @param config Balancer pool exit config
      */
-    function __BalancerPoolExiter_init_unchained(BalancerPoolExitConfig memory config) internal onlyInitializing {
+    function __BalancerV2PoolExiter_init_unchained(BalancerPoolExitConfig memory config) internal onlyInitializing {
         _setConnector(config.connector);
         _setDefaultMaxSlippage(config.maxSlippage);
         for (uint256 i = 0; i < config.customMaxSlippages.length; i++) {
@@ -128,7 +128,7 @@ contract BalancerPoolExiter is IBalancerPoolExiter, Task {
     }
 
     /**
-     * @dev Execute Balancer pool exiter
+     * @dev Execute Balancer v2 pool exiter
      * @param tokenIn Address of the Balancer pool token to exit
      * @param amountIn Amount of Balancer pool tokens to exit
      * @param slippage Slippage to be applied
@@ -139,7 +139,7 @@ contract BalancerPoolExiter is IBalancerPoolExiter, Task {
         authP(authParams(tokenIn, amountIn, slippage))
     {
         if (amountIn == 0) amountIn = getTaskAmount(tokenIn);
-        _beforeBalancerPoolExiter(tokenIn, amountIn, slippage);
+        _beforeBalancerV2PoolExiter(tokenIn, amountIn, slippage);
 
         (address[] memory tokensOut, uint256[] memory minAmountsOut) = _getTokensOut(tokenIn, amountIn, slippage);
         bytes memory connectorData = abi.encodeWithSelector(
@@ -152,7 +152,7 @@ contract BalancerPoolExiter is IBalancerPoolExiter, Task {
 
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
         uint256[] memory amountsOut = abi.decode(result, (uint256[]));
-        _afterBalancerPoolExiter(tokenIn, amountIn, tokensOut, amountsOut);
+        _afterBalancerV2PoolExiter(tokenIn, amountIn, tokensOut, amountsOut);
     }
 
     /**
@@ -184,9 +184,9 @@ contract BalancerPoolExiter is IBalancerPoolExiter, Task {
     }
 
     /**
-     * @dev Before Balancer pool exiter hook
+     * @dev Before Balancer v2 pool exiter hook
      */
-    function _beforeBalancerPoolExiter(address tokenIn, uint256 amountIn, uint256 slippage) internal virtual {
+    function _beforeBalancerV2PoolExiter(address tokenIn, uint256 amountIn, uint256 slippage) internal virtual {
         _beforeTask(tokenIn, amountIn);
         if (tokenIn == address(0)) revert TaskTokenZero();
         if (amountIn == 0) revert TaskAmountZero();
@@ -196,9 +196,9 @@ contract BalancerPoolExiter is IBalancerPoolExiter, Task {
     }
 
     /**
-     * @dev After Balancer pool exiter hook
+     * @dev After Balancer v2 pool exiter hook
      */
-    function _afterBalancerPoolExiter(
+    function _afterBalancerV2PoolExiter(
         address tokenIn,
         uint256 amountIn,
         address[] memory tokensOut,
