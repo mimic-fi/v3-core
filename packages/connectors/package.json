@@ -26,6 +26,7 @@
     "prepare": "yarn build"
   },
   "dependencies": {
+    "@mimic-fi/erc4626-adapter": "0.0.1-rc.0",
     "@mimic-fi/v3-helpers": "0.1.9",
     "@openzeppelin/contracts": "4.9.3"
   },
