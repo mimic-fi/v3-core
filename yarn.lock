@@ -945,34 +945,10 @@
     "@mimic-fi/v3-helpers" "0.1.0"
     "@openzeppelin/contracts" "4.7.0"
 
-"@mimic-fi/v3-connectors@0.1.2":
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-connectors/-/v3-connectors-0.1.2.tgz#dc9a6f155ca1f98aac5b55ab1ff17d2352a4f6ee"
-  integrity sha512-aQb8b2iidBiu8QEaZyUVpMpgmOl/AOKYawYDFVZusLCt1y3SGkvoLwHOLzY18WGLqXRYbXcndMp3HwcDqoae3Q==
-  dependencies:
-    "@mimic-fi/v3-helpers" "0.1.8"
-    "@openzeppelin/contracts" "4.9.3"
-
 "@mimic-fi/v3-helpers@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@mimic-fi/v3-helpers/-/v3-helpers-0.1.0.tgz#e64ace8cf1d5893ec351301c4b3538e96993dd4d"
   integrity sha512-Ro2Y8bKS6M3NTGcS4sV+Be/dXN9ITGHvuUawI0p2f/hmW3bs/KVUsurQZdac9N2CycUw4JJZqt/C8WvRIhXC7A==
-  dependencies:
-    "@nomiclabs/hardhat-ethers" "^2.2.3"
-    "@nomiclabs/hardhat-waffle" "2.0.3"
-    "@types/chai" "^4.3.5"
-    "@types/mocha" "^10.0.1"
-    "@types/sinon-chai" "^3.2.3"
-    chai "^4.3.7"
-    decimal.js "~10.4.3"
-    ethers "~5.6.0"
-    hardhat "^2.14.1"
-    mocha "^6.2.3"
-
-"@mimic-fi/v3-helpers@0.1.8":
-  version "0.1.8"
-  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-helpers/-/v3-helpers-0.1.8.tgz#1f5f38ad50e7de9fe9defbb083a1b0393841d570"
-  integrity sha512-CiTjNIWyllc5DPCN+VlZMVgcguFHW7hdKZS859Zwln/S153NJPswuCerD8vrZVDh0y+jUDzWCyyVwqtk9NcObw==
   dependencies:
     "@nomiclabs/hardhat-ethers" "^2.2.3"
     "@nomiclabs/hardhat-waffle" "2.0.3"
