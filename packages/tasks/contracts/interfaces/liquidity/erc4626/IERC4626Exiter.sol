@@ -21,12 +21,7 @@ import './IBaseERC4626Task.sol';
  */
 interface IERC4626Exiter is IBaseERC4626Task {
     /**
-     * The token is not the ERC4626 token
-     */
-    error TaskTokenNotERC4626(address token, address erc4626);
-
-    /**
      * @dev Executes the ERC4626 exiter task
      */
-    function call(address token, uint256 amount) external;
+    function call(address erc4626, uint256 amount, uint256 minAmountOut) external;
 }

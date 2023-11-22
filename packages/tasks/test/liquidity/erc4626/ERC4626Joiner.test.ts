@@ -30,7 +30,7 @@ describe('ERC4626Joiner', () => {
   })
 
   before('deploy connector', async () => {
-    connector = await deploy('ERC4626ConnectorMock')
+    connector = await deploy('ERC4626ConnectorMock', [ONES_ADDRESS])
     const overrideConnectorCheckRole = smartVault.interface.getSighash('overrideConnectorCheck')
     await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideConnectorCheckRole, [])
     await smartVault.connect(owner).overrideConnectorCheck(connector.address, true)
@@ -76,26 +76,23 @@ describe('ERC4626Joiner', () => {
       })
 
       context('when the token is not zero', () => {
-        let token: Contract, tokenOut: Contract
+        let token: Contract, erc4626: Contract
 
         beforeEach('deploy tokens', async () => {
           token = await deployTokenMock('WETH')
-          tokenOut = await deployTokenMock('ERC4626')
-        })
-
-        beforeEach('set connector tokens', async () => {
-          await connector.setToken(token.address)
-          await connector.setERC4626(tokenOut.address)
+          erc4626 = await deployTokenMock('ERC4626') // token out
         })
 
         context('when the amount is not zero', () => {
           const amount = fp(10)
+          const shareValue = fp(2.5)
+          const minAmountOut = amount.div(shareValue)
 
           beforeEach('fund smart vault', async () => {
             await token.mint(smartVault.address, amount)
           })
 
-          context('when the token is the underlying token', () => {
+          context('when the ERC4626 is not zero', () => {
             context('when the threshold has passed', () => {
               const threshold = amount
 
@@ -107,15 +104,25 @@ describe('ERC4626Joiner', () => {
 
               const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
                 it('executes the expected connector', async () => {
-                  const tx = await task.call(token.address, requestedAmount)
+                  const tx = await task.call(erc4626.address, token.address, requestedAmount, minAmountOut)
 
-                  const connectorData = connector.interface.encodeFunctionData('join', [amount])
+                  const connectorData = connector.interface.encodeFunctionData('join', [
+                    erc4626.address,
+                    token.address,
+                    amount,
+                    minAmountOut,
+                  ])
                   await assertIndirectEvent(tx, smartVault.interface, 'Executed', { connector, data: connectorData })
-                  await assertIndirectEvent(tx, connector.interface, 'LogJoin', { amount })
+                  await assertIndirectEvent(tx, connector.interface, 'LogJoin', {
+                    erc4626,
+                    token,
+                    amount,
+                    minAmountOut,
+                  })
                 })
 
                 it('emits an Executed event', async () => {
-                  const tx = await task.call(token.address, requestedAmount)
+                  const tx = await task.call(erc4626.address, token.address, requestedAmount, minAmountOut)
                   await assertEvent(tx, 'Executed')
                 })
               }
@@ -126,7 +133,7 @@ describe('ERC4626Joiner', () => {
                 itExecutesTheTaskProperly(requestedAmount)
 
                 it('does not update any balance connectors', async () => {
-                  const tx = await task.call(token.address, requestedAmount)
+                  const tx = await task.call(erc4626.address, token.address, requestedAmount, minAmountOut)
 
                   await assertNoEvent(tx, 'BalanceConnectorUpdated')
                 })
@@ -161,7 +168,7 @@ describe('ERC4626Joiner', () => {
                 itExecutesTheTaskProperly(requestedAmount)
 
                 it('updates the balance connectors properly', async () => {
-                  const tx = await task.call(token.address, amount)
+                  const tx = await task.call(erc4626.address, token.address, amount, minAmountOut)
 
                   await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
                     id: prevConnectorId,
@@ -172,8 +179,8 @@ describe('ERC4626Joiner', () => {
 
                   await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
                     id: nextConnectorId,
-                    token: tokenOut.address,
-                    amount,
+                    token: erc4626.address,
+                    amount: minAmountOut,
                     added: true,
                   })
                 })
@@ -190,16 +197,20 @@ describe('ERC4626Joiner', () => {
               })
 
               it('reverts', async () => {
-                await expect(task.call(token.address, amount)).to.be.revertedWith('TaskTokenThresholdNotMet')
+                await expect(task.call(erc4626.address, token.address, amount, minAmountOut)).to.be.revertedWith(
+                  'TaskTokenThresholdNotMet'
+                )
               })
             })
           })
 
-          context('when the token is not the underlying token', () => {
-            const token = ONES_ADDRESS
+          context('when the ERC4626 is zero', () => {
+            const erc4626 = ZERO_ADDRESS
 
             it('reverts', async () => {
-              await expect(task.call(token, amount)).to.be.revertedWith('TaskTokenNotUnderlying')
+              await expect(task.call(erc4626, token.address, amount, minAmountOut)).to.be.revertedWith(
+                'TaskERC4626Zero'
+              )
             })
           })
         })
@@ -208,7 +219,7 @@ describe('ERC4626Joiner', () => {
           const amount = 0
 
           it('reverts', async () => {
-            await expect(task.call(token.address, amount)).to.be.revertedWith('TaskAmountZero')
+            await expect(task.call(ZERO_ADDRESS, token.address, amount, 0)).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -217,14 +228,14 @@ describe('ERC4626Joiner', () => {
         const token = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(token, 0)).to.be.revertedWith('TaskTokenZero')
+          await expect(task.call(ZERO_ADDRESS, token, 0, 0)).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0)).to.be.revertedWith('AuthSenderNotAllowed')
+        await expect(task.call(ZERO_ADDRESS, ZERO_ADDRESS, 0, 0)).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })

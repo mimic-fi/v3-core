@@ -15,29 +15,26 @@
 pragma solidity ^0.8.0;
 
 contract ERC4626ConnectorMock {
-    address public erc4626;
+    address public immutable tokenOut;
 
-    address public getToken;
+    event LogJoin(address erc4626, address token, uint256 amount, uint256 minAmountOut);
 
-    event LogJoin(uint256 amount);
+    event LogExit(address erc4626, uint256 amount, uint256 minAmountOut);
 
-    event LogExit(uint256 amount);
-
-    function setERC4626(address newERC4626) external {
-        erc4626 = newERC4626;
+    constructor(address _tokenOut) {
+        tokenOut = _tokenOut;
     }
 
-    function setToken(address newToken) external {
-        getToken = newToken;
+    function join(address erc4626, address token, uint256 assets, uint256 minSharesOut)
+        external
+        returns (address, uint256)
+    {
+        emit LogJoin(erc4626, token, assets, minSharesOut);
+        return (erc4626, minSharesOut);
     }
 
-    function join(uint256 assets) external returns (address, uint256) {
-        emit LogJoin(assets);
-        return (erc4626, assets);
-    }
-
-    function exit(uint256 shares) external returns (address, uint256) {
-        emit LogExit(shares);
-        return (getToken, shares);
+    function exit(address erc4626, uint256 shares, uint256 minAssetsOut) external returns (address, uint256) {
+        emit LogExit(erc4626, shares, minAssetsOut);
+        return (tokenOut, minAssetsOut);
     }
 }

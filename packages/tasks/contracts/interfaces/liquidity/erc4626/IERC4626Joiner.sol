@@ -21,12 +21,12 @@ import './IBaseERC4626Task.sol';
  */
 interface IERC4626Joiner is IBaseERC4626Task {
     /**
-     * @dev The token is not the ERC4626 underlying token
+     * The ERC4626 reference is zero
      */
-    error TaskTokenNotUnderlying(address token, address underlying);
+    error TaskERC4626Zero();
 
     /**
      * @dev Executes the ERC4626 joiner task
      */
-    function call(address toke, uint256 amount) external;
+    function call(address erc4626, address token, uint256 amount, uint256 minAmountOut) external;
 }

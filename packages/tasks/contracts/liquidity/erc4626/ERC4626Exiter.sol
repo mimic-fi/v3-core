@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.0;
 
-import '@mimic-fi/v3-connectors/contracts/interfaces/liquidity/erc4626/IERC4626Connector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/erc4626/IERC4626Connector.sol';
 
 import './BaseERC4626Task.sol';
 import '../../interfaces/liquidity/erc4626/IERC4626Exiter.sol';
@@ -60,17 +60,27 @@ contract ERC4626Exiter is IERC4626Exiter, BaseERC4626Task {
     }
 
     /**
-     * @dev Executes the ERC4626 exiter task
-     * @param token Address of the token to be exited with
+     * @dev Executes the ERC4626 exiter task. Note that the ERC4626 is also the token.
+     * @param erc4626 Address of the ERC4626 to be exited
      * @param amount Amount of shares to be exited with
+     * @param minAmountOut Minimum amount of assets willing to receive
      */
-    function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
-        if (amount == 0) amount = getTaskAmount(token);
-        _beforeERC4626Exiter(token, amount);
-        bytes memory connectorData = abi.encodeWithSelector(IERC4626Connector.exit.selector, amount);
+    function call(address erc4626, uint256 amount, uint256 minAmountOut)
+        external
+        override
+        authP(authParams(erc4626, amount))
+    {
+        if (amount == 0) amount = getTaskAmount(erc4626);
+        _beforeERC4626Exiter(erc4626, amount);
+        bytes memory connectorData = abi.encodeWithSelector(
+            IERC4626Connector.exit.selector,
+            erc4626,
+            amount,
+            minAmountOut
+        );
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
         (address tokenOut, uint256 amountOut) = abi.decode(result, (address, uint256));
-        _afterERC4626Exiter(token, amount, tokenOut, amountOut);
+        _afterERC4626Exiter(erc4626, amount, tokenOut, amountOut);
     }
 
     /**
@@ -78,8 +88,6 @@ contract ERC4626Exiter is IERC4626Exiter, BaseERC4626Task {
      */
     function _beforeERC4626Exiter(address token, uint256 amount) internal virtual {
         _beforeBaseERC4626Task(token, amount);
-        address erc4626 = IERC4626Connector(connector).erc4626();
-        if (token != erc4626) revert TaskTokenNotERC4626(token, erc4626);
     }
 
     /**

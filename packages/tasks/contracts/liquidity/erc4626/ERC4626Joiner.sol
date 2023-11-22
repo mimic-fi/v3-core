@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.0;
 
-import '@mimic-fi/v3-connectors/contracts/interfaces/liquidity/erc4626/IERC4626Connector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/erc4626/IERC4626Connector.sol';
 
 import './BaseERC4626Task.sol';
 import '../../interfaces/liquidity/erc4626/IERC4626Joiner.sol';
@@ -61,13 +61,25 @@ contract ERC4626Joiner is IERC4626Joiner, BaseERC4626Task {
 
     /**
      * @dev Executes the ERC4626 joiner task
+     * @param erc4626 Address of the ERC4626 to be joined
      * @param token Address of the token to be joined with
      * @param amount Amount of assets to be joined with
+     * @param minAmountOut Minimum amount of shares willing to receive
      */
-    function call(address token, uint256 amount) external override authP(authParams(token, amount)) {
+    function call(address erc4626, address token, uint256 amount, uint256 minAmountOut)
+        external
+        override
+        authP(authParams(erc4626, token, amount))
+    {
         if (amount == 0) amount = getTaskAmount(token);
-        _beforeERC4626Joiner(token, amount);
-        bytes memory connectorData = abi.encodeWithSelector(IERC4626Connector.join.selector, amount);
+        _beforeERC4626Joiner(erc4626, token, amount);
+        bytes memory connectorData = abi.encodeWithSelector(
+            IERC4626Connector.join.selector,
+            erc4626,
+            token,
+            amount,
+            minAmountOut
+        );
         bytes memory result = ISmartVault(smartVault).execute(connector, connectorData);
         (address tokenOut, uint256 amountOut) = abi.decode(result, (address, uint256));
         _afterERC4626Joiner(token, amount, tokenOut, amountOut);
@@ -76,10 +88,9 @@ contract ERC4626Joiner is IERC4626Joiner, BaseERC4626Task {
     /**
      * @dev Before ERC4626 joiner hook
      */
-    function _beforeERC4626Joiner(address token, uint256 amount) internal virtual {
+    function _beforeERC4626Joiner(address erc4626, address token, uint256 amount) internal virtual {
         _beforeBaseERC4626Task(token, amount);
-        address underlying = IERC4626Connector(connector).getToken();
-        if (token != underlying) revert TaskTokenNotUnderlying(token, underlying);
+        if (erc4626 == address(0)) revert TaskERC4626Zero();
     }
 
     /**
