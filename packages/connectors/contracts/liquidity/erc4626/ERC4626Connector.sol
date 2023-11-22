@@ -48,13 +48,23 @@ contract ERC4626Connector is IERC4626Connector {
         address expectedTokenIn = getToken(erc4626);
         if (tokenIn != expectedTokenIn) revert ERC4626InvalidToken(tokenIn, expectedTokenIn);
 
+        uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
+        uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
+
         ERC20Helpers.approve(tokenIn, erc4626, assets);
-        shares = IERC4626(erc4626).deposit(assets, address(this));
+        IERC4626(erc4626).deposit(assets, address(this));
+
+        uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - assets;
+        if (isPostBalanceInUnexpected) revert ERC4626BadPostTokenInBalance(postBalanceIn, preBalanceIn, assets);
+
+        uint256 postBalanceOut = IERC20(tokenOut).balanceOf(address(this));
+        shares = postBalanceOut - preBalanceOut;
         if (shares < minSharesOut) revert ERC4626BadSharesOut(shares, minSharesOut);
     }
 
     /**
-     * @dev Withdtaws assets from an ERC4626
+     * @dev Withdraws assets from an ERC4626
      * @param erc4626 Address of the ERC4626 to exit
      * @param shares Amount of shares to be redeemed
      * @param minAssetsOut Minimum amount of assets willing to receive
@@ -66,7 +76,18 @@ contract ERC4626Connector is IERC4626Connector {
     {
         token = getToken(erc4626);
         if (shares == 0) return (token, 0);
-        assets = IERC4626(erc4626).redeem(shares, address(this), address(this));
+
+        uint256 preBalanceIn = IERC20(erc4626).balanceOf(address(this));
+        uint256 preBalanceOut = IERC20(token).balanceOf(address(this));
+
+        IERC4626(erc4626).redeem(shares, address(this), address(this));
+
+        uint256 postBalanceIn = IERC20(erc4626).balanceOf(address(this));
+        bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - shares;
+        if (isPostBalanceInUnexpected) revert ERC4626BadPostTokenInBalance(postBalanceIn, preBalanceIn, shares);
+
+        uint256 postBalanceOut = IERC20(token).balanceOf(address(this));
+        assets = postBalanceOut - preBalanceOut;
         if (assets < minAssetsOut) revert ERC4626BadAssetsOut(assets, minAssetsOut);
     }
 }

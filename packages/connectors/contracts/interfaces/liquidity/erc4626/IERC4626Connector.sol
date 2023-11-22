@@ -34,6 +34,11 @@ interface IERC4626Connector {
     error ERC4626BadAssetsOut(uint256 assets, uint256 minAssetsOut);
 
     /**
+     * @dev The post token in balance is lower than the previous token in balance minus the amount in
+     */
+    error ERC4626BadPostTokenInBalance(uint256 postBalanceIn, uint256 preBalanceIn, uint256 amountIn);
+
+    /**
      * @dev Tells the underlying token of an ERC4626
      */
     function getToken(address erc4626) external view returns (address);
@@ -50,7 +55,7 @@ interface IERC4626Connector {
         returns (address tokenOut, uint256 shares);
 
     /**
-     * @dev Withdtaws assets from the underlying ERC4626
+     * @dev Withdraws assets from the underlying ERC4626
      * @param erc4626 Address of the ERC4626 to exit
      * @param shares Amount of shares to be redeemed
      * @param minAssetsOut Minimum amount of assets willing to receive
