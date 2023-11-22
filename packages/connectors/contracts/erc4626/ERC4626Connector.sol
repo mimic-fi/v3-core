@@ -18,7 +18,7 @@ import '@openzeppelin/contracts/interfaces/IERC4626.sol';
 
 import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
-import '../../interfaces/liquidity/erc4626/IERC4626Connector.sol';
+import '../interfaces/erc4626/IERC4626Connector.sol';
 
 /**
  * @title ERC4626Connector
