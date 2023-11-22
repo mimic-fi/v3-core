@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.0;
 
-contract HopConnectorMock {
+contract HopBridgeConnectorMock {
     event LogExecute(
         uint256 chainId,
         address token,

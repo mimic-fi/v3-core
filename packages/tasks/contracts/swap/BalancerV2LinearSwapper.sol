@@ -16,7 +16,7 @@ pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IBalancerV2Connector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/balancer/IBalancerV2SwapConnector.sol';
 
 import './BalancerV2BptSwapper.sol';
 import '../interfaces/liquidity/balancer/IBalancerLinearPool.sol';

@@ -18,7 +18,7 @@ import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IParaswapV5Connector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/paraswap/IParaswapV5Connector.sol';
 
 import './BaseSwapTask.sol';
 import '../interfaces/swap/IParaswapV5Swapper.sol';

@@ -16,8 +16,8 @@ pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/swap/balancer/IBalancerV2Vault.sol';
-import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IBalancerV2Connector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/balancer/IBalancerV2Vault.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/balancer/IBalancerV2SwapConnector.sol';
 
 import './BalancerV2BptSwapper.sol';
 import '../interfaces/liquidity/balancer/IBalancerBoostedPool.sol';
@@ -37,7 +37,7 @@ contract BalancerV2BoostedSwapper is BalancerV2BptSwapper {
 
         bytes32 poolId = IBalancerBoostedPool(token).getPoolId();
         uint256 bptIndex = IBalancerBoostedPool(token).getBptIndex();
-        address balancerV2Vault = IBalancerV2Connector(connector).balancerV2Vault();
+        address balancerV2Vault = IBalancerV2SwapConnector(connector).balancerV2Vault();
         (IERC20[] memory tokens, , ) = IBalancerV2Vault(balancerV2Vault).getPoolTokens(poolId);
         return address(bptIndex == 0 ? tokens[1] : tokens[0]);
     }

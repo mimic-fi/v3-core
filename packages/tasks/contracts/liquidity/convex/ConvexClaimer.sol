@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.0;
 
-import '@mimic-fi/v3-connectors/contracts/interfaces/liquidity/convex/IConvexConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/convex/IConvexConnector.sol';
 
 import './BaseConvexTask.sol';
 import '../../interfaces/liquidity/convex/IConvexClaimer.sol';

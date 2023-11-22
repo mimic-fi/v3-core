@@ -17,8 +17,8 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-connectors/contracts/swap/balancer/IBalancerV2Vault.sol';
-import '@mimic-fi/v3-connectors/contracts/interfaces/liquidity/balancer/IBalancerPoolConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/balancer/IBalancerV2Vault.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/balancer/IBalancerV2PoolConnector.sol';
 
 import '../../Task.sol';
 import '../../interfaces/liquidity/balancer/IBalancerPool.sol';
@@ -32,7 +32,7 @@ contract BalancerPoolExiter is IBalancerPoolExiter, Task {
     using FixedPoint for uint256;
 
     // Execution type for relayers
-    bytes32 public constant override EXECUTION_TYPE = keccak256('BALANCER_POOL_EXITER');
+    bytes32 public constant override EXECUTION_TYPE = keccak256('BALANCER_V2_POOL_EXITER');
 
     // Task connector address
     address public override connector;
@@ -143,7 +143,7 @@ contract BalancerPoolExiter is IBalancerPoolExiter, Task {
 
         (address[] memory tokensOut, uint256[] memory minAmountsOut) = _getTokensOut(tokenIn, amountIn, slippage);
         bytes memory connectorData = abi.encodeWithSelector(
-            IBalancerPoolConnector.exit.selector,
+            IBalancerV2PoolConnector.exit.selector,
             tokenIn,
             amountIn,
             tokensOut,
@@ -170,7 +170,7 @@ contract BalancerPoolExiter is IBalancerPoolExiter, Task {
         uint256 bptRatio = amountIn.divDown(bptTotalSupply);
 
         bytes32 poolId = IBalancerPool(tokenIn).getPoolId();
-        address balancerV2Vault = IBalancerPoolConnector(connector).balancerV2Vault();
+        address balancerV2Vault = IBalancerV2PoolConnector(connector).balancerV2Vault();
         (IERC20[] memory tokens, uint256[] memory balances, ) = IBalancerV2Vault(balancerV2Vault).getPoolTokens(poolId);
 
         tokensOut = new address[](tokens.length);

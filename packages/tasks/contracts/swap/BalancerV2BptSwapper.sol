@@ -16,7 +16,7 @@ pragma solidity ^0.8.0;
 
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/interfaces/swap/IBalancerV2Connector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/balancer/IBalancerV2SwapConnector.sol';
 
 import './BaseSwapTask.sol';
 import '../interfaces/swap/IBalancerV2BptSwapper.sol';
@@ -81,7 +81,7 @@ contract BalancerV2BptSwapper is IBalancerV2BptSwapper, BaseSwapTask {
         uint256 minAmountOut = amountIn.mulUp(price).mulUp(FixedPoint.ONE - slippage);
 
         bytes memory connectorData = abi.encodeWithSelector(
-            IBalancerV2Connector.execute.selector,
+            IBalancerV2SwapConnector.execute.selector,
             tokenIn,
             tokenOut,
             amountIn,

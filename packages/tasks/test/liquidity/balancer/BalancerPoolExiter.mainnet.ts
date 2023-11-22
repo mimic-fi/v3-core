@@ -35,7 +35,7 @@ describe('BalancerPoolExiter', function () {
   })
 
   before('deploy connector', async () => {
-    connector = await deploy('BalancerPoolConnectorMock', [BALANCER_VAULT])
+    connector = await deploy('BalancerV2PoolConnectorMock', [BALANCER_VAULT])
     const overrideConnectorCheckRole = smartVault.interface.getSighash('overrideConnectorCheck')
     await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideConnectorCheckRole, [])
     await smartVault.connect(owner).overrideConnectorCheck(connector.address, true)
@@ -57,7 +57,7 @@ describe('BalancerPoolExiter', function () {
   })
   describe('execution type', () => {
     it('defines it correctly', async () => {
-      const expectedType = ethers.utils.solidityKeccak256(['string'], ['BALANCER_POOL_EXITER'])
+      const expectedType = ethers.utils.solidityKeccak256(['string'], ['BALANCER_V2_POOL_EXITER'])
       expect(await task.EXECUTION_TYPE()).to.be.equal(expectedType)
     })
   })

@@ -16,7 +16,7 @@ describe('BalancerV2BptSwapper', () => {
   })
 
   before('deploy connector', async () => {
-    connector = await deploy('BalancerV2ConnectorMock', [ZERO_ADDRESS])
+    connector = await deploy('BalancerV2SwapConnectorMock', [ZERO_ADDRESS])
     const overrideConnectorCheckRole = smartVault.interface.getSighash('overrideConnectorCheck')
     await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideConnectorCheckRole, [])
     await smartVault.connect(owner).overrideConnectorCheck(connector.address, true)
