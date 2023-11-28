@@ -53,6 +53,10 @@ contract AuthorizedHelpersMock is AuthorizedHelpers {
         return authParams(p1, p2, p3, p4);
     }
 
+    function getAuthParams(address p1, uint256 p2, address p3, uint256 p4) external pure returns (uint256[] memory r) {
+        return authParams(p1, p2, p3, p4);
+    }
+
     function getAuthParams(address p1, uint256 p2, uint256 p3, uint256 p4) external pure returns (uint256[] memory r) {
         return authParams(p1, p2, p3, p4);
     }

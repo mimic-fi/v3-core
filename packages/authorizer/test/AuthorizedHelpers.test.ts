@@ -56,6 +56,7 @@ describe('AuthorizedHelpers', () => {
 
     context('when the number of arguments is 4', () => {
       itBehavesLikeAuthParams('address,address,uint256,uint256')
+      itBehavesLikeAuthParams('address,uint256,address,uint256')
       itBehavesLikeAuthParams('address,uint256,uint256,uint256')
       itBehavesLikeAuthParams('bytes32,address,uint256,bool')
     })

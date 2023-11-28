@@ -69,7 +69,7 @@ contract ERC4626Joiner is IERC4626Joiner, BaseERC4626Task {
     function call(address token, uint256 amount, address erc4626, uint256 minAmountOut)
         external
         override
-        authP(authParams(erc4626, token, amount, minAmountOut))
+        authP(authParams(token, amount, erc4626, minAmountOut))
     {
         if (amount == 0) amount = getTaskAmount(token);
         _beforeERC4626Joiner(token, amount, erc4626);
