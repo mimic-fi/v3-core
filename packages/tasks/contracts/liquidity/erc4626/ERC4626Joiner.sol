@@ -61,18 +61,18 @@ contract ERC4626Joiner is IERC4626Joiner, BaseERC4626Task {
 
     /**
      * @dev Executes the ERC4626 joiner task
-     * @param erc4626 Address of the ERC4626 to be joined
      * @param token Address of the token to be joined with
      * @param amount Amount of assets to be joined with
+     * @param erc4626 Address of the ERC4626 to be joined
      * @param minAmountOut Minimum amount of shares willing to receive
      */
-    function call(address erc4626, address token, uint256 amount, uint256 minAmountOut)
+    function call(address token, uint256 amount, address erc4626, uint256 minAmountOut)
         external
         override
-        authP(authParams(erc4626, token, amount))
+        authP(authParams(erc4626, token, amount, minAmountOut))
     {
         if (amount == 0) amount = getTaskAmount(token);
-        _beforeERC4626Joiner(erc4626, token, amount);
+        _beforeERC4626Joiner(token, amount, erc4626);
         bytes memory connectorData = abi.encodeWithSelector(
             IERC4626Connector.join.selector,
             erc4626,
@@ -88,7 +88,7 @@ contract ERC4626Joiner is IERC4626Joiner, BaseERC4626Task {
     /**
      * @dev Before ERC4626 joiner hook
      */
-    function _beforeERC4626Joiner(address erc4626, address token, uint256 amount) internal virtual {
+    function _beforeERC4626Joiner(address token, uint256 amount, address erc4626) internal virtual {
         _beforeBaseERC4626Task(token, amount);
         if (erc4626 == address(0)) revert TaskERC4626Zero();
     }

@@ -28,5 +28,5 @@ interface IERC4626Joiner is IBaseERC4626Task {
     /**
      * @dev Executes the ERC4626 joiner task
      */
-    function call(address erc4626, address token, uint256 amount, uint256 minAmountOut) external;
+    function call(address token, uint256 amount, address erc4626, uint256 minAmountOut) external;
 }

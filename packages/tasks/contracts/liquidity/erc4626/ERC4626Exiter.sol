@@ -68,7 +68,7 @@ contract ERC4626Exiter is IERC4626Exiter, BaseERC4626Task {
     function call(address erc4626, uint256 amount, uint256 minAmountOut)
         external
         override
-        authP(authParams(erc4626, amount))
+        authP(authParams(erc4626, amount, minAmountOut))
     {
         if (amount == 0) amount = getTaskAmount(erc4626);
         _beforeERC4626Exiter(erc4626, amount);
