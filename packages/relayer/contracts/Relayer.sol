@@ -244,7 +244,6 @@ contract Relayer is IRelayer, Ownable {
         // Does not charge gas if no task was executed successfully
         if (totalGasUsed == BASE_GAS) return taskResults;
 
-        // solhint-disable-next-line avoid-low-level-calls
         uint256 totalGasCost = totalGasUsed * tx.gasprice;
         _payTransactionGasToRelayer(smartVault, totalGasCost);
     }
