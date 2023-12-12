@@ -1,23 +1,21 @@
 import { OP } from '@mimic-fi/v3-authorizer'
 import {
-  assertEvent,
   assertIndirectEvent,
   assertNoEvent,
   BigNumberish,
-  currentTimestamp,
   deploy,
   deployFeedMock,
   deployProxy,
   deployTokenMock,
   fp,
   getSigners,
-  MINUTE,
-  pct,
+  MAX_UINT256,
   ZERO_ADDRESS,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
-import { BigNumber, Contract } from 'ethers'
+import { Contract, ContractTransaction } from 'ethers'
+import { defaultAbiCoder } from 'ethers/lib/utils'
 import { ethers } from 'hardhat'
 
 import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
@@ -26,11 +24,11 @@ import { itBehavesLikeBaseSwapTask } from './BaseSwapTask.behavior'
 describe('ParaswapV5Swapper', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, priceOracle: Contract, connector: Contract
-  let owner: SignerWithAddress, quoteSigner: SignerWithAddress
+  let owner: SignerWithAddress
 
   before('setup', async () => {
     // eslint-disable-next-line prettier/prettier
-    ([, owner, quoteSigner] = await getSigners())
+    ([, owner] = await getSigners())
     ;({ authorizer, smartVault, priceOracle } = await deployEnvironment(owner))
   })
 
@@ -47,7 +45,6 @@ describe('ParaswapV5Swapper', () => {
       [],
       [
         {
-          quoteSigner: quoteSigner.address,
           baseSwapConfig: {
             connector: connector.address,
             tokenOut: ZERO_ADDRESS,
@@ -71,34 +68,6 @@ describe('ParaswapV5Swapper', () => {
     itBehavesLikeBaseSwapTask('PARASWAP_V5_SWAPPER')
   })
 
-  describe('setQuoteSigner', () => {
-    context('when the sender is authorized', () => {
-      beforeEach('set sender', async () => {
-        const setQuoteSignerRole = task.interface.getSighash('setQuoteSigner')
-        await authorizer.connect(owner).authorize(owner.address, task.address, setQuoteSignerRole, [])
-        task = task.connect(owner)
-      })
-
-      it('sets the quote signer', async () => {
-        await task.setQuoteSigner(quoteSigner.address)
-
-        expect(await task.quoteSigner()).to.be.equal(quoteSigner.address)
-      })
-
-      it('emits an event', async () => {
-        const tx = await task.setQuoteSigner(quoteSigner.address)
-
-        await assertEvent(tx, 'QuoteSignerSet', { quoteSigner })
-      })
-    })
-
-    context('when the sender is not authorized', () => {
-      it('reverts', async () => {
-        await expect(task.setQuoteSigner(quoteSigner.address)).to.be.revertedWith('AuthSenderNotAllowed')
-      })
-    })
-  })
-
   describe('call', () => {
     beforeEach('authorize task', async () => {
       const executeRole = smartVault.interface.getSighash('execute')
@@ -117,7 +86,7 @@ describe('ParaswapV5Swapper', () => {
         let tokenIn: Contract
 
         beforeEach('set token in', async () => {
-          tokenIn = await deployTokenMock('IN')
+          tokenIn = await deployTokenMock('TKN')
         })
 
         context('when the amount in is not zero', () => {
@@ -129,290 +98,304 @@ describe('ParaswapV5Swapper', () => {
           context('when the token in is allowed', () => {
             context('when there is a token out set', () => {
               let tokenOut: Contract
+              let extraCallData = ''
 
               beforeEach('set default token out', async () => {
-                tokenOut = await deployTokenMock('OUT')
+                tokenOut = await deployTokenMock('TKN')
                 const setDefaultTokenOutRole = task.interface.getSighash('setDefaultTokenOut')
                 await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenOutRole, [])
                 await task.connect(owner).setDefaultTokenOut(tokenOut.address)
               })
 
-              beforeEach('set price feed', async () => {
-                const feed = await deployFeedMock(fp(tokenRate), 18)
-                const setFeedRole = priceOracle.interface.getSighash('setFeed')
-                await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
-                await priceOracle.connect(owner).setFeed(tokenIn.address, tokenOut.address, feed.address)
-              })
+              context('when an off-chain oracle is given', () => {
+                beforeEach('sign off-chain oracle', async () => {
+                  const setSignerRole = priceOracle.interface.getSighash('setSigner')
+                  await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setSignerRole, [])
+                  await priceOracle.connect(owner).setSigner(owner.address, true)
 
-              beforeEach('set threshold', async () => {
-                const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
-                await authorizer.connect(owner).authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
-                await task.connect(owner).setDefaultTokenThreshold(tokenOut.address, thresholdAmount, 0)
-              })
+                  type PriceData = { base: string; quote: string; rate: BigNumberish; deadline: BigNumberish }
+                  const pricesData: PriceData[] = [
+                    {
+                      base: tokenIn.address,
+                      quote: tokenOut.address,
+                      rate: fp(tokenRate),
+                      deadline: MAX_UINT256,
+                    },
+                    {
+                      base: tokenOut.address,
+                      quote: tokenIn.address,
+                      rate: fp(1).mul(fp(1)).div(fp(tokenRate)),
+                      deadline: MAX_UINT256,
+                    },
+                  ]
 
-              context('when the smart vault balance passes the threshold', () => {
-                const minAmountOut = amountIn.mul(tokenRate)
-
-                beforeEach('fund smart vault', async () => {
-                  await tokenIn.mint(smartVault.address, amountIn)
+                  const PricesDataType = 'PriceData(address base, address quote, uint256 rate, uint256 deadline)[]'
+                  const encodedPrices = await defaultAbiCoder.encode([PricesDataType], [pricesData])
+                  const message = ethers.utils.solidityKeccak256(['bytes'], [encodedPrices])
+                  const signature = await owner.signMessage(ethers.utils.arrayify(message))
+                  const data = defaultAbiCoder.encode([PricesDataType, 'bytes'], [pricesData, signature]).slice(2)
+                  const dataLength = defaultAbiCoder.encode(['uint256'], [data.length / 2]).slice(2)
+                  extraCallData = `${data}${dataLength}`
                 })
 
-                context('when the slippage is below the limit', () => {
-                  const data = '0xaabb'
-                  const slippage = 0.01
-                  const expectedAmountOut = minAmountOut.add(pct(minAmountOut, slippage))
+                beforeEach('set threshold', async () => {
+                  const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
+                  await authorizer
+                    .connect(owner)
+                    .authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
+                  await task.connect(owner).setDefaultTokenThreshold(tokenOut.address, thresholdAmount, 0)
+                })
 
-                  beforeEach('set max slippage', async () => {
-                    const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
-                    await authorizer
-                      .connect(owner)
-                      .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
-                    await task.connect(owner).setDefaultMaxSlippage(fp(slippage))
+                const executeTask = async (amountIn, slippage, data): Promise<ContractTransaction> => {
+                  const callTx = await task.populateTransaction.call(tokenIn.address, amountIn, slippage, data)
+                  const callData = `${callTx.data}${extraCallData}`
+                  return owner.sendTransaction({ to: task.address, data: callData })
+                }
+
+                context('when the smart vault balance passes the threshold', () => {
+                  beforeEach('fund smart vault', async () => {
+                    await tokenIn.mint(smartVault.address, amountIn)
                   })
 
-                  const sign = async (
-                    signer: SignerWithAddress,
-                    amountIn: BigNumberish,
-                    minAmountOut: BigNumberish,
-                    expectedAmountOut: BigNumberish,
-                    deadline: BigNumberish,
-                    data: string
-                  ): Promise<string> => {
-                    return signer.signMessage(
-                      ethers.utils.arrayify(
-                        ethers.utils.solidityKeccak256(
-                          ['address', 'address', 'bool', 'uint256', 'uint256', 'uint256', 'uint256', 'bytes'],
-                          [
-                            tokenIn.address,
-                            tokenOut.address,
-                            false,
-                            amountIn,
-                            minAmountOut,
-                            expectedAmountOut,
-                            deadline,
-                            data,
-                          ]
-                        )
-                      )
-                    )
-                  }
+                  context('when the slippage is below the limit', () => {
+                    const data = '0xaabb'
+                    const slippage = fp(0.01)
+                    const expectedAmountOut = amountIn.mul(tokenRate)
+                    const minAmountOut = expectedAmountOut.mul(fp(1).sub(slippage)).div(fp(1))
 
-                  context('when the quote signer is set', () => {
-                    beforeEach('set quote signer', async () => {
-                      const setQuoteSignerRole = task.interface.getSighash('setQuoteSigner')
-                      await authorizer.connect(owner).authorize(owner.address, task.address, setQuoteSignerRole, [])
-                      await task.connect(owner).setQuoteSigner(quoteSigner.address)
+                    beforeEach('set max slippage', async () => {
+                      const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
+                      await authorizer
+                        .connect(owner)
+                        .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
+                      await task.connect(owner).setDefaultMaxSlippage(slippage)
                     })
 
-                    context('when the deadline is in the feature', () => {
-                      let deadline: BigNumber
-                      let signature: string
+                    const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
+                      it('executes the expected connector', async () => {
+                        const tx = await executeTask(requestedAmount, slippage, data)
 
-                      beforeEach('set deadline', async () => {
-                        deadline = (await currentTimestamp()).add(MINUTE)
-                      })
-
-                      beforeEach('sign data', async () => {
-                        signature = await sign(quoteSigner, amountIn, minAmountOut, expectedAmountOut, deadline, data)
-                      })
-
-                      const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
-                        it('executes the expected connector', async () => {
-                          const tx = await task.call(
-                            tokenIn.address,
-                            requestedAmount,
-                            minAmountOut,
-                            expectedAmountOut,
-                            deadline,
-                            data,
-                            signature
-                          )
-
-                          const connectorData = connector.interface.encodeFunctionData('execute', [
-                            tokenIn.address,
-                            tokenOut.address,
-                            amountIn,
-                            minAmountOut,
-                            data,
-                          ])
-
-                          await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
-                            connector,
-                            data: connectorData,
-                          })
-
-                          await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
-                            tokenIn,
-                            tokenOut,
-                            amountIn,
-                            minAmountOut,
-                            data,
-                          })
-                        })
-
-                        it('emits an Executed event', async () => {
-                          const tx = await task.call(
-                            tokenIn.address,
-                            requestedAmount,
-                            minAmountOut,
-                            expectedAmountOut,
-                            deadline,
-                            data,
-                            signature
-                          )
-
-                          await assertEvent(tx, 'Executed')
-                        })
-                      }
-
-                      context('without balance connectors', () => {
-                        const requestedAmount = amountIn
-
-                        itExecutesTheTaskProperly(requestedAmount)
-
-                        it('does not update any balance connectors', async () => {
-                          const tx = await task.call(
-                            tokenIn.address,
-                            requestedAmount,
-                            minAmountOut,
-                            expectedAmountOut,
-                            deadline,
-                            data,
-                            signature
-                          )
-
-                          await assertNoEvent(tx, 'BalanceConnectorUpdated')
-                        })
-                      })
-
-                      context('with balance connectors', () => {
-                        const requestedAmount = 0
-                        const prevConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000001'
-                        const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
-
-                        beforeEach('set balance connectors', async () => {
-                          const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
-                          await authorizer
-                            .connect(owner)
-                            .authorize(owner.address, task.address, setBalanceConnectorsRole, [])
-                          await task.connect(owner).setBalanceConnectors(prevConnectorId, nextConnectorId)
-                        })
-
-                        beforeEach('authorize task to update balance connectors', async () => {
-                          const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-                          await authorizer
-                            .connect(owner)
-                            .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
-                        })
-
-                        beforeEach('assign amount in to previous balance connector', async () => {
-                          const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
-                          await authorizer
-                            .connect(owner)
-                            .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
-                          await smartVault
-                            .connect(owner)
-                            .updateBalanceConnector(prevConnectorId, tokenIn.address, amountIn, true)
-                        })
-
-                        itExecutesTheTaskProperly(requestedAmount)
-
-                        it('updates the balance connectors properly', async () => {
-                          const tx = await task.call(
-                            tokenIn.address,
-                            requestedAmount,
-                            minAmountOut,
-                            expectedAmountOut,
-                            deadline,
-                            data,
-                            signature
-                          )
-
-                          await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
-                            id: nextConnectorId,
-                            token: tokenOut.address,
-                            amount: minAmountOut,
-                            added: true,
-                          })
-                        })
-                      })
-                    })
-
-                    context('when the deadline is in the past', () => {
-                      let deadline: BigNumber
-
-                      beforeEach('set deadline', async () => {
-                        deadline = await currentTimestamp()
-                      })
-
-                      it('reverts', async () => {
-                        const signature = await sign(
-                          quoteSigner,
+                        const connectorData = connector.interface.encodeFunctionData('execute', [
+                          tokenIn.address,
+                          tokenOut.address,
                           amountIn,
                           minAmountOut,
-                          expectedAmountOut,
-                          deadline,
-                          data
-                        )
+                          data,
+                        ])
 
-                        await expect(
-                          task.call(
-                            tokenIn.address,
-                            amountIn,
-                            minAmountOut,
-                            expectedAmountOut,
-                            deadline,
-                            data,
-                            signature
-                          )
-                        ).to.be.revertedWith('TaskQuoteSignerPastDeadline')
+                        await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
+                          connector,
+                          data: connectorData,
+                        })
+
+                        await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
+                          tokenIn,
+                          tokenOut,
+                          amountIn,
+                          minAmountOut,
+                          data,
+                        })
+                      })
+
+                      it('emits an Executed event', async () => {
+                        const tx = await executeTask(requestedAmount, slippage, data)
+
+                        await assertIndirectEvent(tx, task.interface, 'Executed')
+                      })
+                    }
+
+                    context('without balance connectors', () => {
+                      const requestedAmount = amountIn
+
+                      itExecutesTheTaskProperly(requestedAmount)
+
+                      it('does not update any balance connectors', async () => {
+                        const tx = await executeTask(requestedAmount, slippage, data)
+
+                        await assertNoEvent(tx, 'BalanceConnectorUpdated')
+                      })
+                    })
+
+                    context('with balance connectors', () => {
+                      const requestedAmount = 0
+                      const prevConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000001'
+                      const nextConnectorId = '0x0000000000000000000000000000000000000000000000000000000000000002'
+
+                      beforeEach('set balance connectors', async () => {
+                        const setBalanceConnectorsRole = task.interface.getSighash('setBalanceConnectors')
+                        await authorizer
+                          .connect(owner)
+                          .authorize(owner.address, task.address, setBalanceConnectorsRole, [])
+                        await task.connect(owner).setBalanceConnectors(prevConnectorId, nextConnectorId)
+                      })
+
+                      beforeEach('authorize task to update balance connectors', async () => {
+                        const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                        await authorizer
+                          .connect(owner)
+                          .authorize(task.address, smartVault.address, updateBalanceConnectorRole, [])
+                      })
+
+                      beforeEach('assign amount in to previous balance connector', async () => {
+                        const updateBalanceConnectorRole = smartVault.interface.getSighash('updateBalanceConnector')
+                        await authorizer
+                          .connect(owner)
+                          .authorize(owner.address, smartVault.address, updateBalanceConnectorRole, [])
+                        await smartVault
+                          .connect(owner)
+                          .updateBalanceConnector(prevConnectorId, tokenIn.address, amountIn, true)
+                      })
+
+                      itExecutesTheTaskProperly(requestedAmount)
+
+                      it('updates the balance connectors properly', async () => {
+                        const tx = await executeTask(requestedAmount, slippage, data)
+
+                        await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+                          id: prevConnectorId,
+                          token: tokenIn.address,
+                          amount: amountIn,
+                          added: false,
+                        })
+
+                        await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
+                          id: nextConnectorId,
+                          token: tokenOut.address,
+                          amount: minAmountOut,
+                          added: true,
+                        })
                       })
                     })
                   })
 
-                  context('when the quote signer is not set', () => {
-                    it('reverts', async () => {
-                      const signature = await sign(quoteSigner, amountIn, minAmountOut, expectedAmountOut, 0, data)
+                  context('when the slippage is above the limit', () => {
+                    const slippage = fp(0.01)
 
-                      await expect(
-                        task.call(tokenIn.address, amountIn, minAmountOut, expectedAmountOut, 0, data, signature)
-                      ).to.be.revertedWith('TaskQuoteSignerPastDeadline')
+                    it('reverts', async () => {
+                      await expect(executeTask(amountIn, slippage, '0x')).to.be.revertedWith('TaskSlippageAboveMax')
                     })
                   })
                 })
 
-                context('when the slippage is above the limit', () => {
-                  const slippage = 0.01
-                  const expectedAmountOut = minAmountOut.add(pct(minAmountOut, slippage))
+                context('when the smart vault balance does not pass the threshold', () => {
+                  const amountIn = thresholdAmountInTokenIn.div(2)
+
+                  beforeEach('fund smart vault', async () => {
+                    await tokenIn.mint(smartVault.address, amountIn)
+                  })
 
                   it('reverts', async () => {
-                    await expect(
-                      task.call(tokenIn.address, amountIn, minAmountOut, expectedAmountOut, 0, '0x', '0x')
-                    ).to.be.revertedWith('TaskSlippageAboveMax')
+                    await expect(executeTask(amountIn, 0, '0x')).to.be.revertedWith('TaskTokenThresholdNotMet')
                   })
                 })
               })
 
-              context('when the smart vault balance does not pass the threshold', () => {
-                const amountIn = thresholdAmountInTokenIn.div(2)
+              context('when no off-chain oracle is given', () => {
+                context('when an on-chain oracle is given', () => {
+                  beforeEach('set price feed', async () => {
+                    const feed = await deployFeedMock(fp(tokenRate), 18)
+                    const setFeedRole = priceOracle.interface.getSighash('setFeed')
+                    await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
+                    await priceOracle.connect(owner).setFeed(tokenIn.address, tokenOut.address, feed.address)
+                  })
 
-                beforeEach('fund smart vault', async () => {
-                  await tokenIn.mint(smartVault.address, amountIn)
+                  beforeEach('set threshold', async () => {
+                    const setDefaultTokenThresholdRole = task.interface.getSighash('setDefaultTokenThreshold')
+                    await authorizer
+                      .connect(owner)
+                      .authorize(owner.address, task.address, setDefaultTokenThresholdRole, [])
+                    await task.connect(owner).setDefaultTokenThreshold(tokenOut.address, thresholdAmount, 0)
+                  })
+
+                  context('when the smart vault balance passes the threshold', () => {
+                    beforeEach('fund smart vault', async () => {
+                      await tokenIn.mint(smartVault.address, amountIn)
+                    })
+
+                    context('when the slippage is below the limit', () => {
+                      const data = '0xaabb'
+                      const slippage = fp(0.01)
+                      const expectedAmountOut = amountIn.mul(tokenRate)
+                      const minAmountOut = expectedAmountOut.mul(fp(1).sub(slippage)).div(fp(1))
+
+                      beforeEach('set max slippage', async () => {
+                        const setDefaultMaxSlippageRole = task.interface.getSighash('setDefaultMaxSlippage')
+                        await authorizer
+                          .connect(owner)
+                          .authorize(owner.address, task.address, setDefaultMaxSlippageRole, [])
+                        await task.connect(owner).setDefaultMaxSlippage(slippage)
+                      })
+
+                      it('executes the expected connector', async () => {
+                        const tx = await task.call(tokenIn.address, amountIn, slippage, data)
+
+                        const connectorData = connector.interface.encodeFunctionData('execute', [
+                          tokenIn.address,
+                          tokenOut.address,
+                          amountIn,
+                          minAmountOut,
+                          data,
+                        ])
+
+                        await assertIndirectEvent(tx, smartVault.interface, 'Executed', {
+                          connector,
+                          data: connectorData,
+                        })
+
+                        await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
+                          tokenIn,
+                          tokenOut,
+                          amountIn,
+                          minAmountOut,
+                          data,
+                        })
+                      })
+
+                      it('emits an Executed event', async () => {
+                        const tx = await task.call(tokenIn.address, amountIn, slippage, data)
+
+                        await assertIndirectEvent(tx, task.interface, 'Executed')
+                      })
+                    })
+
+                    context('when the slippage is above the limit', () => {
+                      const slippage = fp(0.01)
+
+                      it('reverts', async () => {
+                        await expect(task.call(tokenIn.address, amountIn, slippage, '0x')).to.be.revertedWith(
+                          'TaskSlippageAboveMax'
+                        )
+                      })
+                    })
+                  })
+
+                  context('when the smart vault balance does not pass the threshold', () => {
+                    const amountIn = thresholdAmountInTokenIn.div(2)
+
+                    beforeEach('fund smart vault', async () => {
+                      await tokenIn.mint(smartVault.address, amountIn)
+                    })
+
+                    it('reverts', async () => {
+                      await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith(
+                        'TaskTokenThresholdNotMet'
+                      )
+                    })
+                  })
                 })
 
-                it('reverts', async () => {
-                  await expect(task.call(tokenIn.address, amountIn, 1, 1, 0, '0x', '0x')).to.be.revertedWith(
-                    'TaskTokenThresholdNotMet'
-                  )
+                context('when no on-chain oracle is given', () => {
+                  it('reverts', async () => {
+                    // TODO: Hardhat does not decode price oracle error properly
+                    await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.reverted
+                  })
                 })
               })
             })
 
             context('when the token out is not set', () => {
               it('reverts', async () => {
-                await expect(task.call(tokenIn.address, amountIn, 1, 1, 0, '0x', '0x')).to.be.revertedWith(
-                  'TaskTokenOutNotSet'
-                )
+                await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskTokenOutNotSet')
               })
             })
           })
@@ -425,9 +408,7 @@ describe('ParaswapV5Swapper', () => {
             })
 
             it('reverts', async () => {
-              await expect(task.call(tokenIn.address, amountIn, 1, 1, 0, '0x', '0x')).to.be.revertedWith(
-                'TaskTokenNotAllowed'
-              )
+              await expect(task.call(tokenIn.address, 0, 0, '0x')).to.be.revertedWith('TaskTokenNotAllowed')
             })
           })
         })
@@ -436,7 +417,7 @@ describe('ParaswapV5Swapper', () => {
           const amountIn = 0
 
           it('reverts', async () => {
-            await expect(task.call(tokenIn.address, amountIn, 1, 1, 0, '0x', '0x')).to.be.revertedWith('TaskAmountZero')
+            await expect(task.call(tokenIn.address, amountIn, 0, '0x')).to.be.revertedWith('TaskAmountZero')
           })
         })
       })
@@ -445,14 +426,14 @@ describe('ParaswapV5Swapper', () => {
         const tokenIn = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(tokenIn, 0, 1, 1, 0, '0x', '0x')).to.be.revertedWith('TaskTokenZero')
+          await expect(task.call(tokenIn, 0, 0, '0x')).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 1, 1, 0, '0x', '0x')).to.be.revertedWith('AuthSenderNotAllowed')
+        await expect(task.call(ZERO_ADDRESS, 0, 0, '0x')).to.be.revertedWith('AuthSenderNotAllowed')
       })
     })
   })
