@@ -21,46 +21,7 @@ import './IBaseSwapTask.sol';
  */
 interface IParaswapV5Swapper is IBaseSwapTask {
     /**
-     * @dev The quote signer is zero
-     */
-    error TaskQuoteSignerZero();
-
-    /**
-     * @dev The signer to be set is not the quote signer
-     */
-    error TaskInvalidQuoteSigner(address signer, address quoteSigner);
-
-    /**
-     * @dev The deadline is in the past
-     */
-    error TaskQuoteSignerPastDeadline(uint256 deadline, uint256 currentTimestamp);
-
-    /**
-     * @dev Emitted every time a quote signer is set
-     */
-    event QuoteSignerSet(address indexed quoteSigner);
-
-    /**
-     * @dev Tells the address of the allowed quote signer
-     */
-    function quoteSigner() external view returns (address);
-
-    /**
-     * @dev Sets the quote signer address. Sender must be authorized.
-     * @param newQuoteSigner Address of the new quote signer to be set
-     */
-    function setQuoteSigner(address newQuoteSigner) external;
-
-    /**
      * @dev Executes Paraswap V5 swapper task
      */
-    function call(
-        address tokenIn,
-        uint256 amountIn,
-        uint256 minAmountOut,
-        uint256 expectedAmountOut,
-        uint256 deadline,
-        bytes memory data,
-        bytes memory sig
-    ) external;
+    function call(address tokenIn, uint256 amountIn, uint256 slippage, bytes memory data) external;
 }
