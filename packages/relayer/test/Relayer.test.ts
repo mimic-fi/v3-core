@@ -1,5 +1,6 @@
 import {
   assertEvent,
+  assertNoEvent,
   assertNoIndirectEvent,
   decimal,
   deploy,
@@ -150,12 +151,15 @@ describe('Relayer', () => {
       })
 
       context('when the collector is zero', () => {
-        const collector = ZERO_ADDRESS
+        const customCollector = ZERO_ADDRESS
 
-        it('reverts', async () => {
-          await expect(relayer.setSmartVaultCollector(smartVault.address, collector)).to.be.revertedWith(
-            'RelayerCollectorZero'
-          )
+        it('updates the smart vault collector to the default', async () => {
+          const tx = await relayer.setSmartVaultCollector(smartVault.address, customCollector)
+          await assertEvent(tx, 'SmartVaultCollectorSet', { smartVault, collector: customCollector })
+
+          expect(await relayer.defaultCollector()).to.be.equal(collector.address)
+          expect(await relayer.getApplicableCollector(smartVault.address)).to.be.equal(collector.address)
+          expect(await relayer.getSmartVaultCollector(smartVault.address)).to.be.equal(customCollector)
         })
       })
     })
@@ -448,7 +452,11 @@ describe('Relayer', () => {
             await relayer.deposit(smartVault.address, fp(0.5), { value: fp(0.5) })
           })
 
-          const itChargesTheExpectedGasAmount = (continueIfFail: boolean) => {
+          const itChargesTheExpectedGasAmount = (
+            continueIfFail: boolean,
+            atLeastOneSucceedTxExecuted: boolean,
+            atLeastOneFailedTxExecuted: boolean
+          ) => {
             const tolerance = 0.1
 
             it('charges the expected gas amount', async () => {
@@ -462,21 +470,32 @@ describe('Relayer', () => {
               const chargedGasAmount = previousRelayerBalance.sub(currentRelayerBalance)
               const redeemedGas = chargedGasAmount.div(effectiveGasPrice)
 
-              if (redeemedGas.lt(gasUsed)) {
-                const missing = gasUsed.sub(redeemedGas)
-                const ideal = BASE_GAS.add(missing)
-                const message = `Missing ${missing.toString()} gas units. Set it at least to ${ideal.toString()} gas units.`
-                expect(redeemedGas.toNumber()).to.be.gt(gasUsed.toNumber(), message)
-              } else {
-                const extraGas = redeemedGas.sub(gasUsed)
-                const ratio = decimal(redeemedGas).div(decimal(gasUsed)).toNumber() - 1
-                const message = `Redeemed ${extraGas} extra gas units (+${(ratio * 100).toPrecision(4)} %)`
-                if (ratio <= tolerance) console.log(message)
-                else {
-                  const min = gasUsed.sub(redeemedGas.sub(BASE_GAS))
-                  const max = pct(gasUsed, 1 + tolerance).sub(redeemedGas.sub(BASE_GAS))
-                  expect(ratio).to.be.lte(tolerance, `${message}. Set it between ${min} and ${max}`)
+              if (atLeastOneSucceedTxExecuted) {
+                if (redeemedGas.lt(gasUsed)) {
+                  const missing = gasUsed.sub(redeemedGas)
+                  if (atLeastOneFailedTxExecuted) {
+                    const message = `Relayer paid for ${missing} gas units due to failed txs`
+                    console.log(message)
+                  } else {
+                    const ideal = BASE_GAS.add(missing)
+                    const message = `Missing ${missing.toString()} gas units. Set it at least to ${ideal.toString()} gas units.`
+                    expect(redeemedGas.toNumber()).to.be.gt(gasUsed.toNumber(), message)
+                  }
+                } else {
+                  const extraGas = redeemedGas.sub(gasUsed)
+                  const ratio = decimal(redeemedGas).div(decimal(gasUsed)).toNumber() - 1
+                  const message = `Redeemed ${extraGas} extra gas units (+${(ratio * 100).toPrecision(4)} %)`
+                  if (ratio <= tolerance) console.log(message)
+                  else {
+                    const min = gasUsed.sub(redeemedGas.sub(BASE_GAS))
+                    const max = pct(gasUsed, 1 + tolerance).sub(redeemedGas.sub(BASE_GAS))
+                    expect(ratio).to.be.lte(tolerance, `${message}. Set it between ${min} and ${max}`)
+                  }
                 }
+              } else {
+                const extraGas = gasUsed.sub(redeemedGas)
+                const message = `Relayer paid for ${extraGas} gas units due to failed txs`
+                console.log(message)
               }
             })
 
@@ -512,6 +531,8 @@ describe('Relayer', () => {
           context('when the call succeeds', () => {
             let data: string
             const continueIfFail = false
+            const atLeastOneSucceedTxExecuted = true
+            const atLeastOneFailedTxExecuted = false
 
             beforeEach('build call data', async () => {
               data = task.interface.encodeFunctionData('succeed')
@@ -527,11 +548,12 @@ describe('Relayer', () => {
               expect(decodedResult).to.be.equal(1)
             })
 
-            itChargesTheExpectedGasAmount(continueIfFail)
+            itChargesTheExpectedGasAmount(continueIfFail, atLeastOneSucceedTxExecuted, atLeastOneFailedTxExecuted)
           })
 
           context('when the call reverts', () => {
             let data: string
+            const atLeastOneFailedTxExecuted = true
 
             beforeEach('build call data', async () => {
               data = task.interface.encodeFunctionData('fail')
@@ -539,6 +561,7 @@ describe('Relayer', () => {
 
             context('when there is only one task to execute', () => {
               const continueIfFail = false
+              const atLeastOneSucceedTxExecuted = false
 
               beforeEach('build execution lists', async () => {
                 datas = [data]
@@ -553,7 +576,13 @@ describe('Relayer', () => {
                 expect(decodedResult).to.be.equal('TASK_FAILED')
               })
 
-              itChargesTheExpectedGasAmount(continueIfFail)
+              itChargesTheExpectedGasAmount(continueIfFail, atLeastOneSucceedTxExecuted, atLeastOneFailedTxExecuted)
+
+              it('does not emit a gas paid event', async () => {
+                const tx = await relayer.execute(tasks, datas, continueIfFail)
+
+                await assertNoEvent(tx, 'GasPaid')
+              })
             })
 
             context('when there is a second task to execute', () => {
@@ -567,6 +596,7 @@ describe('Relayer', () => {
 
               context('when the execution should continue', () => {
                 const continueIfFail = true
+                const atLeastOneSucceedTxExecuted = true
 
                 it('logs the transaction properly', async () => {
                   const tx = await relayer.execute(tasks, datas, continueIfFail)
@@ -585,11 +615,18 @@ describe('Relayer', () => {
                   expect(secondResult).to.be.equal(1)
                 })
 
-                itChargesTheExpectedGasAmount(continueIfFail)
+                itChargesTheExpectedGasAmount(continueIfFail, atLeastOneSucceedTxExecuted, atLeastOneFailedTxExecuted)
+
+                it('emits an event', async () => {
+                  const tx = await relayer.execute(tasks, datas, continueIfFail)
+
+                  assertEvent(tx, 'GasPaid')
+                })
               })
 
               context('when the execution should not continue', () => {
                 const continueIfFail = false
+                const atLeastOneSucceedTxExecuted = false
 
                 it('logs the transaction properly', async () => {
                   const tx = await relayer.execute(tasks, datas, continueIfFail)
@@ -601,7 +638,13 @@ describe('Relayer', () => {
                   await assertNoIndirectEvent(tx, task.interface, 'Succeeded')
                 })
 
-                itChargesTheExpectedGasAmount(continueIfFail)
+                itChargesTheExpectedGasAmount(continueIfFail, atLeastOneSucceedTxExecuted, atLeastOneFailedTxExecuted)
+
+                it('does not emit a gas paid event', async () => {
+                  const tx = await relayer.execute(tasks, datas, continueIfFail)
+
+                  await assertNoEvent(tx, 'GasPaid')
+                })
               })
             })
           })
@@ -657,7 +700,7 @@ describe('Relayer', () => {
 
           context('when the available quota is not enough', () => {
             it('reverts', async () => {
-              await expect(relayer.execute([task.address], ['0x'], false)).to.be.revertedWith(
+              await expect(relayer.execute([task.address], [data], false)).to.be.revertedWith(
                 'RelayerPaymentInsufficientBalance'
               )
             })
@@ -813,7 +856,7 @@ describe('Relayer', () => {
 
           context('when the available quota is not enough', () => {
             it('reverts', async () => {
-              await expect(relayer.simulate([task.address], ['0x'], false)).to.be.revertedWith(
+              await expect(relayer.simulate([task.address], [data], false)).to.be.revertedWith(
                 'RelayerPaymentInsufficientBalance'
               )
             })

@@ -96,7 +96,6 @@ contract Relayer is IRelayer, Ownable {
      * @param collector Address of the collector to be set for the given smart vault
      */
     function setSmartVaultCollector(address smartVault, address collector) external override onlyOwner {
-        if (collector == address(0)) revert RelayerCollectorZero();
         getSmartVaultCollector[smartVault] = collector;
         emit SmartVaultCollectorSet(smartVault, collector);
     }
@@ -221,23 +220,30 @@ contract Relayer is IRelayer, Ownable {
             uint256 initialGas = gasleft();
             address task = tasks[i];
 
+            // Note the line below prevents `task` from being an EOA or a contract that does not implement ITask (e.g. a token contract)
             address taskSmartVault = ITask(task).smartVault();
             if (taskSmartVault != smartVault) revert RelayerMultipleTaskSmartVaults(task, taskSmartVault, smartVault);
 
+            // Note the validation below is the only one made on task, by checking that the smart vault that will pay for the gas is somehow related to it.
+            // This check is critical since the smart vault is not referenced again inside this function.
             bool hasPermissions = ISmartVault(smartVault).hasPermissions(task);
             if (!hasPermissions) revert RelayerTaskDoesNotHavePermissions(task, smartVault);
 
+            // Note if `task` were an EOA the line below would succeed, resulting in a false positive. This is prevented a few lines above by making sure `task` is a contract that implements ITask.
             // solhint-disable-next-line avoid-low-level-calls
             (bool success, bytes memory result) = task.call(data[i]);
             taskResults[i] = TaskResult(success, result);
             uint256 gasUsed = initialGas - gasleft();
-            totalGasUsed += gasUsed;
+            // Does not charge gas if the task was not executed successfully
+            if (success) totalGasUsed += gasUsed;
 
             emit TaskExecuted(smartVault, task, data[i], success, result, gasUsed, i);
             if (!success && !continueIfFailed) break;
         }
 
-        // solhint-disable-next-line avoid-low-level-calls
+        // Does not charge gas if no task was executed successfully
+        if (totalGasUsed == BASE_GAS) return taskResults;
+
         uint256 totalGasCost = totalGasUsed * tx.gasprice;
         _payTransactionGasToRelayer(smartVault, totalGasCost);
     }
@@ -255,17 +261,22 @@ contract Relayer is IRelayer, Ownable {
         bool hasEnoughBalance = amount <= balance + availableQuota;
         if (!hasEnoughBalance) revert RelayerPaymentInsufficientBalance(smartVault, balance, availableQuota, amount);
 
-        uint256 quota;
+        uint256 valueToSend;
+        uint256 quota = 0;
         if (balance >= amount) {
             getSmartVaultBalance[smartVault] = balance - amount;
+            valueToSend = amount;
         } else {
             quota = amount - balance;
             getSmartVaultBalance[smartVault] = 0;
             getSmartVaultUsedQuota[smartVault] = usedQuota + quota;
+            valueToSend = balance;
         }
 
-        (bool paySuccess, ) = getApplicableCollector(smartVault).call{ value: amount - quota }('');
-        if (!paySuccess) revert RelayerPaymentFailed(smartVault, amount, quota);
+        if (valueToSend > 0) {
+            (bool paySuccess, ) = getApplicableCollector(smartVault).call{ value: valueToSend }('');
+            if (!paySuccess) revert RelayerPaymentFailed(smartVault, amount, quota);
+        }
         emit GasPaid(smartVault, amount, quota);
     }
 
