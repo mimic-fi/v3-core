@@ -118,7 +118,7 @@ contract SmartVault is ISmartVault, Authorized, ReentrancyGuardUpgradeable {
      * @dev Tells whether someone has any permission over the smart vault
      */
     function hasPermissions(address who) external view override returns (bool) {
-        return _hasPermissions(who);
+        return _hasAnyPermission(who);
     }
 
     /**
