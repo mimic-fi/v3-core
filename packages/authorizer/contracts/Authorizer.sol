@@ -89,7 +89,7 @@ contract Authorizer is IAuthorizer, AuthorizedHelpers, Initializable, Reentrancy
      * @param who Address asking permission for
      * @param where Target address asking permission for
      */
-    function hasPermissions(address who, address where) external view override returns (bool) {
+    function hasAnyPermission(address who, address where) external view override returns (bool) {
         return _permissionsLists[who][where].count > 0;
     }
 

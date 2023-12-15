@@ -13,7 +13,7 @@ methods {
     // Authorizer
     function ANYONE() external returns (address) envfree => ALWAYS(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF);
     function ANYWHERE() external returns (address) envfree => ALWAYS(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF);
-    function hasPermissions(address,address) external returns (bool) envfree;
+    function hasAnyPermission(address,address) external returns (bool) envfree;
     function hasPermission(address,address,bytes4) external returns (bool) envfree;
     function isAuthorized(address,address,bytes4,uint256[]) external returns (bool) envfree;
     function getPermissionParams(address,address,bytes4) external returns (IAuthorizer.Param[]) envfree;

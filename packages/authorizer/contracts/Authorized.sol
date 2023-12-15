@@ -92,7 +92,7 @@ contract Authorized is IAuthorized, Initializable, AuthorizedHelpers {
      * @param who Address asking permissions for
      */
     function _hasPermissions(address who) internal view returns (bool) {
-        return IAuthorizer(authorizer).hasPermissions(who, address(this));
+        return IAuthorizer(authorizer).hasAnyPermission(who, address(this));
     }
 
     /**

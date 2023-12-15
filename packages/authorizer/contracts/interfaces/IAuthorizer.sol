@@ -86,7 +86,7 @@ interface IAuthorizer {
      * @param who Address asking permission for
      * @param where Target address asking permission for
      */
-    function hasPermissions(address who, address where) external view returns (bool);
+    function hasAnyPermission(address who, address where) external view returns (bool);
 
     /**
      * @dev Tells the number of permissions `who` has on `where`

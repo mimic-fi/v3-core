@@ -37,7 +37,7 @@ describe('Authorizer', () => {
       const authorizeRole = authorizer.interface.getSighash('authorize')
       const unauthorizeRole = authorizer.interface.getSighash('unauthorize')
 
-      expect(await authorizer.hasPermissions(admin.address, authorizer.address)).to.be.true
+      expect(await authorizer.hasAnyPermission(admin.address, authorizer.address)).to.be.true
       expect(await authorizer.getPermissionsLength(admin.address, authorizer.address)).to.be.equal(2)
 
       expect(await authorizer.isAuthorized(admin.address, authorizer.address, authorizeRole, [])).to.be.true
@@ -46,7 +46,7 @@ describe('Authorizer', () => {
       expect(await authorizer.hasPermission(admin.address, authorizer.address, authorizeRole)).to.be.true
       expect(await authorizer.hasPermission(admin.address, authorizer.address, unauthorizeRole)).to.be.true
 
-      expect(await authorizer.hasPermissions(anotherAdmin.address, authorizer.address)).to.be.true
+      expect(await authorizer.hasAnyPermission(anotherAdmin.address, authorizer.address)).to.be.true
       expect(await authorizer.getPermissionsLength(anotherAdmin.address, authorizer.address)).to.be.equal(2)
 
       expect(await authorizer.isAuthorized(anotherAdmin.address, authorizer.address, authorizeRole, [])).to.be.true
@@ -57,7 +57,7 @@ describe('Authorizer', () => {
     })
 
     it('does not allow admins on other permissions or other targets', async () => {
-      expect(await authorizer.hasPermissions(WHO, WHERE)).to.be.false
+      expect(await authorizer.hasAnyPermission(WHO, WHERE)).to.be.false
       expect(await authorizer.getPermissionsLength(WHO, WHERE)).to.be.equal(0)
 
       expect(await authorizer.isAuthorized(WHO, WHERE, WHAT, [])).to.be.false
@@ -65,7 +65,7 @@ describe('Authorizer', () => {
 
       expect(await authorizer.hasPermission(WHO, WHERE, WHAT)).to.be.false
 
-      expect(await authorizer.hasPermissions(ANYONE, WHERE)).to.be.false
+      expect(await authorizer.hasAnyPermission(ANYONE, WHERE)).to.be.false
       expect(await authorizer.getPermissionsLength(ANYONE, WHERE)).to.be.equal(0)
 
       expect(await authorizer.isAuthorized(ANYONE, WHERE, WHAT, [])).to.be.false
@@ -73,7 +73,7 @@ describe('Authorizer', () => {
 
       expect(await authorizer.hasPermission(ANYONE, WHERE, WHAT)).to.be.false
 
-      expect(await authorizer.hasPermissions(WHO, ANYWHERE)).to.be.false
+      expect(await authorizer.hasAnyPermission(WHO, ANYWHERE)).to.be.false
       expect(await authorizer.getPermissionsLength(WHO, ANYWHERE)).to.be.equal(0)
 
       expect(await authorizer.isAuthorized(WHO, ANYWHERE, WHAT, [])).to.be.false
@@ -116,27 +116,27 @@ describe('Authorizer', () => {
           it('increments the number of permissions correctly', async () => {
             await authorizer.authorize(WHO, WHERE, WHAT, PARAMS)
 
-            expect(await authorizer.hasPermissions(WHO, WHERE)).to.be.true
+            expect(await authorizer.hasAnyPermission(WHO, WHERE)).to.be.true
             expect(await authorizer.getPermissionsLength(WHO, WHERE)).to.be.equal(1)
 
             await authorizer.authorize(WHO, WHERE, WHAT, PARAMS)
 
-            expect(await authorizer.hasPermissions(WHO, WHERE)).to.be.true
+            expect(await authorizer.hasAnyPermission(WHO, WHERE)).to.be.true
             expect(await authorizer.getPermissionsLength(WHO, WHERE)).to.be.equal(1)
 
             await authorizer.authorize(WHO, WHERE, WHAT2, PARAMS)
 
-            expect(await authorizer.hasPermissions(WHO, WHERE)).to.be.true
+            expect(await authorizer.hasAnyPermission(WHO, WHERE)).to.be.true
             expect(await authorizer.getPermissionsLength(WHO, WHERE)).to.be.equal(2)
 
             await authorizer.authorize(WHO, WHERE2, WHAT2, PARAMS)
 
-            expect(await authorizer.hasPermissions(WHO, WHERE)).to.be.true
+            expect(await authorizer.hasAnyPermission(WHO, WHERE)).to.be.true
             expect(await authorizer.getPermissionsLength(WHO, WHERE)).to.be.equal(2)
 
             await authorizer.authorize(WHO2, WHERE, WHAT2, PARAMS)
 
-            expect(await authorizer.hasPermissions(WHO, WHERE)).to.be.true
+            expect(await authorizer.hasAnyPermission(WHO, WHERE)).to.be.true
             expect(await authorizer.getPermissionsLength(WHO, WHERE)).to.be.equal(2)
           })
         })
@@ -508,24 +508,24 @@ describe('Authorizer', () => {
         it('decrements the number of permissions correctly', async () => {
           await authorizer.unauthorize(WHO, WHERE, WHAT)
 
-          expect(await authorizer.hasPermissions(WHO, WHERE)).to.be.false
+          expect(await authorizer.hasAnyPermission(WHO, WHERE)).to.be.false
           expect(await authorizer.getPermissionsLength(WHO, WHERE)).to.be.equal(0)
 
           await authorizer.authorize(WHO, WHERE, WHAT, [])
           await authorizer.authorize(WHO, WHERE, WHAT2, [])
 
-          expect(await authorizer.hasPermissions(WHO, WHERE)).to.be.true
+          expect(await authorizer.hasAnyPermission(WHO, WHERE)).to.be.true
           expect(await authorizer.getPermissionsLength(WHO, WHERE)).to.be.equal(2)
 
           await authorizer.unauthorize(WHO, WHERE, WHAT)
           await authorizer.unauthorize(WHO, WHERE, WHAT)
 
-          expect(await authorizer.hasPermissions(WHO, WHERE)).to.be.true
+          expect(await authorizer.hasAnyPermission(WHO, WHERE)).to.be.true
           expect(await authorizer.getPermissionsLength(WHO, WHERE)).to.be.equal(1)
 
           await authorizer.unauthorize(WHO, WHERE, WHAT2)
 
-          expect(await authorizer.hasPermissions(WHO, WHERE)).to.be.false
+          expect(await authorizer.hasAnyPermission(WHO, WHERE)).to.be.false
           expect(await authorizer.getPermissionsLength(WHO, WHERE)).to.be.equal(0)
         })
       })
@@ -631,12 +631,12 @@ describe('Authorizer', () => {
         })
 
         it('someone does not have permissions', async () => {
-          expect(await authorizer.hasPermissions(someone, WHERE)).to.be.false
+          expect(await authorizer.hasAnyPermission(someone, WHERE)).to.be.false
           expect(await authorizer.getPermissionsLength(someone, WHERE)).to.be.equal(0)
         })
 
         it('anyone does not have permission', async () => {
-          expect(await authorizer.hasPermissions(ANYONE, WHERE)).to.be.false
+          expect(await authorizer.hasAnyPermission(ANYONE, WHERE)).to.be.false
           expect(await authorizer.getPermissionsLength(ANYONE, WHERE)).to.be.equal(0)
         })
       })
@@ -652,12 +652,12 @@ describe('Authorizer', () => {
         })
 
         it('someone has permissions', async () => {
-          expect(await authorizer.hasPermissions(someone, WHERE)).to.be.true
+          expect(await authorizer.hasAnyPermission(someone, WHERE)).to.be.true
           expect(await authorizer.getPermissionsLength(someone, WHERE)).to.be.equal(1)
         })
 
         it('anyone does not have permission', async () => {
-          expect(await authorizer.hasPermissions(ANYONE, WHERE)).to.be.false
+          expect(await authorizer.hasAnyPermission(ANYONE, WHERE)).to.be.false
           expect(await authorizer.getPermissionsLength(ANYONE, WHERE)).to.be.equal(0)
         })
       })
@@ -677,12 +677,12 @@ describe('Authorizer', () => {
         })
 
         it('someone does not have permissions', async () => {
-          expect(await authorizer.hasPermissions(someone, WHERE)).to.be.false
+          expect(await authorizer.hasAnyPermission(someone, WHERE)).to.be.false
           expect(await authorizer.getPermissionsLength(someone, WHERE)).to.be.equal(0)
         })
 
         it('anyone has permissions', async () => {
-          expect(await authorizer.hasPermissions(ANYONE, WHERE)).to.be.true
+          expect(await authorizer.hasAnyPermission(ANYONE, WHERE)).to.be.true
           expect(await authorizer.getPermissionsLength(ANYONE, WHERE)).to.be.equal(1)
         })
       })
@@ -700,12 +700,12 @@ describe('Authorizer', () => {
         })
 
         it('someone has permissions', async () => {
-          expect(await authorizer.hasPermissions(someone, WHERE)).to.be.true
+          expect(await authorizer.hasAnyPermission(someone, WHERE)).to.be.true
           expect(await authorizer.getPermissionsLength(someone, WHERE)).to.be.equal(1)
         })
 
         it('anyone has permissions', async () => {
-          expect(await authorizer.hasPermissions(ANYONE, WHERE)).to.be.true
+          expect(await authorizer.hasAnyPermission(ANYONE, WHERE)).to.be.true
           expect(await authorizer.getPermissionsLength(ANYONE, WHERE)).to.be.equal(1)
         })
       })
@@ -727,12 +727,12 @@ describe('Authorizer', () => {
         })
 
         it('does not have permissions over somewhere', async () => {
-          expect(await authorizer.hasPermissions(WHO, somewhere)).to.be.false
+          expect(await authorizer.hasAnyPermission(WHO, somewhere)).to.be.false
           expect(await authorizer.getPermissionsLength(WHO, somewhere)).to.be.equal(0)
         })
 
         it('does not have permissions over anywhere', async () => {
-          expect(await authorizer.hasPermissions(WHO, ANYWHERE)).to.be.false
+          expect(await authorizer.hasAnyPermission(WHO, ANYWHERE)).to.be.false
           expect(await authorizer.getPermissionsLength(WHO, ANYWHERE)).to.be.equal(0)
         })
       })
@@ -748,12 +748,12 @@ describe('Authorizer', () => {
         })
 
         it('has permissions over somewhere', async () => {
-          expect(await authorizer.hasPermissions(WHO, somewhere)).to.be.true
+          expect(await authorizer.hasAnyPermission(WHO, somewhere)).to.be.true
           expect(await authorizer.getPermissionsLength(WHO, somewhere)).to.be.equal(1)
         })
 
         it('does not have permissions over anywhere', async () => {
-          expect(await authorizer.hasPermissions(WHO, ANYWHERE)).to.be.false
+          expect(await authorizer.hasAnyPermission(WHO, ANYWHERE)).to.be.false
           expect(await authorizer.getPermissionsLength(WHO, ANYWHERE)).to.be.equal(0)
         })
       })
@@ -773,12 +773,12 @@ describe('Authorizer', () => {
         })
 
         it('does not have permissions over somewhere', async () => {
-          expect(await authorizer.hasPermissions(WHO, somewhere)).to.be.false
+          expect(await authorizer.hasAnyPermission(WHO, somewhere)).to.be.false
           expect(await authorizer.getPermissionsLength(WHO, somewhere)).to.be.equal(0)
         })
 
         it('has permissions over anywhere', async () => {
-          expect(await authorizer.hasPermissions(WHO, ANYWHERE)).to.be.true
+          expect(await authorizer.hasAnyPermission(WHO, ANYWHERE)).to.be.true
           expect(await authorizer.getPermissionsLength(WHO, ANYWHERE)).to.be.equal(1)
         })
       })
@@ -796,12 +796,12 @@ describe('Authorizer', () => {
         })
 
         it('has permissions over somewhere', async () => {
-          expect(await authorizer.hasPermissions(WHO, somewhere)).to.be.true
+          expect(await authorizer.hasAnyPermission(WHO, somewhere)).to.be.true
           expect(await authorizer.getPermissionsLength(WHO, somewhere)).to.be.equal(1)
         })
 
         it('has permissions over anywhere', async () => {
-          expect(await authorizer.hasPermissions(WHO, ANYWHERE)).to.be.true
+          expect(await authorizer.hasAnyPermission(WHO, ANYWHERE)).to.be.true
           expect(await authorizer.getPermissionsLength(WHO, ANYWHERE)).to.be.equal(1)
         })
       })
