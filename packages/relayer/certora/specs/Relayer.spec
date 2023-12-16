@@ -24,7 +24,7 @@ methods {
 
     // Wildcard entries
     function _.smartVault() external => PER_CALLEE_CONSTANT;
-    function _.hasPermissions(address) external => PER_CALLEE_CONSTANT;
+    function _.hasAnyPermission(address) external => PER_CALLEE_CONSTANT;
 }
 
 

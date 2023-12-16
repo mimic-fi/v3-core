@@ -226,8 +226,8 @@ contract Relayer is IRelayer, Ownable {
 
             // Note the validation below is the only one made on task, by checking that the smart vault that will pay for the gas is somehow related to it.
             // This check is critical since the smart vault is not referenced again inside this function.
-            bool hasPermissions = ISmartVault(smartVault).hasPermissions(task);
-            if (!hasPermissions) revert RelayerTaskDoesNotHavePermissions(task, smartVault);
+            bool hasAnyPermission = ISmartVault(smartVault).hasAnyPermission(task);
+            if (!hasAnyPermission) revert RelayerTaskDoesNotHavePermissions(task, smartVault);
 
             // Note if `task` were an EOA the line below would succeed, resulting in a false positive. This is prevented a few lines above by making sure `task` is a contract that implements ITask.
             // solhint-disable-next-line avoid-low-level-calls

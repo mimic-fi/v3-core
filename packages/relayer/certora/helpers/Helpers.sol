@@ -19,8 +19,8 @@ contract Helpers {
             address taskSmartVault = ITask(tasks[i]).smartVault();
             if (taskSmartVault != smartVault) return false;
 
-            bool hasPermissions = ISmartVault(smartVault).hasPermissions(tasks[i]);
-            if (!hasPermissions) return false;
+            bool hasAnyPermission = ISmartVault(smartVault).hasAnyPermission(tasks[i]);
+            if (!hasAnyPermission) return false;
         }
 
         return true;

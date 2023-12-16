@@ -171,7 +171,7 @@ interface ISmartVault is IAuthorized {
     /**
      * @dev Tells whether someone has any permission over the smart vault
      */
-    function hasPermissions(address who) external view returns (bool);
+    function hasAnyPermission(address who) external view returns (bool);
 
     /**
      * @dev Pauses a smart vault
