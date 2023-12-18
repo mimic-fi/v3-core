@@ -945,6 +945,14 @@
     "@mimic-fi/v3-helpers" "0.1.0"
     "@openzeppelin/contracts" "4.7.0"
 
+"@mimic-fi/v3-authorizer@0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-authorizer/-/v3-authorizer-0.1.1.tgz#e5fd7191d9735bd4ea82d1a14540ecd04c34e7ca"
+  integrity sha512-WMKXW0r5LEAMzA3jHnVO5XC/dg/SGTYhzAPw69dWpG9p6Fmw5jXTbSmpvrx5yZs6iTdIvvCjuwFeWnDmVVUYNQ==
+  dependencies:
+    "@mimic-fi/v3-helpers" "0.1.0"
+    "@openzeppelin/contracts" "4.9.3"
+
 "@mimic-fi/v3-connectors@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@mimic-fi/v3-connectors/-/v3-connectors-0.1.0.tgz#1ed64c2007f6c388d1e2e7911faaca3e5fb160d1"
@@ -968,6 +976,19 @@
     ethers "~5.6.0"
     hardhat "^2.14.1"
     mocha "^6.2.3"
+
+"@mimic-fi/v3-smart-vault@0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-smart-vault/-/v3-smart-vault-0.1.0.tgz#8e66b51f81d585e0c114face124ef39018822f4b"
+  integrity sha512-ooQgjK+3AE/KJTnZVpWRT+1UdJqCk0DmpwSB4d6s+T5K9EV/+RXS/cQkR1oYoShIQYx98rTdxrp2ZI0ofCUZeA==
+  dependencies:
+    "@mimic-fi/v3-authorizer" "0.1.0"
+    "@mimic-fi/v3-fee-controller" "0.1.0"
+    "@mimic-fi/v3-helpers" "0.1.0"
+    "@mimic-fi/v3-price-oracle" "0.1.0"
+    "@mimic-fi/v3-registry" "0.1.0"
+    "@openzeppelin/contracts" "4.7.0"
+    "@openzeppelin/contracts-upgradeable" "4.7.0"
 
 "@mimic-fi/v3-tasks@0.1.0":
   version "0.1.0"
@@ -1229,6 +1250,11 @@
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/@nomiclabs/hardhat-waffle/-/hardhat-waffle-2.0.6.tgz#d11cb063a5f61a77806053e54009c40ddee49a54"
   integrity sha512-+Wz0hwmJGSI17B+BhU/qFRZ1l6/xMW82QGXE/Gi+WTmwgJrQefuBs1lIf7hzQ1hLk6hpkvb/zwcNkpVKRYTQYg==
+
+"@openzeppelin/contracts-upgradeable@4.7.0":
+  version "4.7.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.7.0.tgz#6437261286879d353f6de7bf3ac8216bef8a486d"
+  integrity sha512-wO3PyoAaAV/rA77cK8H4c3SbO98QylTjfiFxyvURUZKTFLV180rnAvna1x7/Nxvt0Gqv+jt1sXKC7ygxsq8iCw==
 
 "@openzeppelin/contracts-upgradeable@4.9.3":
   version "4.9.3"
