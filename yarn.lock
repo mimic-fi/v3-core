@@ -945,14 +945,6 @@
     "@mimic-fi/v3-helpers" "0.1.0"
     "@openzeppelin/contracts" "4.7.0"
 
-"@mimic-fi/v3-authorizer@0.1.1":
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-authorizer/-/v3-authorizer-0.1.1.tgz#e5fd7191d9735bd4ea82d1a14540ecd04c34e7ca"
-  integrity sha512-WMKXW0r5LEAMzA3jHnVO5XC/dg/SGTYhzAPw69dWpG9p6Fmw5jXTbSmpvrx5yZs6iTdIvvCjuwFeWnDmVVUYNQ==
-  dependencies:
-    "@mimic-fi/v3-helpers" "0.1.0"
-    "@openzeppelin/contracts" "4.9.3"
-
 "@mimic-fi/v3-connectors@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@mimic-fi/v3-connectors/-/v3-connectors-0.1.0.tgz#1ed64c2007f6c388d1e2e7911faaca3e5fb160d1"
