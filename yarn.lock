@@ -937,22 +937,6 @@
     "@mimic-fi/v3-helpers" "0.1.0"
     "@openzeppelin/contracts" "4.9.3"
 
-"@mimic-fi/v3-authorizer@0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-authorizer/-/v3-authorizer-0.1.0.tgz#10fa3b9c5ac7c3ab95d6c77764376a6707703d09"
-  integrity sha512-iuJH2u2a73WS4mHj/W6xjl/tqkKB4upRnSKlN8E1YcpE0waVZwSk6vlX5ANPPkYnWzNbaX89y4pQUNjC5cLB+A==
-  dependencies:
-    "@mimic-fi/v3-helpers" "0.1.0"
-    "@openzeppelin/contracts" "4.7.0"
-
-"@mimic-fi/v3-connectors@0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-connectors/-/v3-connectors-0.1.0.tgz#1ed64c2007f6c388d1e2e7911faaca3e5fb160d1"
-  integrity sha512-j32KmY3QtTq9B4p/Ni/UV/chcjElOxbsihxXesTAIxNY26Ug///eXh/+TbTCJ+WpR9G14XZtUFy+oiJ8itQwkA==
-  dependencies:
-    "@mimic-fi/v3-helpers" "0.1.0"
-    "@openzeppelin/contracts" "4.7.0"
-
 "@mimic-fi/v3-helpers@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@mimic-fi/v3-helpers/-/v3-helpers-0.1.0.tgz#e64ace8cf1d5893ec351301c4b3538e96993dd4d"
@@ -968,31 +952,6 @@
     ethers "~5.6.0"
     hardhat "^2.14.1"
     mocha "^6.2.3"
-
-"@mimic-fi/v3-smart-vault@0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-smart-vault/-/v3-smart-vault-0.1.0.tgz#8e66b51f81d585e0c114face124ef39018822f4b"
-  integrity sha512-ooQgjK+3AE/KJTnZVpWRT+1UdJqCk0DmpwSB4d6s+T5K9EV/+RXS/cQkR1oYoShIQYx98rTdxrp2ZI0ofCUZeA==
-  dependencies:
-    "@mimic-fi/v3-authorizer" "0.1.0"
-    "@mimic-fi/v3-fee-controller" "0.1.0"
-    "@mimic-fi/v3-helpers" "0.1.0"
-    "@mimic-fi/v3-price-oracle" "0.1.0"
-    "@mimic-fi/v3-registry" "0.1.0"
-    "@openzeppelin/contracts" "4.7.0"
-    "@openzeppelin/contracts-upgradeable" "4.7.0"
-
-"@mimic-fi/v3-tasks@0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-tasks/-/v3-tasks-0.1.0.tgz#ecd3dd570ec4423758f24e3c34e96d6a452473a9"
-  integrity sha512-Rvj+nUG0SiGjzLm2jXqiK8IoGK/n3OHwvdMxWTU7QHu41Va90VZJbG+V5Rb/+bQMRQ0FWbFG+sge/iZekjRlQw==
-  dependencies:
-    "@mimic-fi/v3-authorizer" "0.1.0"
-    "@mimic-fi/v3-connectors" "0.1.0"
-    "@mimic-fi/v3-helpers" "0.1.0"
-    "@mimic-fi/v3-price-oracle" "0.1.0"
-    "@mimic-fi/v3-smart-vault" "0.1.0"
-    "@openzeppelin/contracts" "4.7.0"
 
 "@noble/hashes@1.2.0", "@noble/hashes@~1.2.0":
   version "1.2.0"
@@ -1243,20 +1202,10 @@
   resolved "https://registry.yarnpkg.com/@nomiclabs/hardhat-waffle/-/hardhat-waffle-2.0.6.tgz#d11cb063a5f61a77806053e54009c40ddee49a54"
   integrity sha512-+Wz0hwmJGSI17B+BhU/qFRZ1l6/xMW82QGXE/Gi+WTmwgJrQefuBs1lIf7hzQ1hLk6hpkvb/zwcNkpVKRYTQYg==
 
-"@openzeppelin/contracts-upgradeable@4.7.0":
-  version "4.7.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.7.0.tgz#6437261286879d353f6de7bf3ac8216bef8a486d"
-  integrity sha512-wO3PyoAaAV/rA77cK8H4c3SbO98QylTjfiFxyvURUZKTFLV180rnAvna1x7/Nxvt0Gqv+jt1sXKC7ygxsq8iCw==
-
 "@openzeppelin/contracts-upgradeable@4.9.3":
   version "4.9.3"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.9.3.tgz#ff17a80fb945f5102571f8efecb5ce5915cc4811"
   integrity sha512-jjaHAVRMrE4UuZNfDwjlLGDxTHWIOwTJS2ldnc278a0gevfXfPr8hxKEVBGFBE96kl2G3VHDZhUimw/+G3TG2A==
-
-"@openzeppelin/contracts@4.7.0":
-  version "4.7.0"
-  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.7.0.tgz#3092d70ea60e3d1835466266b1d68ad47035a2d5"
-  integrity sha512-52Qb+A1DdOss8QvJrijYYPSf32GUg2pGaG/yCxtaA3cu4jduouTdg4XZSMLW9op54m1jH7J8hoajhHKOPsoJFw==
 
 "@openzeppelin/contracts@4.9.3":
   version "4.9.3"
