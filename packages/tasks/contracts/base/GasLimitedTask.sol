@@ -104,9 +104,11 @@ abstract contract GasLimitedTask is IGasLimitedTask, Authorized {
         bool isGasPriceAllowed = config.gasPriceLimit == 0 || tx.gasprice <= config.gasPriceLimit;
         if (!isGasPriceAllowed) revert TaskGasPriceLimitExceeded(tx.gasprice, config.gasPriceLimit);
 
-        uint256 priorityFee = tx.gasprice - block.basefee;
-        bool isPriorityFeeAllowed = config.priorityFeeLimit == 0 || priorityFee <= config.priorityFeeLimit;
-        if (!isPriorityFeeAllowed) revert TaskPriorityFeeLimitExceeded(priorityFee, config.priorityFeeLimit);
+        if (config.priorityFeeLimit > 0) {
+            uint256 priorityFee = tx.gasprice - block.basefee;
+            bool isPriorityFeeAllowed = priorityFee <= config.priorityFeeLimit;
+            if (!isPriorityFeeAllowed) revert TaskPriorityFeeLimitExceeded(priorityFee, config.priorityFeeLimit);
+        }
     }
 
     /**
