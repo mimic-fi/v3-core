@@ -1,6 +1,9 @@
 import { deploy, fp, toUSDC } from '@mimic-fi/v3-helpers'
 
-import { itBehavesLikeSymbiosisConnector, Token } from './SymbiosisConnector.behavior'
+import {
+  itBehavesLikeSymbiosisConnectorBridgingUSDC,
+  itBehavesLikeSymbiosisConnectorBridgingWETH,
+} from './SymbiosisConnector.behavior'
 
 /* eslint-disable no-secrets/no-secrets */
 
@@ -19,10 +22,10 @@ describe('SymbiosisConnector', () => {
   })
 
   context('USDC', () => {
-    itBehavesLikeSymbiosisConnector(SOURCE_CHAIN_ID, USDC, Token.USDC, toUSDC(150), WHALE, SLIPPAGE)
+    itBehavesLikeSymbiosisConnectorBridgingUSDC(SOURCE_CHAIN_ID, USDC, toUSDC(150), WHALE, SLIPPAGE)
   })
 
   context('WETH', () => {
-    itBehavesLikeSymbiosisConnector(SOURCE_CHAIN_ID, WETH, Token.WETH, fp(2.5), WHALE, SLIPPAGE)
+    itBehavesLikeSymbiosisConnectorBridgingWETH(SOURCE_CHAIN_ID, WETH, fp(2.5), WHALE, SLIPPAGE)
   })
 })

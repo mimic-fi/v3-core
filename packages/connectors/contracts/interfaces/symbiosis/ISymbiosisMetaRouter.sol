@@ -15,19 +15,5 @@
 pragma solidity >=0.8.0;
 
 interface ISymbiosisMetaRouter {
-    struct MetaRouteTransaction {
-        bytes firstSwapCalldata;
-        bytes secondSwapCalldata;
-        address[] approvedTokens;
-        address firstDexRouter;
-        address secondDexRouter;
-        uint256 amount;
-        bool nativeIn;
-        address relayRecipient;
-        bytes otherSideCalldata;
-    }
-
     function metaRouterGateway() external returns (address);
-
-    function metaRoute(MetaRouteTransaction calldata _metarouteTransaction) external;
 }
