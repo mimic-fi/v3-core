@@ -23,6 +23,7 @@
     "test:avalanche": "yarn test --fork avalanche --block-number 31333905 --chain-id 43114",
     "test:bsc": "yarn test --fork bsc --block-number 27925272 --chain-id 56",
     "test:fantom": "yarn test --fork fantom --block-number 61485606 --chain-id 250",
+    "test:zkevm": "yarn test --fork zkevm --block-number 9014946 --chain-id 1101",
     "prepare": "yarn build"
   },
   "dependencies": {
