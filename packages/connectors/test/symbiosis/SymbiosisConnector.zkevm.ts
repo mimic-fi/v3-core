@@ -22,7 +22,7 @@ describe('SymbiosisConnector', () => {
   })
 
   context('USDC', () => {
-    itBehavesLikeSymbiosisConnectorBridgingUSDC(SOURCE_CHAIN_ID, USDC, toUSDC(150), WHALE, SLIPPAGE)
+    itBehavesLikeSymbiosisConnectorBridgingUSDC(SOURCE_CHAIN_ID, USDC, toUSDC(200), WHALE, SLIPPAGE)
   })
 
   context('WETH', () => {

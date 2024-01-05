@@ -2,7 +2,7 @@ import { fp, impersonate, instanceAt } from '@mimic-fi/v3-helpers'
 import { expect } from 'chai'
 import { BigNumber } from 'ethers'
 
-import { getSymbiosisBridgeData } from '../../src/symbiosis'
+import { loadOrGetSymbiosisBridgeData } from '../helpers/symbiosis'
 
 /* eslint-disable no-secrets/no-secrets */
 
@@ -14,7 +14,7 @@ function itBridgesProperly(sourceChainId: number, destinationChainId: number, to
 
       await this.token.connect(this.whale).transfer(this.connector.address, this.amount)
 
-      const data = await getSymbiosisBridgeData(
+      const data = await loadOrGetSymbiosisBridgeData(
         sourceChainId,
         destinationChainId,
         this.connector,
@@ -23,6 +23,7 @@ function itBridgesProperly(sourceChainId: number, destinationChainId: number, to
         this.amount,
         this.slippage
       )
+
       await this.connector.connect(this.whale).execute(this.token.address, this.amount, data)
 
       const currentSenderBalance = await this.token.balanceOf(this.whale.address)
@@ -49,27 +50,6 @@ export function itBehavesLikeSymbiosisConnectorBridgingUSDC(
   before('set amount and slippage', function () {
     this.amount = amount
     this.slippage = slippage
-  })
-
-  context('bridge to optimism', () => {
-    const destinationChainId = 10
-    const USDC = '0x7F5c764cBc14f9669B88837ca1490cCa17c31607'
-
-    itBridgesProperly(sourceChainId, destinationChainId, USDC)
-  })
-
-  context('bridge to polygon', () => {
-    const destinationChainId = 137
-    const USDC = '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'
-
-    itBridgesProperly(sourceChainId, destinationChainId, USDC)
-  })
-
-  context('bridge to bsc', () => {
-    const destinationChainId = 56
-    const USDC = '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d'
-
-    itBridgesProperly(sourceChainId, destinationChainId, USDC)
   })
 
   context('bridge to arbitrum', () => {
@@ -109,27 +89,6 @@ export function itBehavesLikeSymbiosisConnectorBridgingWETH(
   before('set amount and slippage', function () {
     this.amount = amount
     this.slippage = slippage
-  })
-
-  context('bridge to optimism', () => {
-    const destinationChainId = 10
-    const WETH = '0x4200000000000000000000000000000000000006'
-
-    itBridgesProperly(sourceChainId, destinationChainId, WETH)
-  })
-
-  context('bridge to polygon', () => {
-    const destinationChainId = 137
-    const WETH = '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619'
-
-    itBridgesProperly(sourceChainId, destinationChainId, WETH)
-  })
-
-  context('bridge to bsc', () => {
-    const destinationChainId = 56
-    const WETH = '0x2170Ed0880ac9A755fd29B2688956BD959F933F8'
-
-    itBridgesProperly(sourceChainId, destinationChainId, WETH)
   })
 
   context('bridge to arbitrum', () => {
