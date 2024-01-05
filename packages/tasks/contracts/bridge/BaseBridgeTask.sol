@@ -29,7 +29,7 @@ abstract contract BaseBridgeTask is IBaseBridgeTask, Task {
     // Connector address
     address public override connector;
 
-    // Connector address
+    // Recipient address
     address public override recipient;
 
     // Default destination chain
