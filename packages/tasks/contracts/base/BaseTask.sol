@@ -14,6 +14,8 @@
 
 pragma solidity ^0.8.0;
 
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+
 import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
 import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
@@ -35,6 +37,10 @@ abstract contract BaseTask is IBaseTask, Authorized {
 
     // Optional balance connector id for the next task in the workflow
     bytes32 internal nextBalanceConnectorId;
+
+    address private tokenIn;
+
+    uint256 private tokenInBalanceBefore;
 
     /**
      * @dev Base task config. Only used in the initializer.
@@ -144,6 +150,8 @@ abstract contract BaseTask is IBaseTask, Authorized {
      * @dev Before base task hook
      */
     function _beforeBaseTask(address token, uint256 amount) internal virtual {
+        tokenIn = token;
+        tokenInBalanceBefore = IERC20(token).balanceOf(smartVault);
         _decreaseBalanceConnector(token, amount);
     }
 
@@ -151,6 +159,8 @@ abstract contract BaseTask is IBaseTask, Authorized {
      * @dev After base task hook
      */
     function _afterBaseTask(address, uint256) internal virtual {
+        tokenIn = address(0);
+        tokenInBalanceBefore = 0;
         emit Executed();
     }
 
@@ -172,7 +182,15 @@ abstract contract BaseTask is IBaseTask, Authorized {
      */
     function _increaseBalanceConnector(address token, uint256 amount) internal {
         if (nextBalanceConnectorId != bytes32(0)) {
-            ISmartVault(smartVault).updateBalanceConnector(nextBalanceConnectorId, token, amount, true);
+            uint256 amountToUpdate = amount;
+            if (token == tokenIn) {
+                uint256 balanceAfter = IERC20(token).balanceOf(smartVault);
+                if (balanceAfter > tokenInBalanceBefore) {
+                    uint256 actualAmount = balanceAfter - tokenInBalanceBefore;
+                    if (actualAmount < amount) amountToUpdate = actualAmount;
+                }
+            }
+            ISmartVault(smartVault).updateBalanceConnector(nextBalanceConnectorId, token, amountToUpdate, true);
         }
     }
 

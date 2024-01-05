@@ -3,6 +3,7 @@ import {
   assertIndirectEvent,
   assertNoEvent,
   BigNumberish,
+  deploy,
   deployProxy,
   deployTokenMock,
   fp,
@@ -143,13 +144,15 @@ describe('Collector', () => {
     })
   })
 
-  describe('call', () => {
+  describe.only('call', () => {
     let token: Contract
 
     const threshold = fp(2)
+    const fee = 2
 
     beforeEach('set token and', async () => {
-      token = await deployTokenMock('USDC')
+      // token = await deployTokenMock('USDC')
+      token = await deploy('TokenMockWithTransferFee', ['USDC', fee])
     })
 
     beforeEach('authorize task', async () => {
@@ -248,7 +251,7 @@ describe('Collector', () => {
               await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
                 id: nextConnectorId,
                 token,
-                amount,
+                amount: amount.mul(100 - fee).div(100),
                 added: true,
               })
             })
