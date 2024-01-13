@@ -19,7 +19,8 @@
       "packages/connectors",
       "packages/tasks",
       "packages/deployer",
-      "packages/relayer"
+      "packages/relayer",
+      "packages/user-wallets"
     ]
   }
 }

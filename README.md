@@ -39,6 +39,7 @@ This monorepo holds the key components of the Mimic protocol:
 - [Relayer](./packages/relayer)
 - [Smart vault](./packages/smart-vault)
 - [Tasks](./packages/tasks)
+- [User wallets](./packages/user-wallets)
 
 ## Setup
 
