@@ -154,7 +154,7 @@ describe('Integration', () => {
         })
 
         walletBNative = walletBNative.sub(amount)
-        ownerANative = ownerANative.add(amount)
+        ownerANative = amount
         checkBalances(
           { tokenABalance: walletATokenA, tokenBBalance: bn(0), nativeBalance: bn(0) },
           { tokenABalance: bn(0), tokenBBalance: bn(0), nativeBalance: walletBNative },
@@ -288,7 +288,7 @@ describe('Integration', () => {
                     walletBNative = bn(0)
                     ownerBTokenA = ownerBTokenA.add(amountTokenA)
                     ownerBTokenB = ownerBTokenB.add(amountTokenB)
-                    ownerBNative = ownerBNative.add(amountNative)
+                    ownerBNative = amountNative
                     checkBalances(
                       { tokenABalance: walletATokenA, tokenBBalance: walletATokenB, nativeBalance: bn(0) },
                       { tokenABalance: bn(0), tokenBBalance: bn(0), nativeBalance: walletBNative },
