@@ -15,6 +15,7 @@
 pragma solidity >=0.8.0;
 
 import './base/IBaseTask.sol';
+import './base/IPausableTask.sol';
 import './base/IGasLimitedTask.sol';
 import './base/ITimeLockedTask.sol';
 import './base/ITokenIndexedTask.sol';
@@ -28,6 +29,7 @@ import './base/IVolumeLimitedTask.sol';
  */
 interface ITask is
     IBaseTask,
+    IPausableTask,
     IGasLimitedTask,
     ITimeLockedTask,
     ITokenIndexedTask,
