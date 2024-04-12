@@ -33,10 +33,22 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('BALANCER_V2_SWAPPER');
 
+    // List of pool id's per token
+    mapping (address => bytes32) public balancerPoolId;
+
+    /**
+     * @dev Pool id config. Only used in the initializer.
+     */
+    struct BalancerPoolId {
+        address token;
+        bytes32 poolId;
+    }
+
     /**
      * @dev Balancer v2 swap config. Only used in the initalizer
      */
     struct BalancerV2SwapConfig {
+        BalancerPoolId[] balancerPoolIds;
         BaseSwapConfig baseSwapConfig;
     }
 
@@ -66,6 +78,25 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
     }
 
     /**
+     * @dev Sets a balancer pool id for a Token
+     * @param token addres of the token
+     * @param poolId id of the poool to be set
+     */
+    function setPoolId(address token, bytes32 poolId) external authP(authParams(token, poolId)) {
+        _setPoolId(token, poolId);
+    }
+
+    /**
+     * @dev Tells pool id set for a token
+     * @param token address of the token
+     */
+    function tokenPoolId(address token) external view returns (bytes32) {
+        bytes32 poolId = balancerPoolId[token];
+        require(poolId != bytes32(0), 'Pool id not found for token');
+        return poolId;
+    }
+
+    /**
      * @dev Executes the Balancer v2 swapper task
      */
     function call(address tokenIn, uint256 amountIn, uint256 slippage)
@@ -79,6 +110,7 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
         address tokenOut = getTokenOut(tokenIn);
         uint256 price = _getPrice(tokenIn, tokenOut);
         uint256 minAmountOut = amountIn.mulUp(price).mulUp(FixedPoint.ONE - slippage);
+        bytes32 poolId = balancerPoolId[tokenIn];
 
         bytes memory connectorData = abi.encodeWithSelector(
             IBalancerV2SwapConnector.execute.selector,
@@ -86,7 +118,7 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
             tokenOut,
             amountIn,
             minAmountOut,
-            IBalancerPool(tokenIn).getPoolId(),
+            poolId,
             new bytes32[](0),
             new address[](0)
         );
@@ -100,6 +132,7 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
      */
     function _beforeBalancerV2Swapper(address token, uint256 amount, uint256 slippage) internal virtual {
         _beforeBaseSwapTask(token, amount, slippage);
+        if (balancerPoolId[token] == bytes32(0)) revert TaskMissingPoolId();
     }
 
     /**
@@ -113,5 +146,18 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
         uint256 amountOut
     ) internal virtual {
         _afterBaseSwapTask(tokenIn, amountIn, slippage, tokenOut, amountOut);
+    }
+
+    /**
+     * @dev Sets a balancer pool id for a Token
+     * @param token addres of the token
+     * @param poolId id of the poool to be set
+     */
+    function _setPoolId(address token, bytes32 poolId) internal {
+        if (token == address(0)) revert TaskTokenZero();
+        if (poolId == bytes32(0)) revert PoolIdZero();
+
+        balancerPoolId[token] = poolId;
+        emit BalancerPoolIdSet(token, poolId);
     }
 }

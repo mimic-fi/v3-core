@@ -21,6 +21,26 @@ import './IBaseSwapTask.sol';
  */
 interface IBalancerV2Swapper is IBaseSwapTask {
     /**
+     * @dev The pool id for the token is not set
+     */
+    error TaskMissingPoolId();
+
+    /**
+     * @dev The pool id for the token zero
+     */
+    error PoolIdZero();
+
+    /**
+     * @dev Emitted every time a pool is set for a token
+     */
+    event BalancerPoolIdSet(address indexed token, bytes32 poolId);
+
+    /**
+     * @dev Tells pool id set for a token
+     */
+    function tokenPoolId(address token) external view returns (bytes32);
+
+    /**
      * @dev Execution function
      */
     function call(address tokenIn, uint256 amountIn, uint256 slippage) external;
