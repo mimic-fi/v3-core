@@ -79,11 +79,6 @@ describe('BalancerV2Swapper', () => {
       context('when the pool id is not zero', () => {
         const poolId = ONES_BYTES32
 
-        it('sets the pool id', async () => {
-          await task.setPoolId(token.address, poolId)
-          expect(await task.tokenPoolId(token.address)).to.be.equal(poolId)
-        })
-
         it('emits an event', async () => {
           const tx = await task.setPoolId(token.address, poolId)
           await assertEvent(tx, 'BalancerPoolIdSet', { token: token.address, poolId })
@@ -95,9 +90,9 @@ describe('BalancerV2Swapper', () => {
           })
 
           it('updates the pool id', async () => {
-            const newPoolId = '0x0000000000000000000000000000000000000000000000000000000000000001'
-            await task.setPoolId(token.address, newPoolId)
-            expect(await task.tokenPoolId(token.address)).to.be.equal(newPoolId)
+            const poolId = '0x0000000000000000000000000000000000000000000000000000000000000001'
+            const tx = await task.setPoolId(token.address, poolId)
+            await assertEvent(tx, 'BalancerPoolIdSet', { token: token.address, poolId })
           })
         })
       })
@@ -106,7 +101,7 @@ describe('BalancerV2Swapper', () => {
         const poolId = ZERO_BYTES32
 
         it('reverts', async () => {
-          await expect(task.setPoolId(token.address, poolId)).to.be.revertedWith('PoolIdZero')
+          await expect(task.setPoolId(token.address, poolId)).to.be.revertedWith('TaskPoolIdZero')
         })
       })
 

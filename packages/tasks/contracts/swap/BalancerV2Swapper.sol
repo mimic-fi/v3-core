@@ -87,16 +87,6 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev Tells pool id set for a token
-     * @param token address of the token
-     */
-    function tokenPoolId(address token) external view returns (bytes32) {
-        bytes32 poolId = balancerPoolId[token];
-        require(poolId != bytes32(0), 'Pool id not found for token');
-        return poolId;
-    }
-
-    /**
      * @dev Executes the Balancer v2 swapper task
      */
     function call(address tokenIn, uint256 amountIn, uint256 slippage)
@@ -155,7 +145,7 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
      */
     function _setPoolId(address token, bytes32 poolId) internal {
         if (token == address(0)) revert TaskTokenZero();
-        if (poolId == bytes32(0)) revert PoolIdZero();
+        if (poolId == bytes32(0)) revert TaskPoolIdZero();
 
         balancerPoolId[token] = poolId;
         emit BalancerPoolIdSet(token, poolId);
