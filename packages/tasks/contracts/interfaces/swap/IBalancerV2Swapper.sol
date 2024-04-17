@@ -26,11 +26,6 @@ interface IBalancerV2Swapper is IBaseSwapTask {
     error TaskMissingPoolId();
 
     /**
-     * @dev The requested pool id to be set is zero
-     */
-    error TaskPoolIdZero();
-
-    /**
      * @dev Emitted every time a pool is set for a token
      */
     event BalancerPoolIdSet(address indexed token, bytes32 poolId);

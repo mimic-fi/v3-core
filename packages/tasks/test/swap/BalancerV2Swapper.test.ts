@@ -6,7 +6,6 @@ import {
   getSigners,
   ONES_BYTES32,
   ZERO_ADDRESS,
-  ZERO_BYTES32,
 } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
@@ -94,14 +93,6 @@ describe('BalancerV2Swapper', () => {
             const tx = await task.setPoolId(token.address, poolId)
             await assertEvent(tx, 'BalancerPoolIdSet', { token: token.address, poolId })
           })
-        })
-      })
-
-      context('when the pool id is zero', () => {
-        const poolId = ZERO_BYTES32
-
-        it('reverts', async () => {
-          await expect(task.setPoolId(token.address, poolId)).to.be.revertedWith('TaskPoolIdZero')
         })
       })
 

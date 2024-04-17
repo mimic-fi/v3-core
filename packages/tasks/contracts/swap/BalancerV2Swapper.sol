@@ -37,7 +37,7 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
     mapping (address => bytes32) public balancerPoolId;
 
     /**
-     * @dev Pool id config. Only used in the initializer.
+     * @dev Balancer pool id config. Only used in the initializer.
      */
     struct BalancerPoolId {
         address token;
@@ -70,7 +70,7 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev Initializes the balancer swapper. It does not call upper contracts
+     * @dev Initializes the Balancer swapper. It does not call upper contracts
      * @param config Balancer V2 swap config
      */
     function __BalancerV2Swapper_init_unchained(BalancerV2SwapConfig memory config) internal onlyInitializing {
@@ -78,9 +78,9 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev Sets a balancer pool id for a Token
-     * @param token addres of the token
-     * @param poolId id of the poool to be set
+     * @dev Sets a Balancer pool ID for a token
+     * @param token Address of the token to set the pool ID of
+     * @param poolId ID of the pool to be set for the given token
      */
     function setPoolId(address token, bytes32 poolId) external authP(authParams(token, poolId)) {
         _setPoolId(token, poolId);
@@ -139,13 +139,12 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
     }
 
     /**
-     * @dev Sets a balancer pool id for a Token
-     * @param token addres of the token
-     * @param poolId id of the poool to be set
+     * @dev Sets a Balancer pool ID for a token
+     * @param token Address of the token to set the pool ID of
+     * @param poolId ID of the pool to be set for the given token
      */
     function _setPoolId(address token, bytes32 poolId) internal {
         if (token == address(0)) revert TaskTokenZero();
-        if (poolId == bytes32(0)) revert TaskPoolIdZero();
 
         balancerPoolId[token] = poolId;
         emit BalancerPoolIdSet(token, poolId);
