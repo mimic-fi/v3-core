@@ -74,7 +74,9 @@ contract BalancerV2Swapper is IBalancerV2Swapper, BaseSwapTask {
      * @param config Balancer V2 swap config
      */
     function __BalancerV2Swapper_init_unchained(BalancerV2SwapConfig memory config) internal onlyInitializing {
-        // solhint-disable-previous-line no-empty-blocks
+        for (uint256 i = 0; i < config.balancerPoolIds.length; i++) {
+            _setPoolId(config.balancerPoolIds[i].token, config.balancerPoolIds[i].poolId);
+        }
     }
 
     /**

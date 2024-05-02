@@ -4,6 +4,8 @@ import {
   deployProxy,
   deployTokenMock,
   getSigners,
+  NATIVE_TOKEN_ADDRESS,
+  ONES_ADDRESS,
   ONES_BYTES32,
   ZERO_ADDRESS,
 } from '@mimic-fi/v3-helpers'
@@ -17,6 +19,11 @@ import { itBehavesLikeBaseSwapTask } from './BaseSwapTask.behavior'
 describe('BalancerV2Swapper', () => {
   let task: Contract
   let smartVault: Contract, authorizer: Contract, connector: Contract, owner: SignerWithAddress
+
+  const balancerPoolIds = [
+    { token: NATIVE_TOKEN_ADDRESS, poolId: ONES_BYTES32 },
+    { token: ONES_ADDRESS, poolId: '0x2222222222222222222222222222222222222222222222222222222222222222' },
+  ]
 
   before('setup', async () => {
     // eslint-disable-next-line prettier/prettier
@@ -37,7 +44,7 @@ describe('BalancerV2Swapper', () => {
       [],
       [
         {
-          balancerPoolIds: [],
+          balancerPoolIds,
           baseSwapConfig: {
             connector: connector.address,
             tokenOut: ZERO_ADDRESS,
@@ -49,16 +56,6 @@ describe('BalancerV2Swapper', () => {
         },
       ]
     )
-  })
-
-  describe('swapper', () => {
-    beforeEach('set params', async function () {
-      this.owner = owner
-      this.task = task
-      this.authorizer = authorizer
-    })
-
-    itBehavesLikeBaseSwapTask('BALANCER_V2_SWAPPER')
   })
 
   describe('setPoolId', () => {
@@ -104,5 +101,22 @@ describe('BalancerV2Swapper', () => {
         })
       })
     })
+  })
+
+  describe('swapper', () => {
+    beforeEach('set params', async function () {
+      this.owner = owner
+      this.task = task
+      this.authorizer = authorizer
+    })
+
+    it('initializes the corresponding pool IDs', async () => {
+      for (const { token, poolId } of balancerPoolIds) {
+        const actualPoolId = await task.balancerPoolId(token)
+        expect(actualPoolId).to.equal(poolId)
+      }
+    })
+
+    itBehavesLikeBaseSwapTask('BALANCER_V2_SWAPPER')
   })
 })
