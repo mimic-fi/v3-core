@@ -17,155 +17,106 @@ import { buildEmptyTaskConfig, deployEnvironment } from '../../src/setup'
 import { itBehavesLikeBaseSwapTask } from './BaseSwapTask.behavior'
 
 describe('BalancerV2Swapper', () => {
-  context("when no pool id's are set", () => {
-    let task: Contract
-    let smartVault: Contract, authorizer: Contract, connector: Contract, owner: SignerWithAddress
+  let task: Contract
+  let smartVault: Contract, authorizer: Contract, connector: Contract, owner: SignerWithAddress
 
-    before('setup', async () => {
-      // eslint-disable-next-line prettier/prettier
-      [, owner] = await getSigners()
-      ;({ authorizer, smartVault } = await deployEnvironment(owner))
-    })
+  const balancerPoolIds = [
+    { token: NATIVE_TOKEN_ADDRESS, poolId: ONES_BYTES32 },
+    { token: ONES_ADDRESS, poolId: '0x2222222222222222222222222222222222222222222222222222222222222222' },
+  ]
 
-    before('deploy connector', async () => {
-      connector = await deploy('BalancerV2SwapConnectorMock', [ZERO_ADDRESS])
-      const overrideConnectorCheckRole = smartVault.interface.getSighash('overrideConnectorCheck')
-      await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideConnectorCheckRole, [])
-      await smartVault.connect(owner).overrideConnectorCheck(connector.address, true)
-    })
+  before('setup', async () => {
+    // eslint-disable-next-line prettier/prettier
+    [, owner] = await getSigners()
+    ;({ authorizer, smartVault } = await deployEnvironment(owner))
+  })
 
-    beforeEach('deploy task', async () => {
-      task = await deployProxy(
-        'BalancerV2Swapper',
-        [],
-        [
-          {
-            balancerPoolIds: [],
-            baseSwapConfig: {
-              connector: connector.address,
-              tokenOut: ZERO_ADDRESS,
-              maxSlippage: 0,
-              customTokensOut: [],
-              customMaxSlippages: [],
-              taskConfig: buildEmptyTaskConfig(owner, smartVault),
-            },
+  before('deploy connector', async () => {
+    connector = await deploy('BalancerV2SwapConnectorMock', [ZERO_ADDRESS])
+    const overrideConnectorCheckRole = smartVault.interface.getSighash('overrideConnectorCheck')
+    await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideConnectorCheckRole, [])
+    await smartVault.connect(owner).overrideConnectorCheck(connector.address, true)
+  })
+
+  beforeEach('deploy task', async () => {
+    task = await deployProxy(
+      'BalancerV2Swapper',
+      [],
+      [
+        {
+          balancerPoolIds,
+          baseSwapConfig: {
+            connector: connector.address,
+            tokenOut: ZERO_ADDRESS,
+            maxSlippage: 0,
+            customTokensOut: [],
+            customMaxSlippages: [],
+            taskConfig: buildEmptyTaskConfig(owner, smartVault),
           },
-        ]
-      )
+        },
+      ]
+    )
+  })
+
+  describe('setPoolId', () => {
+    let token: Contract
+
+    before('deploy token mock', async () => {
+      token = await deployTokenMock('TKN')
     })
 
-    describe('swapper', () => {
-      beforeEach('set params', async function () {
-        this.owner = owner
-        this.task = task
-        this.authorizer = authorizer
+    context('when the sender is authorized', () => {
+      beforeEach('set sender', async () => {
+        const setPoolIdRole = task.interface.getSighash('setPoolId')
+        await authorizer.connect(owner).authorize(owner.address, task.address, setPoolIdRole, [])
+        task = task.connect(owner)
       })
 
-      itBehavesLikeBaseSwapTask('BALANCER_V2_SWAPPER')
-    })
+      context('when the pool id is not zero', () => {
+        const poolId = ONES_BYTES32
 
-    describe('setPoolId', () => {
-      let token: Contract
-
-      before('deploy token mock', async () => {
-        token = await deployTokenMock('TKN')
-      })
-
-      context('when the sender is authorized', () => {
-        beforeEach('set sender', async () => {
-          const setPoolIdRole = task.interface.getSighash('setPoolId')
-          await authorizer.connect(owner).authorize(owner.address, task.address, setPoolIdRole, [])
-          task = task.connect(owner)
+        it('emits an event', async () => {
+          const tx = await task.setPoolId(token.address, poolId)
+          await assertEvent(tx, 'BalancerPoolIdSet', { token: token.address, poolId })
         })
 
-        context('when the pool id is not zero', () => {
-          const poolId = ONES_BYTES32
+        context('when modifying the pool id', () => {
+          beforeEach('set pool id', async () => {
+            await task.setPoolId(token.address, poolId)
+          })
 
-          it('emits an event', async () => {
+          it('updates the pool id', async () => {
+            const poolId = '0x0000000000000000000000000000000000000000000000000000000000000001'
             const tx = await task.setPoolId(token.address, poolId)
             await assertEvent(tx, 'BalancerPoolIdSet', { token: token.address, poolId })
           })
-
-          context('when modifying the pool id', () => {
-            beforeEach('set pool id', async () => {
-              await task.setPoolId(token.address, poolId)
-            })
-
-            it('updates the pool id', async () => {
-              const poolId = '0x0000000000000000000000000000000000000000000000000000000000000001'
-              const tx = await task.setPoolId(token.address, poolId)
-              await assertEvent(tx, 'BalancerPoolIdSet', { token: token.address, poolId })
-            })
-          })
         })
+      })
 
-        context('when the token address is zero', () => {
-          it('reverts', async () => {
-            await expect(
-              task.setPoolId(ZERO_ADDRESS, '0x0000000000000000000000000000000000000000000000000000000000000001')
-            ).to.be.revertedWith('TaskTokenZero')
-          })
+      context('when the token address is zero', () => {
+        it('reverts', async () => {
+          await expect(
+            task.setPoolId(ZERO_ADDRESS, '0x0000000000000000000000000000000000000000000000000000000000000001')
+          ).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
   })
 
-  context("when pool id's are set", () => {
-    let task: Contract
-    let smartVault: Contract, authorizer: Contract, connector: Contract, owner: SignerWithAddress
-    const balancerPoolIds = [
-      { token: NATIVE_TOKEN_ADDRESS, poolId: ONES_BYTES32 },
-      { token: ONES_ADDRESS, poolId: '0x2222222222222222222222222222222222222222222222222222222222222222' },
-    ]
-
-    before('setup', async () => {
-      // eslint-disable-next-line prettier/prettier
-      [, owner] = await getSigners()
-      ;({ authorizer, smartVault } = await deployEnvironment(owner))
+  describe('swapper', () => {
+    beforeEach('set params', async function () {
+      this.owner = owner
+      this.task = task
+      this.authorizer = authorizer
     })
 
-    before('deploy connector', async () => {
-      connector = await deploy('BalancerV2SwapConnectorMock', [ZERO_ADDRESS])
-      const overrideConnectorCheckRole = smartVault.interface.getSighash('overrideConnectorCheck')
-      await authorizer.connect(owner).authorize(owner.address, smartVault.address, overrideConnectorCheckRole, [])
-      await smartVault.connect(owner).overrideConnectorCheck(connector.address, true)
-    })
-
-    beforeEach('deploy task', async () => {
-      task = await deployProxy(
-        'BalancerV2Swapper',
-        [],
-        [
-          {
-            balancerPoolIds,
-            baseSwapConfig: {
-              connector: connector.address,
-              tokenOut: ZERO_ADDRESS,
-              maxSlippage: 0,
-              customTokensOut: [],
-              customMaxSlippages: [],
-              taskConfig: buildEmptyTaskConfig(owner, smartVault),
-            },
-          },
-        ]
-      )
-    })
-
-    describe('swapper', () => {
-      beforeEach('set params', async function () {
-        this.owner = owner
-        this.task = task
-        this.authorizer = authorizer
-      })
-
-      itBehavesLikeBaseSwapTask('BALANCER_V2_SWAPPER')
-    })
-
-    it("Create the task with pool id's", async () => {
+    it('initializes the corresponding pool IDs', async () => {
       for (const { token, poolId } of balancerPoolIds) {
         const actualPoolId = await task.balancerPoolId(token)
         expect(actualPoolId).to.equal(poolId)
       }
     })
+
+    itBehavesLikeBaseSwapTask('BALANCER_V2_SWAPPER')
   })
 })
