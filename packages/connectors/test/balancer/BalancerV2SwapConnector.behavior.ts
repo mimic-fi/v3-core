@@ -38,7 +38,7 @@ export function itBehavesLikeBalancerV2SwapConnector(
     const hopTokens = []
 
     context('USDC-WETH', () => {
-      const amountIn = toUSDC(10e3)
+      const amountIn = toUSDC(100)
 
       it('swaps correctly', async function () {
         const previousBalance = await weth.balanceOf(this.connector.address)
@@ -94,7 +94,7 @@ export function itBehavesLikeBalancerV2SwapConnector(
     })
 
     context('WBTC-USDC', () => {
-      const amountIn = toWBTC(1)
+      const amountIn = toWBTC(0.1)
       const hopPoolIds = [WETH_USDC_POOL_ID]
 
       it('swaps correctly', async function () {

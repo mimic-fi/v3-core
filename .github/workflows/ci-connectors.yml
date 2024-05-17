@@ -44,7 +44,7 @@ jobs:
       - name: Set up environment
         uses: ./.github/actions/setup
       - name: Set up hardhat config
-        run: .github/scripts/setup-hardhat-config.sh ${{secrets.MAINNET_RPC}} ${{secrets.POLYGON_RPC}} ${{secrets.OPTIMISM_RPC}} ${{secrets.ARBITRUM_RPC}} ${{secrets.GNOSIS_RPC}} ${{secrets.AVALANCHE_RPC}} ${{secrets.BSC_RPC}} ${{secrets.FANTOM_RPC}} ${{secrets.ZKEVM_RPC}}
+        run: .github/scripts/setup-hardhat-config.sh ${{secrets.MAINNET_RPC}} ${{secrets.POLYGON_RPC}} ${{secrets.OPTIMISM_RPC}} ${{secrets.ARBITRUM_RPC}} ${{secrets.GNOSIS_RPC}} ${{secrets.AVALANCHE_RPC}} ${{secrets.BSC_RPC}} ${{secrets.FANTOM_RPC}} ${{secrets.ZKEVM_RPC}} ${{secrets.BASE_RPC}}
       - name: Build
         run: yarn build
       - name: Test mainnet
@@ -65,3 +65,5 @@ jobs:
         run: yarn workspace @mimic-fi/v3-connectors test:fantom
       - name: Test zkevm
         run: yarn workspace @mimic-fi/v3-connectors test:zkevm
+      - name: Test base
+        run: yarn workspace @mimic-fi/v3-connectors test:base
