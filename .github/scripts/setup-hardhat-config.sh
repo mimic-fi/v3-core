@@ -8,7 +8,7 @@ AVALANCHE_URL="$6"
 BSC_URL="$7"
 FANTOM_URL="$8"
 ZKEVM_URL="$9"
-BASE_URL="$10"
+BASE_URL="${10}"
 
 set -o errexit
 
