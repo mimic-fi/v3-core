@@ -8,6 +8,7 @@ AVALANCHE_URL="$6"
 BSC_URL="$7"
 FANTOM_URL="$8"
 ZKEVM_URL="$9"
+BASE_URL="${10}"
 
 set -o errexit
 
@@ -24,7 +25,8 @@ echo "
     \"avalanche\": { \"url\": \"${AVALANCHE_URL}\" },
     \"bsc\": { \"url\": \"${BSC_URL}\" },
     \"fantom\": { \"url\": \"${FANTOM_URL}\" },
-    \"zkevm\": { \"url\": \"${ZKEVM_URL}\" }
+    \"zkevm\": { \"url\": \"${ZKEVM_URL}\" },
+    \"base\": { \"url\": \"${BASE_URL}\" }
   }
 }
 " > $HOME/.hardhat/networks.mimic.json

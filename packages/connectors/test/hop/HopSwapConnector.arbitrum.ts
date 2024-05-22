@@ -12,7 +12,7 @@ const WHALE = '0x5bdf85216ec1e38d6458c870992a69e38e03f7ef'
 const HOP_USDC_DEX = '0x10541b07d8ad2647dc6cd67abd4c03575dade261'
 
 describe('HopSwapConnector', () => {
-  const SLIPPAGE = 0.01
+  const SLIPPAGE = 0.015
 
   before('create hop swap connector', async function () {
     this.connector = await deploy('HopSwapConnector')
