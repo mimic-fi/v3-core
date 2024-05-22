@@ -7,7 +7,7 @@ const HOP_URL = 'https://api.hop.exchange/v1'
 export type QuoteResponse = { data: { bonderFee: string; error: string } }
 
 const CHAINS: { [key: number]: string } = {
-  1: 'mainnet',
+  1: 'ethereum',
   137: 'polygon',
   100: 'gnosis',
   10: 'optimism',
