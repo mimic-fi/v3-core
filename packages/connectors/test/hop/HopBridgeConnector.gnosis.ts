@@ -5,7 +5,7 @@ import { itBehavesLikeHopNativeConnector } from './HopL2NativeConnector.behavior
 
 /* eslint-disable no-secrets/no-secrets */
 
-const USDC = '0xDDAfbb505ad214D7b80b1f830fcCc89B60fb7A83'
+const USDT = '0x4ECaBa5870353805a9F068101A40E0f32ed605C6'
 const WXDAI = '0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d'
 
 describe('HopBridgeConnector', () => {
@@ -15,11 +15,11 @@ describe('HopBridgeConnector', () => {
     this.connector = await deploy('HopBridgeConnector', [WXDAI])
   })
 
-  context('USDC', () => {
-    const WHALE = '0xc66825c5c04b3c2ccd536d626934e16248a63f68'
-    const HOP_USDC_AMM = '0x76b22b8C1079A44F1211D867D68b1eda76a635A7'
+  context('USDT', () => {
+    const WHALE = '0xba12222222228d8ba445958a75a0704d566bf2c8'
+    const HOP_USDT_AMM = '0x49094a1B3463c4e2E82ca41b8e6A023bdd6E222f'
 
-    itBehavesLikeHopERC20Connector(SOURCE_CHAIN_ID, USDC, HOP_USDC_AMM, WHALE)
+    itBehavesLikeHopERC20Connector(SOURCE_CHAIN_ID, USDT, HOP_USDT_AMM, WHALE)
   })
 
   context('xDAI', () => {
