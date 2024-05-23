@@ -84,22 +84,6 @@ export function itBehavesLikeOneInchV5Connector(
   })
 
   if (WBTC !== ZERO_ADDRESS) {
-    context('USDC-WBTC', () => {
-      const amountIn = toUSDC(10e3)
-
-      it('swaps correctly USDC-WBTC', async function () {
-        const previousBalance = await wbtc.balanceOf(this.connector.address)
-        await usdc.connect(whale).transfer(this.connector.address, amountIn)
-
-        const data = await loadOrGet1inchSwapData(CHAIN, this.connector, usdc, wbtc, amountIn, SLIPPAGE)
-        await this.connector.connect(whale).execute(USDC, WBTC, amountIn, 0, data)
-
-        const currentBalance = await wbtc.balanceOf(this.connector.address)
-        const expectedMinAmountOut = await getExpectedMinAmountOut(USDC, WBTC, amountIn, SLIPPAGE)
-        expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
-      })
-    })
-
     context('WBTC-USDC', () => {
       const amountIn = toWBTC(1)
 

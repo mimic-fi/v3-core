@@ -1,7 +1,8 @@
 import axios, { AxiosError } from 'axios'
 import { BigNumber, Contract } from 'ethers'
 
-const ONE_INCH_URL = 'https://api.1inch.io/v5.0'
+const ONE_INCH_URL = 'https://api.1inch.dev/swap/v5.2'
+const ONE_INCH_API_KEY = process.env.ONE_INCH_API_KEY
 
 export type SwapResponse = { data: { tx: { data: string } } }
 
@@ -32,7 +33,7 @@ async function getSwap(
 ): Promise<SwapResponse> {
   return axios.get(`${ONE_INCH_URL}/${chainId}/swap`, {
     headers: {
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${ONE_INCH_API_KEY}`,
       Accept: 'application/json',
     },
     params: {

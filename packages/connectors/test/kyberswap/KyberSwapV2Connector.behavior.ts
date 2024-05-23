@@ -1,4 +1,4 @@
-import { deployProxy, fp, impersonate, instanceAt, pct, toUSDC, toWBTC, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { deployProxy, fp, impersonate, instanceAt, pct, toUSDC, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
@@ -9,17 +9,14 @@ export function itBehavesLikeKyberSwapV2Connector(
   CHAIN: number,
   USDC: string,
   WETH: string,
-  WBTC: string,
   WHALE: string,
   SLIPPAGE: number,
-  CHAINLINK_USDC_ETH: string,
-  CHAINLINK_WBTC_ETH: string
+  CHAINLINK_ETH_USD: string
 ): void {
-  let weth: Contract, usdc: Contract, wbtc: Contract, whale: SignerWithAddress, priceOracle: Contract
+  let weth: Contract, usdc: Contract, whale: SignerWithAddress, priceOracle: Contract
 
   before('load tokens and accounts', async function () {
     weth = await instanceAt('IERC20Metadata', WETH)
-    wbtc = await instanceAt('IERC20Metadata', WBTC)
     usdc = await instanceAt('IERC20Metadata', USDC)
     whale = await impersonate(WHALE, fp(100))
   })
@@ -28,15 +25,7 @@ export function itBehavesLikeKyberSwapV2Connector(
     priceOracle = await deployProxy(
       '@mimic-fi/v3-price-oracle/artifacts/contracts/PriceOracle.sol/PriceOracle',
       [],
-      [
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        WETH,
-        [
-          { base: USDC, quote: WETH, feed: CHAINLINK_USDC_ETH },
-          { base: WBTC, quote: WETH, feed: CHAINLINK_WBTC_ETH },
-        ],
-      ]
+      [ZERO_ADDRESS, ZERO_ADDRESS, USDC, [{ base: WETH, quote: USDC, feed: CHAINLINK_ETH_USD }]]
     )
   })
 
@@ -82,38 +71,4 @@ export function itBehavesLikeKyberSwapV2Connector(
       expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
     })
   })
-
-  if (WBTC !== ZERO_ADDRESS) {
-    context('USDC-WBTC', () => {
-      const amountIn = toUSDC(10e3)
-
-      it('swaps correctly USDC-WBTC', async function () {
-        const previousBalance = await wbtc.balanceOf(this.connector.address)
-        await usdc.connect(whale).transfer(this.connector.address, amountIn)
-
-        const data = await loadOrGetKyberSwapSwapData(CHAIN, this.connector, usdc, wbtc, amountIn, SLIPPAGE)
-        await this.connector.connect(whale).execute(USDC, WBTC, amountIn, 0, data)
-
-        const currentBalance = await wbtc.balanceOf(this.connector.address)
-        const expectedMinAmountOut = await getExpectedMinAmountOut(USDC, WBTC, amountIn, SLIPPAGE)
-        expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
-      })
-    })
-
-    context('WBTC-USDC', () => {
-      const amountIn = toWBTC(1)
-
-      it('swaps correctly WTBC-USDC', async function () {
-        const previousBalance = await usdc.balanceOf(this.connector.address)
-        await wbtc.connect(whale).transfer(this.connector.address, amountIn)
-
-        const data = await loadOrGetKyberSwapSwapData(CHAIN, this.connector, wbtc, usdc, amountIn, SLIPPAGE)
-        await this.connector.connect(whale).execute(WBTC, USDC, amountIn, 0, data)
-
-        const currentBalance = await usdc.balanceOf(this.connector.address)
-        const expectedMinAmountOut = await getExpectedMinAmountOut(WBTC, USDC, amountIn, SLIPPAGE)
-        expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
-      })
-    })
-  }
 }

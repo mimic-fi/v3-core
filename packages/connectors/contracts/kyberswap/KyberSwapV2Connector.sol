@@ -57,7 +57,7 @@ contract KyberSwapV2Connector is IKyberSwapV2Connector {
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
 
         ERC20Helpers.approve(tokenIn, kyberSwapV2Router, amountIn);
-        Address.functionCall(kyberSwapV2Router, data, 'KYBERSWAP_V2_SWAP_FAILED');
+        Address.functionCall(kyberSwapV2Router, data, 'KYBER_SWAP_V2_SWAP_FAILED');
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;

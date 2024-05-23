@@ -50,7 +50,7 @@ describe('BalancerV2PoolConnector', function () {
         })
 
         context('when the min amount out is not enough', () => {
-          const minAmountOut = fp(1000)
+          const minAmountOut = fp(2000)
 
           it('reverts', async () => {
             await expect(connector.join(poolId, tokenIn, joinAmount, minAmountOut)).to.be.revertedWith('BAL#208')

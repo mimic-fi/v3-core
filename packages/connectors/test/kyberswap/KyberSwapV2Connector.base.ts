@@ -3,18 +3,17 @@ import { deploy } from '@mimic-fi/v3-helpers'
 import { itBehavesLikeKyberSwapV2Connector } from './KyberSwapV2Connector.behavior'
 
 /* eslint-disable no-secrets/no-secrets */
+const CHAIN = 8453
 
-const CHAIN = 1
-
-const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
-const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
-const WHALE = '0xf584f8728b874a6a5c7a8d4d387c9aae9172d621'
+const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+const WETH = '0x4200000000000000000000000000000000000006'
+const WHALE = '0xec8d8D4b215727f3476FF0ab41c406FA99b4272C'
 
 const KYBER_SWAP_ROUTER = '0x6131B5fae19EA4f9D964eAc0408E4408b66337b5'
 
-const CHAINLINK_ETH_USD = '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419'
+const CHAINLINK_ETH_USD = '0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70'
 
-describe.skip('KyberSwapV2Connector', () => {
+describe('KyberSwapV2Connector', () => {
   const SLIPPAGE = 0.02
 
   before('create KyberSwap connector', async function () {

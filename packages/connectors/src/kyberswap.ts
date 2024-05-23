@@ -6,7 +6,7 @@ export type SwapResponse = { data: { data: { data: string } } }
 
 const CHAINS: { [key: number]: string } = {
   1: 'ethereum',
-  137: 'polygon',
+  8453: 'base',
 }
 
 export async function getKyberSwapSwapData(
