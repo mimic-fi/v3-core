@@ -21,11 +21,11 @@ export function itBehavesLikeWormholeConnector(
     let amount: BigNumber
     let minAmountOut: BigNumber
 
-    const relayerFee = sourceChainId == 1 ? bn(270000) : bn(35000000)
+    const relayerFee = sourceChainId == 1 ? bn(1500000) : bn(35000000)
 
     beforeEach('set amount and min amount out', async () => {
       const decimals = await token.decimals()
-      amount = bn(300).mul(bn(10).pow(decimals))
+      amount = bn(3000).mul(bn(10).pow(decimals))
       minAmountOut = amount.sub(relayerFee)
     })
 
@@ -53,7 +53,7 @@ export function itBehavesLikeWormholeConnector(
         })
 
         context('when relayerFee is greater than amount', () => {
-          const amount = relayerFee.sub(1)
+          const amount = relayerFee.div(2)
 
           it('reverts', async function () {
             await expect(

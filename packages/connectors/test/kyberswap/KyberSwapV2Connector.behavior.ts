@@ -1,25 +1,22 @@
-import { deployProxy, fp, impersonate, instanceAt, pct, toUSDC, toWBTC, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { deployProxy, fp, impersonate, instanceAt, pct, toUSDC, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 
-import { loadOrGet1inchSwapData } from '../helpers/1inch-v5'
+import { loadOrGetKyberSwapSwapData } from '../helpers/kyberswap'
 
-export function itBehavesLikeOneInchV5Connector(
+export function itBehavesLikeKyberSwapV2Connector(
   CHAIN: number,
   USDC: string,
   WETH: string,
-  WBTC: string,
   WHALE: string,
   SLIPPAGE: number,
-  CHAINLINK_USDC_ETH: string,
-  CHAINLINK_WBTC_ETH: string
+  CHAINLINK_ETH_USD: string
 ): void {
-  let weth: Contract, usdc: Contract, wbtc: Contract, whale: SignerWithAddress, priceOracle: Contract
+  let weth: Contract, usdc: Contract, whale: SignerWithAddress, priceOracle: Contract
 
   before('load tokens and accounts', async function () {
     weth = await instanceAt('IERC20Metadata', WETH)
-    wbtc = await instanceAt('IERC20Metadata', WBTC)
     usdc = await instanceAt('IERC20Metadata', USDC)
     whale = await impersonate(WHALE, fp(100))
   })
@@ -28,15 +25,7 @@ export function itBehavesLikeOneInchV5Connector(
     priceOracle = await deployProxy(
       '@mimic-fi/v3-price-oracle/artifacts/contracts/PriceOracle.sol/PriceOracle',
       [],
-      [
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        WETH,
-        [
-          { base: USDC, quote: WETH, feed: CHAINLINK_USDC_ETH },
-          { base: WBTC, quote: WETH, feed: CHAINLINK_WBTC_ETH },
-        ],
-      ]
+      [ZERO_ADDRESS, ZERO_ADDRESS, USDC, [{ base: WETH, quote: USDC, feed: CHAINLINK_ETH_USD }]]
     )
   })
 
@@ -52,13 +41,13 @@ export function itBehavesLikeOneInchV5Connector(
   }
 
   context('USDC-WETH', () => {
-    const amountIn = toUSDC(10e3)
+    const amountIn = toUSDC(10e4)
 
     it('swaps correctly USDC-WETH', async function () {
       const previousBalance = await weth.balanceOf(this.connector.address)
       await usdc.connect(whale).transfer(this.connector.address, amountIn)
 
-      const data = await loadOrGet1inchSwapData(CHAIN, this.connector, usdc, weth, amountIn, SLIPPAGE)
+      const data = await loadOrGetKyberSwapSwapData(CHAIN, this.connector, usdc, weth, amountIn, SLIPPAGE)
       await this.connector.connect(whale).execute(USDC, WETH, amountIn, 0, data)
 
       const currentBalance = await weth.balanceOf(this.connector.address)
@@ -74,7 +63,7 @@ export function itBehavesLikeOneInchV5Connector(
       const previousBalance = await usdc.balanceOf(this.connector.address)
       await weth.connect(whale).transfer(this.connector.address, amountIn)
 
-      const data = await loadOrGet1inchSwapData(CHAIN, this.connector, weth, usdc, amountIn, SLIPPAGE)
+      const data = await loadOrGetKyberSwapSwapData(CHAIN, this.connector, weth, usdc, amountIn, SLIPPAGE)
       await this.connector.connect(whale).execute(WETH, USDC, amountIn, 0, data)
 
       const currentBalance = await usdc.balanceOf(this.connector.address)
@@ -82,22 +71,4 @@ export function itBehavesLikeOneInchV5Connector(
       expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
     })
   })
-
-  if (WBTC !== ZERO_ADDRESS) {
-    context('WBTC-USDC', () => {
-      const amountIn = toWBTC(1)
-
-      it('swaps correctly WTBC-USDC', async function () {
-        const previousBalance = await usdc.balanceOf(this.connector.address)
-        await wbtc.connect(whale).transfer(this.connector.address, amountIn)
-
-        const data = await loadOrGet1inchSwapData(CHAIN, this.connector, wbtc, usdc, amountIn, SLIPPAGE)
-        await this.connector.connect(whale).execute(WBTC, USDC, amountIn, 0, data)
-
-        const currentBalance = await usdc.balanceOf(this.connector.address)
-        const expectedMinAmountOut = await getExpectedMinAmountOut(WBTC, USDC, amountIn, SLIPPAGE)
-        expect(currentBalance.sub(previousBalance)).to.be.at.least(expectedMinAmountOut)
-      })
-    })
-  }
 }
