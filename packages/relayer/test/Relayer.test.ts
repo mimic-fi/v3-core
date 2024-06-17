@@ -997,7 +997,9 @@ describe('Relayer', () => {
         const tokenAddress = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(relayer.rescueFunds(tokenAddress, recipient.address, amount)).to.be.revertedWith('RelayerTokenZero')
+          await expect(relayer.rescueFunds(tokenAddress, recipient.address, amount)).to.be.revertedWith(
+            'RelayerTokenZero'
+          )
         })
       })
     })
