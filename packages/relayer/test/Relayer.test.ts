@@ -308,7 +308,17 @@ describe('Relayer', () => {
           await relayer.deposit(smartVault.address, amount, { value: amount })
 
           const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
-          expect(currentRelayerBalance).to.be.equal(previousRelayerBalance.add(amount))
+          expect(currentRelayerBalance).to.be.equal(previousRelayerBalance.add(expectedDepositAmount))
+        })
+
+        it('pays the corresponding quota to the fee collector', async () => {
+          const collector = await relayer.getApplicableCollector(smartVault.address)
+          const previousCollectorBalance = await ethers.provider.getBalance(collector)
+
+          await relayer.deposit(smartVault.address, amount, { value: amount })
+
+          const currentCollectorBalance = await ethers.provider.getBalance(collector)
+          expect(currentCollectorBalance).to.be.equal(previousCollectorBalance.add(expectedPaidQuota))
         })
 
         it('emits an event', async () => {

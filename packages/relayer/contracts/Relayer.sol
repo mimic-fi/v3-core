@@ -298,6 +298,8 @@ contract Relayer is IRelayer, Ownable {
             quotaPaid = toDeposit;
         }
 
+        (bool paySuccess, ) = getApplicableCollector(smartVault).call{ value: quotaPaid }('');
+        if (!paySuccess) revert RelayerQuotaPaymentFailed(smartVault, quotaPaid);
         emit QuotaPaid(smartVault, quotaPaid);
     }
 }

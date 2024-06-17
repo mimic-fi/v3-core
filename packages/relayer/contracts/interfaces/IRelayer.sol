@@ -79,6 +79,11 @@ interface IRelayer {
     error RelayerPaymentFailed(address smartVault, uint256 amount, uint256 quota);
 
     /**
+     * @dev It failed to send owed quota to the smart vault's collector
+     */
+    error RelayerQuotaPaymentFailed(address smartVault, uint256 quota);
+
+    /**
      * @dev The smart vault balance is lower than the amount to withdraw
      */
     error RelayerWithdrawInsufficientBalance(address sender, uint256 balance, uint256 amount);
