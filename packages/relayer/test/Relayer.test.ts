@@ -218,18 +218,20 @@ describe('Relayer', () => {
   })
 
   describe('deposit', () => {
-    let smartVault: SignerWithAddress
+    let authorizer: Contract, smartVault: Contract, smartVaultOwner: SignerWithAddress
 
-    const amount = fp(0.1)
-
-    beforeEach('load smart vault', async () => {
-      smartVault = await getSigner()
+    beforeEach('deploy smart vault', async () => {
+      smartVaultOwner = await getSigner()
+      // eslint-disable-next-line prettier/prettier
+      ;({ authorizer, smartVault } = await deployEnvironment(smartVaultOwner))
     })
 
-    context('when the given value is correct', () => {
-      const value = amount
+    context('when the used quota is zero', () => {
+      const amount = fp(0.1)
 
-      context('when the used quota is zero', () => {
+      context('when the given value is correct', () => {
+        const value = amount
+
         it('deposits the amount correctly', async () => {
           const previousSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
 
@@ -255,111 +257,114 @@ describe('Relayer', () => {
         })
       })
 
-      context('when the used quota is not zero', () => {
-        let authorizer: Contract, smartVault: Contract, smartVaultOwner: SignerWithAddress
-        let usedQuota: BigNumber, currentQuota: BigNumber, paidQuota: BigNumber
-        let amount: BigNumber, value: BigNumber, toDeposit: BigNumber
+      context('when the given value is not correct', () => {
+        const value = amount.sub(1)
 
-        beforeEach('deploy smart vault', async () => {
-          smartVaultOwner = await getSigner()
-          // eslint-disable-next-line prettier/prettier
-          ;({ authorizer, smartVault } = await deployEnvironment(smartVaultOwner))
-        })
-
-        beforeEach('set maximum quota', async () => {
-          const maxQuota = fp(10000)
-          await relayer.connect(owner).setSmartVaultMaxQuota(smartVault.address, maxQuota)
-        })
-
-        beforeEach('use some quota', async () => {
-          const task = await deploy('TaskMock', [smartVault.address])
-
-          await authorizer.connect(smartVaultOwner).authorize(task.address, smartVault.address, '0xaabbccdd', [])
-          await relayer.deposit(ZERO_ADDRESS, fp(1.5), { value: fp(1.5) })
-
-          const data = task.interface.encodeFunctionData('succeed')
-          const tx = await relayer.connect(executor).execute([task.address], [data], false)
-          await tx.wait()
-        })
-
-        const itBehavesLikeDeposit = () => {
-          it('has no balance', async () => {
-            expect(await relayer.getSmartVaultBalance(smartVault.address)).to.be.equal(0)
-          })
-
-          it('deposits the amount correctly', async () => {
-            const previousSmartVaultBalance = fp(0)
-
-            await relayer.deposit(smartVault.address, amount, { value })
-
-            const currentSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
-            expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.add(toDeposit))
-          })
-
-          it('increments the relayer balance properly', async () => {
-            const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
-
-            await relayer.deposit(smartVault.address, amount, { value })
-
-            const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
-            expect(currentRelayerBalance).to.be.equal(previousRelayerBalance.add(amount))
-          })
-
-          it('emits an event', async () => {
-            const tx = await relayer.deposit(smartVault.address, amount, { value })
-
-            await assertEvent(tx, 'Deposited', { smartVault, amount: toDeposit })
-          })
-
-          it('decrements the used quota properly', async () => {
-            await relayer.deposit(smartVault.address, amount, { value })
-
-            const currentUsedQuota = await relayer.getSmartVaultUsedQuota(smartVault.address)
-            expect(currentUsedQuota).to.be.equal(currentQuota)
-          })
-
-          it('emits an event', async () => {
-            const tx = await relayer.deposit(smartVault.address, amount, { value })
-
-            await assertEvent(tx, 'QuotaPaid', { smartVault, amount: paidQuota })
-          })
-        }
-
-        context('when the used quota is lower than the amount', () => {
-          beforeEach('set data', async () => {
-            usedQuota = await relayer.getSmartVaultUsedQuota(smartVault.address)
-            amount = usedQuota.mul(2)
-            value = amount
-            toDeposit = amount.sub(usedQuota)
-            currentQuota = fp(0)
-            paidQuota = usedQuota
-          })
-
-          itBehavesLikeDeposit()
-        })
-
-        context('when the used quota is greater than or equal to the amount', () => {
-          beforeEach('set data', async () => {
-            usedQuota = await relayer.getSmartVaultUsedQuota(smartVault.address)
-            amount = usedQuota.div(2)
-            value = amount
-            toDeposit = fp(0)
-            currentQuota = usedQuota.sub(amount)
-            paidQuota = amount
-          })
-
-          itBehavesLikeDeposit()
+        it('reverts', async () => {
+          await expect(relayer.deposit(smartVault.address, amount, { value })).to.revertedWith(
+            'RelayerValueDoesNotMatchAmount'
+          )
         })
       })
     })
 
-    context('when the given value is not correct', () => {
-      const value = amount.sub(1)
+    context('when the used quota is not zero', () => {
+      let amount: BigNumber
+      let expectedCurrentQuota: BigNumber, expectedPaidQuota: BigNumber, expectedDepositAmount: BigNumber
 
-      it('reverts', async () => {
-        await expect(relayer.deposit(smartVault.address, amount, { value })).to.revertedWith(
-          'RelayerValueDoesNotMatchAmount'
-        )
+      beforeEach('set maximum quota', async () => {
+        const maxQuota = fp(10000)
+        await relayer.connect(owner).setSmartVaultMaxQuota(smartVault.address, maxQuota)
+      })
+
+      beforeEach('use some quota', async () => {
+        const task = await deploy('TaskMock', [smartVault.address])
+
+        await authorizer.connect(smartVaultOwner).authorize(task.address, smartVault.address, '0xaabbccdd', [])
+        await relayer.deposit(ZERO_ADDRESS, fp(1.5), { value: fp(1.5) })
+
+        const data = task.interface.encodeFunctionData('succeed')
+        const tx = await relayer.connect(executor).execute([task.address], [data], false)
+        await tx.wait()
+      })
+
+      const itDepositsBalanceProperly = () => {
+        it('has no balance', async () => {
+          expect(await relayer.getSmartVaultBalance(smartVault.address)).to.be.equal(0)
+        })
+
+        it('deposits the amount correctly', async () => {
+          const previousSmartVaultBalance = fp(0)
+
+          await relayer.deposit(smartVault.address, amount, { value: amount })
+
+          const currentSmartVaultBalance = await relayer.getSmartVaultBalance(smartVault.address)
+          expect(currentSmartVaultBalance).to.be.equal(previousSmartVaultBalance.add(expectedDepositAmount))
+        })
+
+        it('increments the relayer balance properly', async () => {
+          const previousRelayerBalance = await ethers.provider.getBalance(relayer.address)
+
+          await relayer.deposit(smartVault.address, amount, { value: amount })
+
+          const currentRelayerBalance = await ethers.provider.getBalance(relayer.address)
+          expect(currentRelayerBalance).to.be.equal(previousRelayerBalance.add(expectedDepositAmount))
+        })
+
+        it('pays the corresponding quota to the fee collector', async () => {
+          const collector = await relayer.getApplicableCollector(smartVault.address)
+          const previousCollectorBalance = await ethers.provider.getBalance(collector)
+
+          await relayer.deposit(smartVault.address, amount, { value: amount })
+
+          const currentCollectorBalance = await ethers.provider.getBalance(collector)
+          expect(currentCollectorBalance).to.be.equal(previousCollectorBalance.add(expectedPaidQuota))
+        })
+
+        it('emits an event', async () => {
+          const tx = await relayer.deposit(smartVault.address, amount, { value: amount })
+
+          await assertEvent(tx, 'Deposited', { smartVault, amount: expectedDepositAmount })
+        })
+
+        it('decrements the used quota properly', async () => {
+          await relayer.deposit(smartVault.address, amount, { value: amount })
+
+          const currentUsedQuota = await relayer.getSmartVaultUsedQuota(smartVault.address)
+          expect(currentUsedQuota).to.be.equal(expectedCurrentQuota)
+        })
+
+        it('emits an event', async () => {
+          const tx = await relayer.deposit(smartVault.address, amount, { value: amount })
+
+          await assertEvent(tx, 'QuotaPaid', { smartVault, amount: expectedPaidQuota })
+        })
+      }
+
+      context('when the used quota is lower than the amount', () => {
+        beforeEach('set data', async () => {
+          const usedQuota = await relayer.getSmartVaultUsedQuota(smartVault.address)
+          amount = usedQuota.mul(2)
+
+          expectedDepositAmount = amount.sub(usedQuota)
+          expectedCurrentQuota = fp(0)
+          expectedPaidQuota = usedQuota
+        })
+
+        itDepositsBalanceProperly()
+      })
+
+      context('when the used quota is greater than or equal to the amount', () => {
+        beforeEach('set data', async () => {
+          const usedQuota = await relayer.getSmartVaultUsedQuota(smartVault.address)
+          amount = usedQuota.div(2)
+
+          expectedDepositAmount = fp(0)
+          expectedCurrentQuota = usedQuota.sub(amount)
+          expectedPaidQuota = amount
+        })
+
+        itDepositsBalanceProperly()
       })
     })
   })
@@ -968,6 +973,7 @@ describe('Relayer', () => {
 
           context('when the amount is zero', () => {
             const amount = 0
+
             it('reverts', async () => {
               await expect(relayer.rescueFunds(token.address, recipient.address, amount)).to.be.revertedWith(
                 'RelayerAmountZero'
@@ -977,9 +983,10 @@ describe('Relayer', () => {
         })
 
         context('when the recipient is the zero address', () => {
-          const recipientAddr = ZERO_ADDRESS
+          const recipientAddress = ZERO_ADDRESS
+
           it('reverts', async () => {
-            await expect(relayer.rescueFunds(token.address, recipientAddr, amount)).to.be.revertedWith(
+            await expect(relayer.rescueFunds(token.address, recipientAddress, amount)).to.be.revertedWith(
               'RelayerRecipientZero'
             )
           })
@@ -987,9 +994,12 @@ describe('Relayer', () => {
       })
 
       context('when the token is the zero address', () => {
-        const tokenAddr = ZERO_ADDRESS
+        const tokenAddress = ZERO_ADDRESS
+
         it('reverts', async () => {
-          await expect(relayer.rescueFunds(tokenAddr, recipient.address, amount)).to.be.revertedWith('RelayerTokenZero')
+          await expect(relayer.rescueFunds(tokenAddress, recipient.address, amount)).to.be.revertedWith(
+            'RelayerTokenZero'
+          )
         })
       })
     })

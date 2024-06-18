@@ -2,12 +2,18 @@
 
 pragma solidity ^0.8.0;
 
+import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
+import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 import '@mimic-fi/v3-smart-vault/contracts/interfaces/ISmartVault.sol';
 import '@mimic-fi/v3-tasks/contracts/interfaces/ITask.sol';
 
 contract Helpers {
-    function balanceOf(address account) external view returns (uint256) {
-        return address(account).balance;
+    function NATIVE_TOKEN() external pure returns (address) {
+        return Denominations.NATIVE_TOKEN;
+    }
+
+    function balanceOf(address token, address account) external view returns (uint256) {
+        return ERC20Helpers.balanceOf(token, account);
     }
 
     function areValidTasks(address[] memory tasks) external view returns (bool) {

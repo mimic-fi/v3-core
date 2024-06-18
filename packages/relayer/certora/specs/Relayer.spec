@@ -9,7 +9,8 @@ using Depositor as Depositor;
 
 methods {
     // Helpers
-    function helpers.balanceOf(address) external returns (uint256) envfree;
+    function helpers.NATIVE_TOKEN() external returns (address) envfree => ALWAYS(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
+    function helpers.balanceOf(address,address) external returns (uint256) envfree;
     function helpers.areValidTasks(address[]) external returns (bool) envfree;
 
     // Relayer
@@ -20,11 +21,13 @@ methods {
     function getSmartVaultCollector(address) external returns (address) envfree;
     function getSmartVaultMaxQuota(address) external returns (uint256) envfree;
     function getSmartVaultUsedQuota(address) external returns (uint256) envfree;
+    function getApplicableCollector(address) external returns (address) envfree;
     function payTransactionGasToRelayer(address,uint256) external envfree;
 
     // Wildcard entries
     function _.smartVault() external => PER_CALLEE_CONSTANT;
     function _.hasPermissions(address) external => PER_CALLEE_CONSTANT;
+    function _.balanceOf(address) external => DISPATCHER(true);
 }
 
 
@@ -96,7 +99,7 @@ hook Sstore currentContract.getSmartVaultBalance[KEY address smartVault] uint256
 /************************************************************/
 
 invariant contractBalanceIsSumOfBalances()
-    ghostSumOfSmartVaultBalances <= helpers.balanceOf(currentContract)
+    ghostSumOfSmartVaultBalances <= helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract)
     filtered { f -> f.selector != SIMULATE() }
     { preserved with (env e) { require e.msg.sender != currentContract; } }
 
@@ -265,20 +268,30 @@ rule depositValidAmount(env e, address smartVault, uint256 amount)
 }
 
 rule depositProperBalances(env e, address smartVault, uint256 amount)
-    good_description "After calling `deposit` the smart vault balance is increased at most by `amount`"
+    good_description "After calling `deposit` smart vault, relayer and collector balances are increased properly"
 {
     require e.msg.sender != currentContract;
 
+    address collector = getApplicableCollector(smartVault);
+    require collector != e.msg.sender;
+    require collector != currentContract;
+
     uint256 initialSmartVaultBalance = getSmartVaultBalance(smartVault);
-    uint256 initialRelayerBalance = helpers.balanceOf(currentContract);
+    uint256 initialRelayerBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
+    uint256 initCollectorBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), collector);
+    uint256 initialUsedQuota = getSmartVaultUsedQuota(smartVault);
 
     deposit(e, smartVault, amount);
 
     uint256 currentSmartVaultBalance = getSmartVaultBalance(smartVault);
-    uint256 currentRelayerBalance = helpers.balanceOf(currentContract);
+    uint256 currentRelayerBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
+    uint256 currentCollectorBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), collector);
+    uint256 currentUsedQuota = getSmartVaultUsedQuota(smartVault);
+    mathint quotaPaid = initialUsedQuota - currentUsedQuota;
 
-    assert to_mathint(currentSmartVaultBalance) <= initialSmartVaultBalance + amount;
-    assert to_mathint(currentRelayerBalance) == initialRelayerBalance + amount;
+    assert to_mathint(currentSmartVaultBalance) == initialSmartVaultBalance + amount - quotaPaid;
+    assert to_mathint(currentRelayerBalance) == initialRelayerBalance + amount - quotaPaid;
+    assert to_mathint(currentCollectorBalance) == initCollectorBalance + quotaPaid;
 }
 
 rule payQuotaProperBalances(env e, address smartVault, uint256 amount)
@@ -306,12 +319,12 @@ rule withdrawProperBalances(env e, uint256 amount)
     good_description "After calling `withdraw` the smart vault balance is decreased by `amount`"
 {
     uint256 initialSmartVaultBalance = getSmartVaultBalance(e.msg.sender);
-    uint256 initialRelayerBalance = helpers.balanceOf(currentContract);
+    uint256 initialRelayerBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
 
     withdraw(e, amount);
 
     uint256 currentSmartVaultBalance = getSmartVaultBalance(e.msg.sender);
-    uint256 currentRelayerBalance = helpers.balanceOf(currentContract);
+    uint256 currentRelayerBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
 
     assert to_mathint(currentSmartVaultBalance) == initialSmartVaultBalance - amount;
     assert to_mathint(currentRelayerBalance) == initialRelayerBalance - amount;
@@ -326,10 +339,10 @@ rule withdrawIntegrity(env e, uint256 amount)
     uint256 smartVaultBalance = getSmartVaultBalance(e.msg.sender);
     require amount <= smartVaultBalance;
 
-    uint256 relayerBalance = helpers.balanceOf(currentContract);
+    uint256 relayerBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), currentContract);
     require relayerBalance >= amount;
 
-    uint256 senderBalance = helpers.balanceOf(e.msg.sender);
+    uint256 senderBalance = helpers.balanceOf(helpers.NATIVE_TOKEN(), e.msg.sender);
     require senderBalance + amount <= MAX_UINT256();
 
     withdraw@withrevert(e, amount);
@@ -411,4 +424,17 @@ rule simulateAlwaysReverts(env e, address[] tasks, bytes[] data, bool continueIf
     simulate@withrevert(e, tasks, data, continueIfFailed);
 
     assert lastReverted;
+}
+
+rule notLockedFunds(env e, method f, calldataarg args, address token)
+    filtered { f -> f.selector == EXECUTE() || f.selector == DEPOSIT() || f.selector == WITHDRAW() } 
+    good_description "There is always a way to withdraw tokens from the contract"
+{
+    uint256 initialBalance = helpers.balanceOf(token, currentContract);
+    require initialBalance > 0;
+
+    f(e, args);
+
+    uint256 currentBalance = helpers.balanceOf(token, currentContract);
+    satisfy currentBalance == 0;
 }
