@@ -52,4 +52,4 @@ jobs:
       - name: Build
         run: yarn build
       - name: Test mainnet
-        run: yarn workspace @mimic-fi/v3-connectors test:mainnet
+        run: yarn workspace @mimic-fi/v3-tasks test:mainnet
