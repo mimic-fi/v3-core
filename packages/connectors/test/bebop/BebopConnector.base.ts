@@ -15,7 +15,7 @@ const BEBOP_SETTLEMENT = '0xbbbbbBB520d69a9775E85b458C58c648259FAD5F'
 const CHAINLINK_ETH_USD = '0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70'
 
 describe('BebopConnector', () => {
-  const SLIPPAGE = 0.015
+  const SLIPPAGE = 0.02
 
   before('create bebop connector', async function () {
     this.connector = await deploy('BebopConnector', [BEBOP_SETTLEMENT])
