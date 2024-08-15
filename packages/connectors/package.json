@@ -24,7 +24,7 @@
     "test:bsc": "yarn test --fork bsc --block-number 27925272 --chain-id 56",
     "test:fantom": "yarn test --fork fantom --block-number 61485606 --chain-id 250",
     "test:zkevm": "yarn test --fork zkevm --block-number 9014946 --chain-id 1101",
-    "test:base": "yarn test --fork base --block-number 18341138 --chain-id 8453",
+    "test:base": "yarn test --fork base --block-number 18341220 --chain-id 8453",
     "prepare": "yarn build"
   },
   "dependencies": {
