@@ -1,6 +1,6 @@
 {
   "name": "@mimic-fi/v3-tasks",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "license": "GPL-3.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
