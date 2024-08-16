@@ -33,7 +33,7 @@ describe('BalancerV2LinearSwapper', function () {
 
   before('deploy connector', async () => {
     connector = await deploy(
-      '@mimic-fi/v3-connectors/artifacts/contracts/swap/balancer/BalancerV2SwapConnector.sol/BalancerV2SwapConnector',
+      '@mimic-fi/v3-connectors/artifacts/contracts/balancer/BalancerV2SwapConnector.sol/BalancerV2SwapConnector',
       [BALANCER_VAULT]
     )
     const overrideConnectorCheckRole = smartVault.interface.getSighash('overrideConnectorCheck')
