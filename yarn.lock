@@ -953,15 +953,6 @@
     "@mimic-fi/v3-helpers" "0.1.0"
     "@openzeppelin/contracts" "4.7.0"
 
-"@mimic-fi/v3-connectors@0.2.3":
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-connectors/-/v3-connectors-0.2.3.tgz#ab6d1e7fd07d1f7cc2b854a62fb4b50c5ccc5f24"
-  integrity sha512-TYvvntax4g3q86OPX+kzsX7bSShgOiWArgwnLRIwHRhOzB8tWUpxJudC4dhE1pNC8GPSyC1Kr3p4DVqW7JHi2A==
-  dependencies:
-    "@mimic-fi/erc4626-adapter" "0.0.1-rc.0"
-    "@mimic-fi/v3-helpers" "0.1.9"
-    "@openzeppelin/contracts" "4.9.3"
-
 "@mimic-fi/v3-helpers@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@mimic-fi/v3-helpers/-/v3-helpers-0.1.0.tgz#e64ace8cf1d5893ec351301c4b3538e96993dd4d"
