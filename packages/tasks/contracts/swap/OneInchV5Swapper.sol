@@ -69,8 +69,8 @@ contract OneInchV5Swapper is IOneInchV5Swapper, BaseSwapTask {
      */
     function call(address tokenIn, uint256 amountIn, uint256 slippage, bytes memory data)
         external
-        override
         virtual
+        override
         authP(authParams(tokenIn, amountIn, slippage))
     {
         if (amountIn == 0) amountIn = getTaskAmount(tokenIn);
