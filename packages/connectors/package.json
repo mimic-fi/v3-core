@@ -21,7 +21,7 @@
     "test:arbitrum": "yarn test --fork arbitrum --block-number 212259071 --chain-id 42161",
     "test:gnosis": "yarn test --fork gnosis --block-number 28580764 --chain-id 100",
     "test:avalanche": "yarn test --fork avalanche --block-number 31333905 --chain-id 43114",
-    "test:bsc": "yarn test --fork bsc --block-number 41410900 --chain-id 56",
+    "test:bsc": "yarn test --fork bsc --block-number 42144988 --chain-id 56",
     "test:fantom": "yarn test --fork fantom --block-number 61485606 --chain-id 250",
     "test:zkevm": "yarn test --fork zkevm --block-number 9014946 --chain-id 1101",
     "test:base": "yarn test --fork base --block-number 18341220 --chain-id 8453",
