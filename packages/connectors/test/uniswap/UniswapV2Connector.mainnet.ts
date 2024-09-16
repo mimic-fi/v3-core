@@ -1,4 +1,4 @@
-import { deploy } from '@mimic-fi/v3-helpers'
+import { deploy } from '@mimic-fi/helpers'
 
 import { itBehavesLikeUniswapV2Connector } from './UniswapV2Connector.behavior'
 

@@ -1,4 +1,4 @@
-import { deploy, fp, toUSDC } from '@mimic-fi/v3-helpers'
+import { deploy, fp, toUSDC } from '@mimic-fi/helpers'
 
 import {
   itBehavesLikeSymbiosisConnectorBridgingUSDC,

@@ -2,13 +2,12 @@ import {
   assertEvent,
   assertIndirectEvent,
   deploy,
-  deployFeedMock,
   deployProxy,
   deployTokenMock,
   fp,
   getSigners,
   ZERO_ADDRESS,
-} from '@mimic-fi/v3-helpers'
+} from '@mimic-fi/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
@@ -197,7 +196,7 @@ describe('UnwrapperRelayerFunder', () => {
         })
 
         beforeEach('set price feed', async () => {
-          const feed = await deployFeedMock(fp(1), 18)
+          const feed = await deploy('FeedMock', [fp(1), 18])
           const setFeedRole = priceOracle.interface.getSighash('setFeed')
           await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
           await priceOracle.connect(owner).setFeed(mimic.wrappedNativeToken.address, token.address, feed.address)

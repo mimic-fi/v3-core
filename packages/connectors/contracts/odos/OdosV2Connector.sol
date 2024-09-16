@@ -18,7 +18,7 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
 
-import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
+import '@mimic-fi/helpers/contracts/utils/ERC20Helpers.sol';
 
 import '../interfaces/odos/IOdosV2Connector.sol';
 

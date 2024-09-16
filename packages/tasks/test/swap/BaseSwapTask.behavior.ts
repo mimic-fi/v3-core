@@ -1,4 +1,4 @@
-import { assertEvent, deployTokenMock, fp, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { assertEvent, deployTokenMock, fp, ZERO_ADDRESS } from '@mimic-fi/helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'

@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.0;
 
-import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
+import '@mimic-fi/helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-connectors/contracts/interfaces/curve/ICurve2CrvConnector.sol';
 
 import './BaseCurveTask.sol';

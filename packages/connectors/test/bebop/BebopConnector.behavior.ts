@@ -1,4 +1,4 @@
-import { deployProxy, fp, impersonate, instanceAt, pct, toUSDC, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { deployProxy, fp, impersonate, instanceAt, pct, toUSDC, ZERO_ADDRESS } from '@mimic-fi/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'

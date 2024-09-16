@@ -1,4 +1,4 @@
-import { assertEvent, deployFeedMock, deployTokenMock, fp, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { assertEvent, deploy, deployTokenMock, fp, ZERO_ADDRESS } from '@mimic-fi/helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
@@ -71,7 +71,7 @@ export function itBehavesLikeBaseRelayerFundTask(executionType: string): void {
       })
 
       beforeEach('set price feed', async function () {
-        const feed = await deployFeedMock(fp(thresholdNativeRate), 18)
+        const feed = await deploy('FeedMock', [fp(thresholdNativeRate), 18])
         const setFeedRole = this.priceOracle.interface.getSighash('setFeed')
         await this.authorizer
           .connect(this.owner)
@@ -133,7 +133,7 @@ export function itBehavesLikeBaseRelayerFundTask(executionType: string): void {
       })
 
       beforeEach('set price feed', async function () {
-        const feed = await deployFeedMock(fp(fundingThresholdRate), 18)
+        const feed = await deploy('FeedMock', [fp(fundingThresholdRate), 18])
         const setFeedRole = this.priceOracle.interface.getSighash('setFeed')
         await this.authorizer
           .connect(this.owner)

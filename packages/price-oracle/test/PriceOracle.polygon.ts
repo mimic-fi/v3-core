@@ -1,4 +1,4 @@
-import { assertAlmostEqual, deployProxy, fp, getSigner } from '@mimic-fi/v3-helpers'
+import { assertAlmostEqual, deployProxy, fp, getSigner } from '@mimic-fi/helpers'
 import { BigNumber, Contract } from 'ethers'
 
 /* eslint-disable no-secrets/no-secrets */

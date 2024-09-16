@@ -11,7 +11,7 @@ import {
   NATIVE_TOKEN_ADDRESS,
   pct,
   ZERO_ADDRESS,
-} from '@mimic-fi/v3-helpers'
+} from '@mimic-fi/helpers'
 import { deployEnvironment } from '@mimic-fi/v3-tasks'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
@@ -940,9 +940,8 @@ describe('Relayer', () => {
 
               context('when the relayer does not have enough balance', async () => {
                 it('reverts', async () => {
-                  await expect(relayer.rescueFunds(token.address, recipient.address, amount)).to.be.revertedWith(
-                    'ERC20: transfer amount exceeds balance'
-                  )
+                  // TODO: Hardhat does not decode smart vault error properly
+                  await expect(relayer.rescueFunds(token.address, recipient.address, amount)).to.be.reverted
                 })
               })
             })

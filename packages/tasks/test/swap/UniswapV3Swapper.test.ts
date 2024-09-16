@@ -1,17 +1,16 @@
-import { OP } from '@mimic-fi/v3-authorizer'
 import {
   assertIndirectEvent,
   assertNoEvent,
   BigNumberish,
   deploy,
-  deployFeedMock,
   deployProxy,
   deployTokenMock,
   fp,
   getSigners,
   MAX_UINT256,
   ZERO_ADDRESS,
-} from '@mimic-fi/v3-helpers'
+} from '@mimic-fi/helpers'
+import { OP } from '@mimic-fi/v3-authorizer'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract, ContractTransaction } from 'ethers'
@@ -317,7 +316,7 @@ describe('UniswapV3Swapper', () => {
               context('when no off-chain oracle is given', () => {
                 context('when an on-chain oracle is given', () => {
                   beforeEach('set price feed', async () => {
-                    const feed = await deployFeedMock(fp(tokenRate), 18)
+                    const feed = await deploy('FeedMock', [fp(tokenRate), 18])
                     const setFeedRole = priceOracle.interface.getSighash('setFeed')
                     await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
                     await priceOracle.connect(owner).setFeed(tokenIn.address, tokenOut.address, feed.address)

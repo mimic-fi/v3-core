@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.0;
 
-import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
+import '@mimic-fi/helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-relayer/contracts/interfaces/IRelayer.sol';
 
 import '../Task.sol';

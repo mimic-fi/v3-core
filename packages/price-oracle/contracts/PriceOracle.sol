@@ -22,9 +22,9 @@ import '@openzeppelin/contracts/utils/math/SafeCast.sol';
 import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
 import '@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol';
 
+import '@mimic-fi/helpers/contracts/math/FixedPoint.sol';
+import '@mimic-fi/helpers/contracts/utils/BytesHelpers.sol';
 import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
-import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-helpers/contracts/utils/BytesHelpers.sol';
 
 import './interfaces/IPriceOracle.sol';
 

@@ -1,4 +1,4 @@
-import { deploy } from '@mimic-fi/v3-helpers'
+import { deploy } from '@mimic-fi/helpers'
 
 import { itBehavesLikeHopERC20Connector } from './HopL2ERC20Connector.behavior'
 import { itBehavesLikeHopNativeConnector } from './HopL2NativeConnector.behavior'

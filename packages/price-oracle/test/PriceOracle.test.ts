@@ -5,14 +5,14 @@ import {
   bn,
   currentTimestamp,
   DAY,
-  deployFeedMock,
+  deploy,
   deployProxy,
   deployTokenMock,
   fp,
   getSigner,
   getSigners,
   ZERO_ADDRESS,
-} from '@mimic-fi/v3-helpers'
+} from '@mimic-fi/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { BigNumber, Contract, ethers } from 'ethers'
@@ -223,7 +223,7 @@ describe('PriceOracle', () => {
         })
 
         beforeEach('set feed', async () => {
-          const feed = await deployFeedMock(reportedPrice, feedDecimals)
+          const feed = await deploy('FeedMock', [reportedPrice, feedDecimals])
           await priceOracle.setFeed(base.address, quote.address, feed.address)
         })
 
@@ -506,7 +506,7 @@ describe('PriceOracle', () => {
         })
 
         beforeEach('set inverse feed', async () => {
-          const feed = await deployFeedMock(reportedInversePrice, feedDecimals)
+          const feed = await deploy('FeedMock', [reportedInversePrice, feedDecimals])
           await priceOracle.setFeed(quote.address, base.address, feed.address)
         })
 
@@ -808,10 +808,10 @@ describe('PriceOracle', () => {
         })
 
         beforeEach('set feed', async () => {
-          const baseFeed = await deployFeedMock(reportedBasePrice, baseFeedDecimals)
+          const baseFeed = await deploy('FeedMock', [reportedBasePrice, baseFeedDecimals])
           await priceOracle.setFeed(base.address, PIVOT, baseFeed.address)
 
-          const quoteFeed = await deployFeedMock(reportedQuotePrice, quoteFeedDecimals)
+          const quoteFeed = await deploy('FeedMock', [reportedQuotePrice, quoteFeedDecimals])
           await priceOracle.setFeed(quote.address, PIVOT, quoteFeed.address)
         })
 
@@ -1564,7 +1564,7 @@ describe('PriceOracle', () => {
     beforeEach('deploy base and quote', async () => {
       base = await deployTokenMock('BASE', 18)
       quote = await deployTokenMock('QUOTE', 18)
-      feed = await deployFeedMock(SMART_VAULT_ORACLE_PRICE, 18)
+      feed = await deploy('FeedMock', [SMART_VAULT_ORACLE_PRICE, 18])
     })
 
     const setUpSmartVaultOracleFeed = () => {

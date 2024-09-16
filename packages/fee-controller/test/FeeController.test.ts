@@ -1,4 +1,4 @@
-import { assertEvent, assertNoEvent, BigNumberish, deploy, fp, getSigners, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { assertEvent, assertNoEvent, BigNumberish, deploy, fp, getSigners, ZERO_ADDRESS } from '@mimic-fi/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'

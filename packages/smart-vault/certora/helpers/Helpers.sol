@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
+import '@mimic-fi/helpers/contracts/utils/Denominations.sol';
+import '@mimic-fi/helpers/contracts/utils/ERC20Helpers.sol';
 import '@mimic-fi/v3-authorizer/contracts/interfaces/IAuthorizer.sol';
-import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
-import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
 
 contract Helpers {
     function NATIVE_TOKEN() external pure returns (address) {

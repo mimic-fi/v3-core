@@ -14,7 +14,7 @@
 
 pragma solidity ^0.8.0;
 
-import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
+import '@mimic-fi/helpers/contracts/utils/Denominations.sol';
 
 import '../Task.sol';
 import '../interfaces/primitives/IWrapper.sol';

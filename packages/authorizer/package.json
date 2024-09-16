@@ -23,7 +23,7 @@
     "prove:ci": "yarn prove --solc solc8.17"
   },
   "dependencies": {
-    "@mimic-fi/v3-helpers": "0.1.0",
+    "@mimic-fi/helpers": "1.0.0",
     "@openzeppelin/contracts": "4.9.3"
   },
   "devDependencies": {

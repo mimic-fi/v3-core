@@ -16,7 +16,7 @@ pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/access/Ownable.sol';
 
-import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
+import '@mimic-fi/helpers/contracts/math/FixedPoint.sol';
 
 import './interfaces/IFeeController.sol';
 

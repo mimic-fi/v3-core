@@ -1,4 +1,4 @@
-import { currentBlockNumber } from '@mimic-fi/v3-helpers'
+import { currentBlockNumber } from '@mimic-fi/helpers'
 import { BigNumber, Contract } from 'ethers'
 import fs from 'fs'
 import hre from 'hardhat'
