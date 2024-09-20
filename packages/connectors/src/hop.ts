@@ -1,4 +1,4 @@
-import { bn } from '@mimic-fi/v3-helpers'
+import { bn } from '@mimic-fi/helpers'
 import axios, { AxiosError } from 'axios'
 import { BigNumber, Contract } from 'ethers'
 

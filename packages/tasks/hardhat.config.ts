@@ -1,6 +1,6 @@
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
-import '@mimic-fi/v3-helpers/dist/tests'
+import '@mimic-fi/helpers/dist/tests'
 import 'hardhat-local-networks-config-plugin'
 import 'hardhat-gas-reporter'
 

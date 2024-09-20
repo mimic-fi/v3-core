@@ -17,7 +17,7 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/utils/Strings.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
-import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
+import '@mimic-fi/helpers/contracts/utils/ERC20Helpers.sol';
 
 import '../interfaces/axelar/IAxelarGateway.sol';
 import '../interfaces/axelar/IAxelarConnector.sol';

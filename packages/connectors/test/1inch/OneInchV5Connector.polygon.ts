@@ -1,4 +1,4 @@
-import { deploy } from '@mimic-fi/v3-helpers'
+import { deploy } from '@mimic-fi/helpers'
 
 import { itBehavesLikeOneInchV5Connector } from './OneInchV5Connector.behavior'
 

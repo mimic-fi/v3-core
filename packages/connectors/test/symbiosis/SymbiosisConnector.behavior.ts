@@ -1,4 +1,4 @@
-import { fp, impersonate, instanceAt } from '@mimic-fi/v3-helpers'
+import { fp, impersonate, instanceAt } from '@mimic-fi/helpers'
 import { expect } from 'chai'
 import { BigNumber } from 'ethers'
 

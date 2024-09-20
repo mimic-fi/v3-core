@@ -1,7 +1,0 @@
-/* eslint-disable no-secrets/no-secrets */
-
-export const FTM_USD = '0xf4766552D15AE4d256Ad41B6cf2933482B0680dc'
-export const ETH_USD = '0x11DdD3d147E5b83D01cee7070027092397d63658'
-export const DAI_USD = '0x91d5DEFAFfE2854C7D02F50c80FA1fdc8A721e52'
-export const USDC_USD = '0x2553f4eeb82d5A26427b8d1106C51499CBa5D99c'
-export const USDT_USD = '0xF64b636c5dFe1d3555A847341cDC449f612307d0'

@@ -1,10 +1,12 @@
-import { BigNumberish, deploy, fp, impersonate, instanceAt, tokens, toUSDC, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { BigNumberish, deploy, fp, impersonate, instanceAt, toUSDC, ZERO_ADDRESS } from '@mimic-fi/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 
 /* eslint-disable no-secrets/no-secrets */
 
+const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
 const BALANCER_VAULT = '0xBA12222222228d8Ba445958a75a0704d566BF2C8'
 
 describe('BalancerV2PoolConnector', function () {
@@ -148,13 +150,13 @@ describe('BalancerV2PoolConnector', function () {
     const POOL_ID = '0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014' // BAL-WETH 80/20
     const WHALE = '0xf584f8728b874a6a5c7a8d4d387c9aae9172d621'
 
-    itHandlesPoolsLiquidityProperly(POOL_ID, tokens.mainnet.WETH, fp(5), WHALE)
+    itHandlesPoolsLiquidityProperly(POOL_ID, WETH, fp(5), WHALE)
   })
 
   context('stable pool', () => {
     const POOL_ID = '0x06df3b2bbb68adc8b0e302443692037ed9f91b42000000000000000000000063' // staBAL3
     const WHALE = '0xf584f8728b874a6a5c7a8d4d387c9aae9172d621'
 
-    itHandlesPoolsLiquidityProperly(POOL_ID, tokens.mainnet.USDC, toUSDC(500), WHALE)
+    itHandlesPoolsLiquidityProperly(POOL_ID, USDC, toUSDC(500), WHALE)
   })
 })

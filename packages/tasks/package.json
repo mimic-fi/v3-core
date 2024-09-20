@@ -22,9 +22,9 @@
     "prepare": "yarn build"
   },
   "dependencies": {
+    "@mimic-fi/helpers": "1.0.0",
     "@mimic-fi/v3-authorizer": "0.1.1",
     "@mimic-fi/v3-connectors": "0.2.4",
-    "@mimic-fi/v3-helpers": "0.1.9",
     "@mimic-fi/v3-price-oracle": "0.1.0",
     "@mimic-fi/v3-smart-vault": "0.1.0",
     "@openzeppelin/contracts": "4.9.3",

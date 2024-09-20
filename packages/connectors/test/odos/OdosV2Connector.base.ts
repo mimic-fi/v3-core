@@ -1,4 +1,4 @@
-import { deploy } from '@mimic-fi/v3-helpers'
+import { deploy } from '@mimic-fi/helpers'
 
 import { itBehavesLikeOdosV2Connector } from './OdosV2Connector.behavior'
 

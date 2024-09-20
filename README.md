@@ -33,7 +33,6 @@ This monorepo holds the key components of the Mimic protocol:
 - [Connectors](./packages/connectors)
 - [Deployer](./packages/deployer)
 - [Fee controller](./packages/fee-controller)
-- [Helpers](./packages/helpers)
 - [Price oracle](./packages/price-oracle)
 - [Registry](./packages/registry)
 - [Relayer](./packages/relayer)

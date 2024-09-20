@@ -1,6 +1,0 @@
-/* eslint-disable no-secrets/no-secrets */
-
-export const ETH_AMM = '0xc315239cFb05F1E130E7E28E603CEa4C014c57f0'
-export const DAI_AMM = '0x28529fec439cfF6d7D1D5917e956dEE62Cd3BE5c'
-export const USDC_AMM = '0x76b22b8C1079A44F1211D867D68b1eda76a635A7'
-export const USDT_AMM = '0x8741Ba6225A6BF91f9D73531A98A89807857a2B3'

@@ -6,7 +6,7 @@ import {
   ONES_ADDRESS,
   ZERO_ADDRESS,
   ZERO_BYTES32,
-} from '@mimic-fi/v3-helpers'
+} from '@mimic-fi/helpers'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'

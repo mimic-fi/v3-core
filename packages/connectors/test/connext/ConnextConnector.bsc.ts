@@ -1,4 +1,4 @@
-import { deploy, toUSDC } from '@mimic-fi/v3-helpers'
+import { deploy, toUSDC } from '@mimic-fi/helpers'
 
 import { itBehavesLikeConnextConnector } from './ConnextConnector.behavior'
 

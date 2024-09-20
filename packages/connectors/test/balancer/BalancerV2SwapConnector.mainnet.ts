@@ -1,4 +1,4 @@
-import { deploy, deployProxy, ZERO_ADDRESS } from '@mimic-fi/v3-helpers'
+import { deploy, deployProxy, ZERO_ADDRESS } from '@mimic-fi/helpers'
 
 import { itBehavesLikeBalancerV2SwapConnector } from './BalancerV2SwapConnector.behavior'
 

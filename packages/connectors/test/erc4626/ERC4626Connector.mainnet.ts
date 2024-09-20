@@ -8,7 +8,7 @@ import {
   MONTH,
   ONES_ADDRESS,
   toUSDC,
-} from '@mimic-fi/v3-helpers'
+} from '@mimic-fi/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'

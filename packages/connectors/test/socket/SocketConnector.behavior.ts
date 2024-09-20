@@ -1,4 +1,4 @@
-import { fp, impersonate, instanceAt } from '@mimic-fi/v3-helpers'
+import { fp, impersonate, instanceAt } from '@mimic-fi/helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'

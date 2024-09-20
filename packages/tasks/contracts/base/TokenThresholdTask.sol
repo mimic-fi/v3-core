@@ -14,8 +14,8 @@
 
 pragma solidity ^0.8.3;
 
+import '@mimic-fi/helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/v3-authorizer/contracts/Authorized.sol';
-import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
 
 import '../interfaces/base/ITokenThresholdTask.sol';
 

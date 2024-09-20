@@ -17,10 +17,10 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol';
 
-import '@mimic-fi/v3-helpers/contracts/math/FixedPoint.sol';
-import '@mimic-fi/v3-helpers/contracts/utils/Denominations.sol';
-import '@mimic-fi/v3-helpers/contracts/utils/ERC20Helpers.sol';
-import '@mimic-fi/v3-helpers/contracts/utils/IWrappedNativeToken.sol';
+import '@mimic-fi/helpers/contracts/math/FixedPoint.sol';
+import '@mimic-fi/helpers/contracts/utils/Denominations.sol';
+import '@mimic-fi/helpers/contracts/utils/ERC20Helpers.sol';
+import '@mimic-fi/helpers/contracts/utils/IWrappedNativeToken.sol';
 
 import '../interfaces/hop/IHopL2Amm.sol';
 import '../interfaces/hop/IHopL1Bridge.sol';

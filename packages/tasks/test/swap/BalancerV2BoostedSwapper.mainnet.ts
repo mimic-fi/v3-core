@@ -1,14 +1,5 @@
+import { deploy, deployProxy, fp, getSigners, impersonate, instanceAt, ZERO_ADDRESS } from '@mimic-fi/helpers'
 import { OP } from '@mimic-fi/v3-authorizer'
-import {
-  deploy,
-  deployFeedMock,
-  deployProxy,
-  fp,
-  getSigners,
-  impersonate,
-  instanceAt,
-  ZERO_ADDRESS,
-} from '@mimic-fi/v3-helpers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
@@ -122,7 +113,7 @@ describe('BalancerV2BoostedSwapper', function () {
               const rate = fp(1)
 
               beforeEach('set price feed', async () => {
-                const feed = await deployFeedMock(rate, 18)
+                const feed = await deploy('FeedMock', [rate, 18])
                 const setFeedRole = priceOracle.interface.getSighash('setFeed')
                 await authorizer.connect(owner).authorize(owner.address, priceOracle.address, setFeedRole, [])
                 await priceOracle.connect(owner).setFeed(pool.address, underlyingToken.address, feed.address)

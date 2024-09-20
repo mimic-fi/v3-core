@@ -937,6 +937,18 @@
     "@mimic-fi/v3-helpers" "0.1.0"
     "@openzeppelin/contracts" "4.9.3"
 
+"@mimic-fi/helpers@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@mimic-fi/helpers/-/helpers-1.0.0.tgz#6d28cb20e20d3a9f72d7014b80dfd5a3627918a9"
+  integrity sha512-t7+MAmXHlsXr13x6L32tjLE0yseh5c8emB3QgP5hnmhwOXy6tKkLPV89UGSATPm9lN61lsZC+HrQKbTXcsb7SA==
+  dependencies:
+    "@nomiclabs/hardhat-ethers" "^2.2.3"
+    "@nomiclabs/hardhat-waffle" "2.0.3"
+    "@openzeppelin/contracts" "5.0.2"
+    decimal.js "~10.4.3"
+    ethers "~5.6.0"
+    hardhat "^2.14.1"
+
 "@mimic-fi/v3-authorizer@0.1.0":
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@mimic-fi/v3-authorizer/-/v3-authorizer-0.1.0.tgz#10fa3b9c5ac7c3ab95d6c77764376a6707703d09"
@@ -957,22 +969,6 @@
   version "0.1.0"
   resolved "https://registry.yarnpkg.com/@mimic-fi/v3-helpers/-/v3-helpers-0.1.0.tgz#e64ace8cf1d5893ec351301c4b3538e96993dd4d"
   integrity sha512-Ro2Y8bKS6M3NTGcS4sV+Be/dXN9ITGHvuUawI0p2f/hmW3bs/KVUsurQZdac9N2CycUw4JJZqt/C8WvRIhXC7A==
-  dependencies:
-    "@nomiclabs/hardhat-ethers" "^2.2.3"
-    "@nomiclabs/hardhat-waffle" "2.0.3"
-    "@types/chai" "^4.3.5"
-    "@types/mocha" "^10.0.1"
-    "@types/sinon-chai" "^3.2.3"
-    chai "^4.3.7"
-    decimal.js "~10.4.3"
-    ethers "~5.6.0"
-    hardhat "^2.14.1"
-    mocha "^6.2.3"
-
-"@mimic-fi/v3-helpers@0.1.9":
-  version "0.1.9"
-  resolved "https://registry.yarnpkg.com/@mimic-fi/v3-helpers/-/v3-helpers-0.1.9.tgz#9de0de2e60c77580b0662780e952f05424a1bdb0"
-  integrity sha512-xJoVAlpQs+iVaL0fh/FZy2iOHRrLNtuE+8yHSCEmPJyokLTe5KbpuxnlyZV0pcZmYyquAWplnKU467QNqk5Z4A==
   dependencies:
     "@nomiclabs/hardhat-ethers" "^2.2.3"
     "@nomiclabs/hardhat-waffle" "2.0.3"
@@ -1260,6 +1256,11 @@
   version "4.9.3"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.9.3.tgz#00d7a8cf35a475b160b3f0293a6403c511099364"
   integrity sha512-He3LieZ1pP2TNt5JbkPA4PNT9WC3gOTOlDcFGJW4Le4QKqwmiNJCRt44APfxMxvq7OugU/cqYuPcSBzOw38DAg==
+
+"@openzeppelin/contracts@5.0.2":
+  version "5.0.2"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-5.0.2.tgz#b1d03075e49290d06570b2fd42154d76c2a5d210"
+  integrity sha512-ytPc6eLGcHHnapAZ9S+5qsdomhjo6QBHTDRRBFfTxXIpsicMhVPouPgmUPebZZZGX7vt9USA+Z+0M0dSVtSUEA==
 
 "@quant-finance/solidity-datetime@2.2.0":
   version "2.2.0"

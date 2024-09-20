@@ -20,9 +20,9 @@
     "prove:ci": "yarn prove --solc solc8.17"
   },
   "dependencies": {
+    "@mimic-fi/helpers": "1.0.0",
     "@mimic-fi/v3-authorizer": "0.1.0",
     "@mimic-fi/v3-fee-controller": "0.1.0",
-    "@mimic-fi/v3-helpers": "0.1.0",
     "@mimic-fi/v3-price-oracle": "0.1.0",
     "@mimic-fi/v3-registry": "0.1.0",
     "@openzeppelin/contracts": "4.9.3",

@@ -9,8 +9,7 @@
     "test": "yarn workspaces run test"
   },
   "workspaces": {
-    "packages": [
-      "packages/helpers",
+    "packages": [ 
       "packages/registry",
       "packages/fee-controller",
       "packages/authorizer",
