@@ -27,6 +27,9 @@ import '../interfaces/bridge/IHopBridger.sol';
 contract HopBridger is IHopBridger, BaseBridgeTask {
     using FixedPoint for uint256;
 
+    // Ethereum mainnet chain ID = 1
+    uint256 private constant MAINNET_CHAIN_ID = 1;
+
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('HOP_BRIDGER');
 
@@ -97,7 +100,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
     }
 
     /**
-     * @dev Sets the max deadline
+     * @dev Sets the max deadline. Only used when bridging to L2.
      * @param newMaxDeadline New max deadline to be set
      */
     function setMaxDeadline(uint256 newMaxDeadline) external override authP(authParams(newMaxDeadline)) {
@@ -128,8 +131,8 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
         if (amount == 0) amount = getTaskAmount(token);
         _beforeHopBridger(token, amount, slippage, fee);
 
-        uint256 amountAfterFees = amount - fee;
-        uint256 minAmountOut = amountAfterFees.mulUp(FixedPoint.ONE - slippage);
+        uint256 destinationChain = getDestinationChain(token);
+        uint256 minAmountOut = (amount - fee).mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
             IHopBridgeConnector.execute.selector,
             getDestinationChain(token),
@@ -138,7 +141,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
             minAmountOut,
             recipient,
             tokenHopEntrypoint[token],
-            block.timestamp + maxDeadline,
+            destinationChain == MAINNET_CHAIN_ID ? 0 : (block.timestamp + maxDeadline),
             relayer,
             fee
         );
@@ -174,7 +177,6 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
      * @dev Sets the max deadline
      */
     function _setMaxDeadline(uint256 _maxDeadline) internal {
-        if (_maxDeadline == 0) revert TaskMaxDeadlineZero();
         maxDeadline = _maxDeadline;
         emit MaxDeadlineSet(_maxDeadline);
     }

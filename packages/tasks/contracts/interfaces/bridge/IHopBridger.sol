@@ -21,11 +21,6 @@ import './IBaseBridgeTask.sol';
  */
 interface IHopBridger is IBaseBridgeTask {
     /**
-     * @dev The max deadline is zero
-     */
-    error TaskMaxDeadlineZero();
-
-    /**
      * @dev The Hop entrypoint is zero
      */
     error TaskMissingHopEntrypoint();
