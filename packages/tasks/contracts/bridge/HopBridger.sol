@@ -27,6 +27,9 @@ import '../interfaces/bridge/IHopBridger.sol';
 contract HopBridger is IHopBridger, BaseBridgeTask {
     using FixedPoint for uint256;
 
+    // Ethereum mainnet chain ID = 1
+    uint256 private constant MAINNET_CHAIN_ID = 1;
+
     // Execution type for relayers
     bytes32 public constant override EXECUTION_TYPE = keccak256('HOP_BRIDGER');
 
@@ -138,7 +141,7 @@ contract HopBridger is IHopBridger, BaseBridgeTask {
             minAmountOut,
             recipient,
             tokenHopEntrypoint[token],
-            destinationChain == 1 ? 0 : (block.timestamp + maxDeadline),
+            destinationChain == MAINNET_CHAIN_ID ? 0 : (block.timestamp + maxDeadline),
             relayer,
             fee
         );
