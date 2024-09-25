@@ -497,13 +497,13 @@ describe('HopBridger', () => {
               })
             }
 
-            context('when the bridging to a L1', () => {
+            context('when bridging to L1', () => {
               const chainId = 1
 
               itExecutesProperlyForChain(chainId)
             })
 
-            context('when the bridging to a L2', () => {
+            context('when bridging to an L2', () => {
               const chainId = 137
 
               itExecutesProperlyForChain(chainId)
