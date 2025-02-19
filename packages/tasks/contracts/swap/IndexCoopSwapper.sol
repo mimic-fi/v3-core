@@ -16,7 +16,7 @@ pragma solidity ^0.8.0;
 
 import '@mimic-fi/helpers/contracts/math/FixedPoint.sol';
 import '@mimic-fi/helpers/contracts/utils/BytesHelpers.sol';
-import '@mimic-fi/v3-connectors/contracts/interfaces/index-coop/IIndexCoopConnector.sol';
+import '@mimic-fi/v3-connectors/contracts/interfaces/indexcoop/IIndexCoopConnector.sol';
 
 import './BaseSwapTask.sol';
 import '../interfaces/swap/IIndexCoopSwapper.sol';

@@ -19,7 +19,7 @@ import '@openzeppelin/contracts/utils/Address.sol';
 
 import '@mimic-fi/helpers/contracts/utils/ERC20Helpers.sol';
 
-import '../interfaces/index-coop/IIndexCoopConnector.sol';
+import '../interfaces/indexcoop/IIndexCoopConnector.sol';
 
 /**
  * @title IndexCoopConnector
