@@ -48,5 +48,12 @@ interface IGenericSwapper is IBaseSwapTask {
     /**
      * @dev Execution function
      */
-    function call(address tokenIn, uint256 amountIn, uint256 slippage, address target, bytes memory data) external;
+    function call(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 slippage,
+        address targetCall,
+        address targetApproval,
+        bytes memory data
+    ) external;
 }

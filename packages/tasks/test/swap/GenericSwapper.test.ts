@@ -207,8 +207,21 @@ describe('GenericSwapper', () => {
                   await task.connect(owner).setDefaultTokenThreshold(tokenOut.address, thresholdAmount, 0)
                 })
 
-                const executeTask = async (amountIn, slippage, target, data): Promise<ContractTransaction> => {
-                  const callTx = await task.populateTransaction.call(tokenIn.address, amountIn, slippage, target, data)
+                const executeTask = async (
+                  amountIn,
+                  slippage,
+                  targetCall,
+                  targetApproval,
+                  data
+                ): Promise<ContractTransaction> => {
+                  const callTx = await task.populateTransaction.call(
+                    tokenIn.address,
+                    amountIn,
+                    slippage,
+                    targetCall,
+                    targetApproval,
+                    data
+                  )
                   const callData = `${callTx.data}${extraCallData}`
                   return owner.sendTransaction({ to: task.address, data: callData })
                 }
@@ -233,24 +246,26 @@ describe('GenericSwapper', () => {
                     })
 
                     context('when the swap target is allowed', () => {
-                      const target = ONES_ADDRESS
+                      const targetCall = ONES_ADDRESS
+                      const targetApproval = ZERO_ADDRESS
 
                       beforeEach('allow target', async () => {
                         const setSwapTargetsRole = task.interface.getSighash('setSwapTargets')
                         await authorizer.connect(owner).authorize(owner.address, task.address, setSwapTargetsRole, [])
-                        await task.connect(owner).setSwapTargets([target], [true])
+                        await task.connect(owner).setSwapTargets([targetCall], [true])
                       })
 
                       const itExecutesTheTaskProperly = (requestedAmount: BigNumberish) => {
                         it('executes the expected connector', async () => {
-                          const tx = await executeTask(requestedAmount, slippage, target, data)
+                          const tx = await executeTask(requestedAmount, slippage, targetCall, targetApproval, data)
 
                           const connectorData = connector.interface.encodeFunctionData('execute', [
-                            target,
                             tokenIn.address,
                             tokenOut.address,
                             amountIn,
                             minAmountOut,
+                            targetCall,
+                            targetApproval,
                             data,
                           ])
 
@@ -260,17 +275,18 @@ describe('GenericSwapper', () => {
                           })
 
                           await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
-                            target,
                             tokenIn,
                             tokenOut,
                             amountIn,
                             minAmountOut,
+                            targetCall,
+                            targetApproval,
                             data,
                           })
                         })
 
                         it('emits an Executed event', async () => {
-                          const tx = await executeTask(requestedAmount, slippage, target, data)
+                          const tx = await executeTask(requestedAmount, slippage, targetCall, targetApproval, data)
 
                           await assertIndirectEvent(tx, task.interface, 'Executed')
                         })
@@ -282,7 +298,7 @@ describe('GenericSwapper', () => {
                         itExecutesTheTaskProperly(requestedAmount)
 
                         it('does not update any balance connectors', async () => {
-                          const tx = await executeTask(requestedAmount, slippage, target, data)
+                          const tx = await executeTask(requestedAmount, slippage, targetCall, targetApproval, data)
 
                           await assertNoEvent(tx, 'BalanceConnectorUpdated')
                         })
@@ -321,7 +337,7 @@ describe('GenericSwapper', () => {
                         itExecutesTheTaskProperly(requestedAmount)
 
                         it('updates the balance connectors properly', async () => {
-                          const tx = await executeTask(requestedAmount, slippage, target, data)
+                          const tx = await executeTask(requestedAmount, slippage, targetCall, targetApproval, data)
 
                           await assertIndirectEvent(tx, smartVault.interface, 'BalanceConnectorUpdated', {
                             id: prevConnectorId,
@@ -350,7 +366,7 @@ describe('GenericSwapper', () => {
                       })
 
                       it('reverts', async () => {
-                        await expect(executeTask(amountIn, slippage, target, '0x')).to.be.revertedWith(
+                        await expect(executeTask(amountIn, slippage, target, ZERO_ADDRESS, '0x')).to.be.revertedWith(
                           'TaskSwapTargetNotAllowed'
                         )
                       })
@@ -361,9 +377,9 @@ describe('GenericSwapper', () => {
                     const slippage = fp(0.01)
 
                     it('reverts', async () => {
-                      await expect(executeTask(amountIn, slippage, ZERO_ADDRESS, '0x')).to.be.revertedWith(
-                        'TaskSlippageAboveMax'
-                      )
+                      await expect(
+                        executeTask(amountIn, slippage, ZERO_ADDRESS, ZERO_ADDRESS, '0x')
+                      ).to.be.revertedWith('TaskSlippageAboveMax')
                     })
                   })
                 })
@@ -376,7 +392,7 @@ describe('GenericSwapper', () => {
                   })
 
                   it('reverts', async () => {
-                    await expect(executeTask(amountIn, 0, ZERO_ADDRESS, '0x')).to.be.revertedWith(
+                    await expect(executeTask(amountIn, 0, ZERO_ADDRESS, ZERO_ADDRESS, '0x')).to.be.revertedWith(
                       'TaskTokenThresholdNotMet'
                     )
                   })
@@ -420,23 +436,32 @@ describe('GenericSwapper', () => {
                       })
 
                       context('when the swap target is allowed', () => {
-                        const target = ONES_ADDRESS
+                        const targetCall = ONES_ADDRESS
+                        const targetApproval = ZERO_ADDRESS
 
                         beforeEach('allow target', async () => {
                           const setSwapTargetsRole = task.interface.getSighash('setSwapTargets')
                           await authorizer.connect(owner).authorize(owner.address, task.address, setSwapTargetsRole, [])
-                          await task.connect(owner).setSwapTargets([target], [true])
+                          await task.connect(owner).setSwapTargets([targetCall], [true])
                         })
 
                         it('executes the expected connector', async () => {
-                          const tx = await task.call(tokenIn.address, amountIn, slippage, target, data)
+                          const tx = await task.call(
+                            tokenIn.address,
+                            amountIn,
+                            slippage,
+                            targetCall,
+                            targetApproval,
+                            data
+                          )
 
                           const connectorData = connector.interface.encodeFunctionData('execute', [
-                            target,
                             tokenIn.address,
                             tokenOut.address,
                             amountIn,
                             minAmountOut,
+                            targetCall,
+                            targetApproval,
                             data,
                           ])
 
@@ -446,35 +471,43 @@ describe('GenericSwapper', () => {
                           })
 
                           await assertIndirectEvent(tx, connector.interface, 'LogExecute', {
-                            target,
                             tokenIn,
                             tokenOut,
                             amountIn,
                             minAmountOut,
+                            targetCall,
+                            targetApproval,
                             data,
                           })
                         })
 
                         it('emits an Executed event', async () => {
-                          const tx = await task.call(tokenIn.address, amountIn, slippage, target, data)
+                          const tx = await task.call(
+                            tokenIn.address,
+                            amountIn,
+                            slippage,
+                            targetCall,
+                            targetApproval,
+                            data
+                          )
 
                           await assertIndirectEvent(tx, task.interface, 'Executed')
                         })
                       })
 
                       context('when the swap target is not allowed', () => {
-                        const target = ONES_ADDRESS
+                        const targetCall = ONES_ADDRESS
 
                         beforeEach('disallow target', async () => {
                           const setSwapTargetsRole = task.interface.getSighash('setSwapTargets')
                           await authorizer.connect(owner).authorize(owner.address, task.address, setSwapTargetsRole, [])
-                          await task.connect(owner).setSwapTargets([target], [false])
+                          await task.connect(owner).setSwapTargets([targetCall], [false])
                         })
 
                         it('reverts', async () => {
-                          await expect(task.call(tokenIn.address, amountIn, slippage, target, data)).to.be.revertedWith(
-                            'TaskSwapTargetNotAllowed'
-                          )
+                          await expect(
+                            task.call(tokenIn.address, amountIn, slippage, targetCall, ZERO_ADDRESS, data)
+                          ).to.be.revertedWith('TaskSwapTargetNotAllowed')
                         })
                       })
                     })
@@ -484,7 +517,7 @@ describe('GenericSwapper', () => {
 
                       it('reverts', async () => {
                         await expect(
-                          task.call(tokenIn.address, amountIn, slippage, ZERO_ADDRESS, '0x')
+                          task.call(tokenIn.address, amountIn, slippage, ZERO_ADDRESS, ZERO_ADDRESS, '0x')
                         ).to.be.revertedWith('TaskSlippageAboveMax')
                       })
                     })
@@ -498,9 +531,9 @@ describe('GenericSwapper', () => {
                     })
 
                     it('reverts', async () => {
-                      await expect(task.call(tokenIn.address, amountIn, 0, ZERO_ADDRESS, '0x')).to.be.revertedWith(
-                        'TaskTokenThresholdNotMet'
-                      )
+                      await expect(
+                        task.call(tokenIn.address, amountIn, 0, ZERO_ADDRESS, ZERO_ADDRESS, '0x')
+                      ).to.be.revertedWith('TaskTokenThresholdNotMet')
                     })
                   })
                 })
@@ -508,7 +541,8 @@ describe('GenericSwapper', () => {
                 context('when no on-chain oracle is given', () => {
                   it('reverts', async () => {
                     // TODO: Hardhat does not decode price oracle error properly
-                    await expect(task.call(tokenIn.address, amountIn, 0, ZERO_ADDRESS, '0x')).to.be.reverted
+                    await expect(task.call(tokenIn.address, amountIn, 0, ZERO_ADDRESS, ZERO_ADDRESS, '0x')).to.be
+                      .reverted
                   })
                 })
               })
@@ -516,9 +550,9 @@ describe('GenericSwapper', () => {
 
             context('when the token out is not set', () => {
               it('reverts', async () => {
-                await expect(task.call(tokenIn.address, amountIn, 0, ZERO_ADDRESS, '0x')).to.be.revertedWith(
-                  'TaskTokenOutNotSet'
-                )
+                await expect(
+                  task.call(tokenIn.address, amountIn, 0, ZERO_ADDRESS, ZERO_ADDRESS, '0x')
+                ).to.be.revertedWith('TaskTokenOutNotSet')
               })
             })
           })
@@ -531,7 +565,7 @@ describe('GenericSwapper', () => {
             })
 
             it('reverts', async () => {
-              await expect(task.call(tokenIn.address, 0, 0, ZERO_ADDRESS, '0x')).to.be.revertedWith(
+              await expect(task.call(tokenIn.address, 0, 0, ZERO_ADDRESS, ZERO_ADDRESS, '0x')).to.be.revertedWith(
                 'TaskTokenNotAllowed'
               )
             })
@@ -542,7 +576,7 @@ describe('GenericSwapper', () => {
           const amountIn = 0
 
           it('reverts', async () => {
-            await expect(task.call(tokenIn.address, amountIn, 0, ZERO_ADDRESS, '0x')).to.be.revertedWith(
+            await expect(task.call(tokenIn.address, amountIn, 0, ZERO_ADDRESS, ZERO_ADDRESS, '0x')).to.be.revertedWith(
               'TaskAmountZero'
             )
           })
@@ -553,14 +587,16 @@ describe('GenericSwapper', () => {
         const tokenIn = ZERO_ADDRESS
 
         it('reverts', async () => {
-          await expect(task.call(tokenIn, 0, 0, ZERO_ADDRESS, '0x')).to.be.revertedWith('TaskTokenZero')
+          await expect(task.call(tokenIn, 0, 0, ZERO_ADDRESS, ZERO_ADDRESS, '0x')).to.be.revertedWith('TaskTokenZero')
         })
       })
     })
 
     context('when the sender is not authorized', () => {
       it('reverts', async () => {
-        await expect(task.call(ZERO_ADDRESS, 0, 0, ZERO_ADDRESS, '0x')).to.be.revertedWith('AuthSenderNotAllowed')
+        await expect(task.call(ZERO_ADDRESS, 0, 0, ZERO_ADDRESS, ZERO_ADDRESS, '0x')).to.be.revertedWith(
+          'AuthSenderNotAllowed'
+        )
       })
     })
   })

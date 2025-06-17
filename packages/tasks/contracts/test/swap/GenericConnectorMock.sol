@@ -16,23 +16,25 @@ pragma solidity ^0.8.0;
 
 contract GenericSwapConnectorMock {
     event LogExecute(
-        address target,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
         uint256 minAmountOut,
+        address targetCall,
+        address targetApproval,
         bytes data
     );
 
     function execute(
-        address target,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
         uint256 minAmountOut,
+        address targetCall,
+        address targetApproval,
         bytes memory data
-    ) external returns (uint256) {
-        emit LogExecute(target, tokenIn, tokenOut, amountIn, minAmountOut, data);
+    ) external returns (uint256 amountOut) {
+        emit LogExecute(tokenIn, tokenOut, amountIn, minAmountOut, targetCall, targetApproval, data);
         return minAmountOut;
     }
 }

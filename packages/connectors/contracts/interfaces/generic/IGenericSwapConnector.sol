@@ -35,19 +35,21 @@ interface IGenericSwapConnector {
 
     /**
      * @dev Executes a token swap with an arbitrary swapper contract
-     * @param target Target contract to execute the swap
      * @param tokenIn Token being sent
      * @param tokenOut Token being received
      * @param amountIn Amount of tokenIn being swapped
      * @param minAmountOut Minimum amount of tokenOut willing to receive
+     * @param targetCall Target contract to execute the swap
+     * @param targetApproval Target contract to grant token in allowance before swap
      * @param data Calldata to be sent to the arbitrary target swapper
      */
     function execute(
-        address target,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
         uint256 minAmountOut,
+        address targetCall,
+        address targetApproval,
         bytes memory data
     ) external returns (uint256 amountOut);
 }

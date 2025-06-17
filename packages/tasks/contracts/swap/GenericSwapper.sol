@@ -85,24 +85,28 @@ contract GenericSwapper is IGenericSwapper, BaseSwapTask {
     /**
      * @dev Executes the Generic swapper
      */
-    function call(address tokenIn, uint256 amountIn, uint256 slippage, address target, bytes memory data)
-        external
-        override
-        authP(authParams(tokenIn, amountIn, slippage))
-    {
+    function call(
+        address tokenIn,
+        uint256 amountIn,
+        uint256 slippage,
+        address targetCall,
+        address targetApproval,
+        bytes memory data
+    ) external override authP(authParams(tokenIn, amountIn, slippage)) {
         if (amountIn == 0) amountIn = getTaskAmount(tokenIn);
-        _beforeGenericSwapper(tokenIn, amountIn, slippage, target);
+        _beforeGenericSwapper(tokenIn, amountIn, slippage, targetCall);
 
         address tokenOut = getTokenOut(tokenIn);
         uint256 price = _getPrice(tokenIn, tokenOut);
         uint256 minAmountOut = amountIn.mulUp(price).mulUp(FixedPoint.ONE - slippage);
         bytes memory connectorData = abi.encodeWithSelector(
             IGenericSwapConnector.execute.selector,
-            target,
             tokenIn,
             tokenOut,
             amountIn,
             minAmountOut,
+            targetCall,
+            targetApproval,
             data
         );
 

@@ -28,19 +28,21 @@ import '../interfaces/generic/IGenericSwapConnector.sol';
 contract GenericSwapConnector is IGenericSwapConnector {
     /**
      * @dev Executes a token swap with an arbitrary swapper contract
-     * @param target Target contract to execute the swap
      * @param tokenIn Token being sent
      * @param tokenOut Token being received
      * @param amountIn Amount of tokenIn being swapped
      * @param minAmountOut Minimum amount of tokenOut willing to receive
+     * @param targetCall Target contract to execute the swap
+     * @param targetApproval Target contract to grant token in allowance before swap
      * @param data Calldata to be sent to the arbitrary target swapper
      */
     function execute(
-        address target,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
         uint256 minAmountOut,
+        address targetCall,
+        address targetApproval,
         bytes memory data
     ) external returns (uint256 amountOut) {
         if (tokenIn == tokenOut) revert GenericSwapSameToken(tokenIn);
@@ -48,8 +50,8 @@ contract GenericSwapConnector is IGenericSwapConnector {
         uint256 preBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         uint256 preBalanceOut = IERC20(tokenOut).balanceOf(address(this));
 
-        ERC20Helpers.approve(tokenIn, target, amountIn);
-        Address.functionCall(target, data, 'GENERIC_SWAP_FAILED');
+        ERC20Helpers.approve(tokenIn, targetApproval, amountIn);
+        Address.functionCall(targetCall, data, 'GENERIC_SWAP_FAILED');
 
         uint256 postBalanceIn = IERC20(tokenIn).balanceOf(address(this));
         bool isPostBalanceInUnexpected = postBalanceIn < preBalanceIn - amountIn;
