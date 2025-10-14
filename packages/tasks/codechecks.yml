@@ -1,5 +1,0 @@
-name: Codechecks
-description: Run codechecks for gas reports
-
-checks:
-  - name: eth-gas-reporter/codechecks
