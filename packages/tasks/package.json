@@ -1,6 +1,6 @@
 {
   "name": "@mimic-fi/v3-tasks",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "license": "GPL-3.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -51,6 +51,8 @@
   },
   "eslintConfig": {
     "extends": "eslint-config-mimic",
-    "ignorePatterns": ["dist"]
+    "ignorePatterns": [
+      "dist"
+    ]
   }
 }
