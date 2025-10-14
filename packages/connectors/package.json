@@ -1,6 +1,6 @@
 {
   "name": "@mimic-fi/v3-connectors",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "license": "GPL-3.0",
   "files": [
     "artifacts/contracts/**/*",
